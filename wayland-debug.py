@@ -40,11 +40,12 @@ class WaylandMessage:
     def __str__(self):
         return 'Wayland message'
 
-def main():
+def main(input_file):
     while True:
-        line = sys.stdin.readline().strip()
+        line = input_file.readline()
         if line == '':
             break
+        line = line.strip() # be sure to strip after the empty check
         try:
             message = WaylandMessage(line)
             print(message)
@@ -54,16 +55,21 @@ def main():
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description=
-        'Debug Wayland protocol messages\n' +
-        'To use, pipe in the stderr of a Wayland server or client run with WAYLAND_DEBUG=1.\n' +
-        'full usage looks like this:\n' +
+        'Debug Wayland protocol messages. ' +
+        'To use, pipe in the stderr of a Wayland server or client run with WAYLAND_DEBUG=1. ' +
+        'full usage looks like: ' +
         ' $ ' + color('1;37', example_usage))
     parser.add_argument('-v', '--verbose', action='store_true', help='verbose output')
+    parser.add_argument('-f', '--file', type=str, help='Read Wayland events from the specified file instead of stdin')
     args = parser.parse_args()
 
     if args.verbose:
         verbose = True
         log('Verbose output enabled')
 
-    main()
+    input_file = sys.stdin
+    if args.file:
+        input_file = open(args.file)
+
+    main(input_file)
 
