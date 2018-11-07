@@ -224,7 +224,7 @@ class WaylandMessage:
         self.name = message_name
         self.args = message_args
 
-    def resolve_objects(self):
+    def resolve_objects(self, session):
         if self.obj.type == 'wl_registry' and self.name == 'bind':
             self.args[3].type = self.args[1].value
         if self.obj == WlObject.display and self.name == 'delete_id':
@@ -250,22 +250,37 @@ class WaylandMessage:
             destroyed +
             color(timestamp_color, ' ↲' if not self.sent else ''))
 
-def main(input_file, type_list, use_whitelist):
+class Session():
+    def __init__(self, input_file, types, use_whitelist):
+        self.messages = []
+        while True:
+            line = input_file.readline()
+            if line == '':
+                break
+            line = line.strip() # be sure to strip after the empty check
+            try:
+                message = WaylandMessage(line)
+                self.messages.append(message)
+                message.resolve_objects(self)
+                is_in_list = message.obj.type in types
+                if is_in_list == use_whitelist:
+                    print(message)
+            except RuntimeError as e:
+                if unparsable_output:
+                    print(color('37', ' ' * 10 + ' |  ' + line))
+
+def interactive(session, types, use_whitelist):
+    print('interactive')
+
+def main(file_path, type_list, use_whitelist):
     types = {i: True for i in type_list.split(',')}
-    while True:
-        line = input_file.readline()
-        if line == '':
-            break
-        line = line.strip() # be sure to strip after the empty check
-        try:
-            message = WaylandMessage(line)
-            message.resolve_objects()
-            is_in_list = message.obj.type in types
-            if is_in_list == use_whitelist:
-                print(message)
-        except RuntimeError as e:
-            if unparsable_output:
-                print(color('37', ' ' * 10 + ' |  ' + line))
+    if file_path:
+        file = open(file_path)
+        session = Session(file, {}, True)
+        file.close()
+        interactive(session, types, use_whitelist)
+    else:
+        Session(sys.stdin, types, use_whitelist)
 
 if __name__ == '__main__':
     import argparse
@@ -276,22 +291,19 @@ if __name__ == '__main__':
         ' $ ' + color('1;37', example_usage))
     parser.add_argument('-v', '--verbose', action='store_true', help='verbose output, mostly used for debugging this program')
     parser.add_argument('-f', '--file', type=str, help='Read Wayland events from the specified file instead of stdin')
-    parser.add_argument('-a', '--show-all', action='store_true', help='show output as-is if it can not be parsed, default is to filter it')
+    parser.add_argument('-t', '--show-trash', action='store_true', help='show output as-is if it can not be parsed, default is to filter it')
     parser.add_argument('-b', '--blacklist', type=str, help='comma seporated list (no spaces) of wayland types to hide')
     parser.add_argument('-w', '--whitelist', type=str, help='comma seporated list (no spaces) of wayland types to show (all objects are shown if not specified)')
+
     args = parser.parse_args()
 
     if args.verbose:
         verbose = True
         log('Verbose output enabled')
 
-    if args.show_all:
+    if args.show_trash:
         unparsable_output = True
         log('Showing unparsable output')
-
-    input_file = sys.stdin
-    if args.file:
-        input_file = open(args.file)
 
     use_whitelist = False
     type_list = ''
@@ -303,5 +315,5 @@ if __name__ == '__main__':
         type_list = args.whitelist
         use_whitelist = True
 
-    main(input_file, type_list, use_whitelist)
+    main(args.file, type_list, use_whitelist)
 
