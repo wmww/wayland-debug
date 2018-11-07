@@ -51,7 +51,7 @@ class WlObject:
         assert obj_id in WlObject.db, 'Id ' + str(obj_id) + ' of type ' + str(type_name) + ' not in object database'
         obj = WlObject.db[obj_id][-1]
         if not obj.alive:
-            warning(str(obj) + ' has been destroyed')
+            warning(str(obj) + ' used after destroyed')
         if type_name:
             if obj.type:
                 assert obj.type == type_name, 'Object of wrong type'
@@ -250,7 +250,8 @@ class WaylandMessage:
             destroyed +
             color(timestamp_color, ' ↲' if not self.sent else ''))
 
-def main(input_file):
+def main(input_file, type_list, use_whitelist):
+    types = {i: True for i in type_list.split(',')}
     while True:
         line = input_file.readline()
         if line == '':
@@ -259,7 +260,9 @@ def main(input_file):
         try:
             message = WaylandMessage(line)
             message.resolve_objects()
-            print(message)
+            is_in_list = message.obj.type in types
+            if is_in_list == use_whitelist:
+                print(message)
         except RuntimeError as e:
             if unparsable_output:
                 print(color('37', ' ' * 10 + ' |  ' + line))
@@ -274,6 +277,8 @@ if __name__ == '__main__':
     parser.add_argument('-v', '--verbose', action='store_true', help='verbose output, mostly used for debugging this program')
     parser.add_argument('-f', '--file', type=str, help='Read Wayland events from the specified file instead of stdin')
     parser.add_argument('-a', '--show-all', action='store_true', help='show output as-is if it can not be parsed, default is to filter it')
+    parser.add_argument('-b', '--blacklist', type=str, help='comma seporated list (no spaces) of wayland types to hide')
+    parser.add_argument('-w', '--whitelist', type=str, help='comma seporated list (no spaces) of wayland types to show (all objects are shown if not specified)')
     args = parser.parse_args()
 
     if args.verbose:
@@ -288,5 +293,15 @@ if __name__ == '__main__':
     if args.file:
         input_file = open(args.file)
 
-    main(input_file)
+    use_whitelist = False
+    type_list = ''
+    if args.blacklist:
+        type_list = args.blacklist
+    if args.whitelist:
+        if type_list:
+            warning('blacklist is ignored when a whitelist is provided')
+        type_list = args.whitelist
+        use_whitelist = True
+
+    main(input_file, type_list, use_whitelist)
 
