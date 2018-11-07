@@ -53,7 +53,7 @@ class WlObject:
             #    obj.type = type_name
         return obj
 
-    def __init__(self, obj_id, type_name, create_time):
+    def __init__(self, obj_id, type_name, parent_obj, create_time):
         assert(isinstance(obj_id, int))
         if not obj_id in self.db:
             self.db[obj_id] = []
@@ -61,6 +61,7 @@ class WlObject:
         self.db[obj_id].append(self)
         self.type = type_name
         self.id = obj_id
+        self.parent = parent_obj
         self.create_time = create_time
         self.destroy_time = None
         self.alive = True
@@ -75,7 +76,7 @@ class WlObject:
         assert self.db[self.id][self.generation] == self, 'Database corrupted'
         return color('1;37', str(self.id) + '.' + str(self.generation) + ':' + self.type_str())
 
-WlObject.display = WlObject(1, 'wl_display', 0)
+WlObject.display = WlObject(1, 'wl_display', None, 0)
 
 class WlArgs:
 
@@ -103,11 +104,11 @@ class WlArgs:
             self.type = type_name
             self.is_new = is_new
             self.resolved = False
-        def resolve(self, time):
+        def resolve(self, parent_obj, time):
             if self.resolved:
                 return True
             if self.is_new:
-                self.obj = WlObject(self.id, self.type, time)
+                self.obj = WlObject(self.id, self.type, parent_obj, time)
             else:
                 self.obj = WlObject.look_up_most_recent(self.id, self.type)
             del self.id
@@ -210,9 +211,11 @@ class WaylandMessage:
         self.args = message_args
 
     def resolve_objects(self):
+        if self.obj.type == 'wl_registry' and self.name == 'bind':
+            self.args[3].type = self.args[1].value
         for i in self.args:
             if isinstance(i, WlArgs.Object):
-                i.resolve(self.timestamp)
+                i.resolve(self.obj, self.timestamp)
 
     def __str__(self):
         s = None
