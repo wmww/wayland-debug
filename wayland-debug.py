@@ -19,6 +19,8 @@ example_usage = 'WAYLAND_DEBUG=1 server-or-client-program 2>&1 1>/dev/null | ' +
 # if string is not None, resets to normal at end
 def color(color, string):
     result = ''
+    if string == '':
+        return ''
     if color_output:
         if color:
             result += '\x1b[' + color + 'm'
@@ -146,6 +148,7 @@ class WaylandMessage:
         global base_time
         if base_time == None:
             base_time = abs_timestamp
+        self.sent = sent
         self.timestamp = abs_timestamp - base_time
         self.obj = WaylandObject(type_name, obj_id)
         self.name = message_name
@@ -154,10 +157,11 @@ class WaylandMessage:
     def __str__(self):
         s = None
         return (
-            color('37', '{:10.4f}'.format(self.timestamp)) + ' ' +
+            color('37', '{:10.4f}'.format(self.timestamp) + (' →  ' if self.sent else ' ') +
             str(self.obj) + ' ' +
             color(s, self.name + ' [') +
-            color(s, ', ').join([str(i) for i in self.args]) + color(s, ']'))
+            color(s, ', ').join([str(i) for i in self.args]) + color(s, ']')) +
+            color('37', ' ↲' if not self.sent else ''))
 
 def main(input_file):
     while True:
