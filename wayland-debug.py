@@ -42,7 +42,7 @@ class WaylandObject:
         self.id = obj_id
 
     def __str__(self):
-        return color('1;37', '(' + str(self.id) + ': ' + self.type + ')')
+        return color('1;37', str(self.id) + ':' + self.type)
 
 class WaylandFd:
     def __init__(self, val):
@@ -111,10 +111,11 @@ def parse_message_args(args_str):
     args = []
     start = 0
     i = 0
-    while i < len(args_str):
-        if args_str[i] == ',':
+    while i <= len(args_str):
+        if i == len(args_str) or args_str[i] == ',':
             arg = args_str[start:i].strip()
-            args.append(WaylandArgument(arg))
+            if (arg):
+                args.append(WaylandArgument(arg))
             start = i + 1
         elif args_str[i] == '"':
             i += 1
