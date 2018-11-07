@@ -34,6 +34,9 @@ def log(msg):
     if verbose:
         print(color('37', msg))
 
+def warning(msg):
+    print(color('1;33', 'Warning: ') + msg)
+
 class WlObject:
 
     # keys are ids, values are arrays of objects in the order they are created
@@ -44,7 +47,8 @@ class WlObject:
     def look_up_most_recent(obj_id, type_name = None):
         assert obj_id in WlObject.db, 'Id ' + str(obj_id) + ' of type ' + str(type_name) + ' not in object database'
         obj = WlObject.db[obj_id][-1]
-        assert obj.alive, 'Id ' + str(obj_id) + ' has been destroyed'
+        if not obj.alive:
+            warning('Id ' + str(obj_id) + ' has been destroyed')
         if type_name:
             if obj.type:
                 assert obj.type == type_name, 'Object of wrong type'
@@ -55,7 +59,9 @@ class WlObject:
 
     def __init__(self, obj_id, type_name, parent_obj, create_time):
         assert(isinstance(obj_id, int))
-        if not obj_id in self.db:
+        if obj_id in self.db:
+            assert not self.db[obj_id][-1].alive, 'Tried to create an object with the same ID as an existing one'
+        else:
             self.db[obj_id] = []
         self.generation = len(self.db[obj_id])
         self.db[obj_id].append(self)
@@ -65,6 +71,10 @@ class WlObject:
         self.create_time = create_time
         self.destroy_time = None
         self.alive = True
+
+    def destroy(self, time):
+        self.destroy_time = None
+        self.alive = False
 
     def type_str(self):
         if self.type:
@@ -194,6 +204,7 @@ class WaylandMessage:
                 'Could not parse "' + raw + '" as Wayland debug message' +
                 (' (' + str(len(matches)) + ' regex matches)' if len(matches) > 1 else ''))
         match = matches[0]
+        assert isinstance(match, tuple), repr(match)
         abs_timestamp = float(match[0]) / 1000.0
         global base_time
         if base_time == None:
@@ -213,6 +224,9 @@ class WaylandMessage:
     def resolve_objects(self):
         if self.obj.type == 'wl_registry' and self.name == 'bind':
             self.args[3].type = self.args[1].value
+        if self.obj == WlObject.display and self.name == 'delete_id':
+            self.destroyed_obj = WlObject.look_up_most_recent(self.args[0].value, None)
+            self.destroyed_obj.destroy(self.timestamp)
         for i in self.args:
             if isinstance(i, WlArgs.Object):
                 i.resolve(self.obj, self.timestamp)
@@ -224,6 +238,7 @@ class WaylandMessage:
             str(self.obj) + ' ' +
             color(s, self.name + ' [') +
             color(s, ', ').join([str(i) for i in self.args]) + color(s, ']')) +
+            (' (' + color('1;31', 'destroyed ') + str(self.destroyed_obj) + ')' if hasattr(self, 'destroyed_obj') else '') +
             color('37', ' ↲' if not self.sent else ''))
 
 def main(input_file):
