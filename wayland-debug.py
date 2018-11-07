@@ -10,6 +10,9 @@ base_time = None
 
 # if we print with colors and such
 color_output = hasattr(sys.stdout, 'isatty') and sys.stdout.isatty()
+timestamp_color = '37'
+object_color = '1;37'
+message_color = None
 
 program_name = 'wayland-debug'
 example_usage = 'WAYLAND_DEBUG=1 server-or-client-program 2>&1 1>/dev/null | ' + program_name
@@ -48,7 +51,7 @@ class WlObject:
         assert obj_id in WlObject.db, 'Id ' + str(obj_id) + ' of type ' + str(type_name) + ' not in object database'
         obj = WlObject.db[obj_id][-1]
         if not obj.alive:
-            warning('Id ' + str(obj_id) + ' has been destroyed')
+            warning(str(obj) + ' has been destroyed')
         if type_name:
             if obj.type:
                 assert obj.type == type_name, 'Object of wrong type'
@@ -84,7 +87,7 @@ class WlObject:
 
     def __str__(self):
         assert self.db[self.id][self.generation] == self, 'Database corrupted'
-        return color('1;37', str(self.id) + '.' + str(self.generation) + ':' + self.type_str())
+        return color('1;37', self.type_str() + '@' + str(self.id) + '.' + str(self.generation))
 
 WlObject.display = WlObject(1, 'wl_display', None, 0)
 
@@ -232,14 +235,20 @@ class WaylandMessage:
                 i.resolve(self.obj, self.timestamp)
 
     def __str__(self):
-        s = None
+        destroyed = ''
+        if hasattr(self, 'destroyed_obj'):
+            destroyed = (
+                color(timestamp_color, ' [') +
+                color('1;31', 'destroyed ') +
+                str(self.destroyed_obj) +
+                color(timestamp_color, ']'))
         return (
             color('37', '{:10.4f}'.format(self.timestamp) + (' →  ' if self.sent else ' ') +
             str(self.obj) + ' ' +
-            color(s, self.name + ' [') +
-            color(s, ', ').join([str(i) for i in self.args]) + color(s, ']')) +
-            (' (' + color('1;31', 'destroyed ') + str(self.destroyed_obj) + ')' if hasattr(self, 'destroyed_obj') else '') +
-            color('37', ' ↲' if not self.sent else ''))
+            color(message_color, self.name + '(') +
+            color(message_color, ', ').join([str(i) for i in self.args]) + color(message_color, ')')) +
+            destroyed +
+            color(timestamp_color, ' ↲' if not self.sent else ''))
 
 def main(input_file):
     while True:
