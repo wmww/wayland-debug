@@ -44,18 +44,54 @@ class WaylandObject:
 
 class WaylandArgument:
     def __init__(self, value_str):
-        self.value = value_str
+        int_matches = re.findall('^-?\d+$', value_str)
+        if int_matches:
+            self.value = int(value_str)
+            return
+        str_matches = re.findall('^"(.*)"$', value_str)
+        if str_matches:
+            self.value = str_matches[0]
+            return
+        new_id_matches = re.findall('^new id (\w+)@(\d+)$', value_str)
+        if new_id_matches:
+            self.value = WaylandObject(new_id_matches[0][0], int(new_id_matches[0][1]))
+            self.is_new = True
+            return
+        obj_matches = re.findall('^(\w+)@(\d+)$', value_str)
+        if obj_matches:
+            self.value = WaylandObject(obj_matches[0][0], int(obj_matches[0][1]))
+            self.is_new = False
+            return
+        else:
+            self.value = None
+            self.value_str = value_str
 
     def __str__(self):
         if isinstance(self.value, int):
             return color('1;35', str(self.value))
         elif isinstance(self.value, str):
             return color('1;33', repr(self.value))
+        elif isinstance(self.value, WaylandObject):
+            return (color('1;32', 'new ') if self.is_new else '') + color('1;33', str(self.value))
         else:
-            return color('1;31', type(self.value).__name__ + ': ' + repr(self.value))
+            return color('1;31', repr(self.value) if self.value else repr(self.value_str))
 
 def parse_message_args(args_str):
-    args = [WaylandArgument(i.strip()) for i in args_str.split(',') if i]
+    args = []
+    start = 0
+    i = 0
+    while i < len(args_str):
+        if args_str[i] == ',':
+            arg = args_str[start:i].strip()
+            args.append(WaylandArgument(arg))
+            start = i + 1
+        elif args_str[i] == '"':
+            i += 1
+            while args_str[i] != '"':
+                if args_str[i] == '\\':
+                    i += 1
+                i += 1
+        i += 1
     return args
 
 class WaylandMessage:
