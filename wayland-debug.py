@@ -324,20 +324,30 @@ class Matcher:
                     ')')
             self.type = obj_name_matches[0]
         self.obj = None
+        self.obj_id = None # Only set if self.obj is None
+        self.obj_generation = None # Only set if self.obj is None
         if obj_id:
             try:
                 if obj_generation:
                     self.obj = WlObject.look_up_specific(obj_id, obj_generation, self.type)
                 else:
-                    self.obj = WlObject.look_most_recent(obj_id, self.type)
+                    self.obj = WlObject.look_up_most_recent(obj_id, self.type)
             except AssertionError as e:
-                raise RuntimeError('Invalid object specified: ' + str(e))
+                self.obj_id = obj_id
+                self.obj_generation = obj_generation
 
     def _matches_obj(self, obj):
         if self.obj:
             return obj == self.obj
         else:
-            return str_matches(self.type, obj.type)
+            if self.obj_id and self.obj_id != obj.id:
+                return False
+            elif self.obj_generation and self.obj_generation != obj.generation:
+                return False
+            elif self.type and not str_matches(self.type, obj.type):
+                return False
+            else:
+                return True
 
     def _matches_message(self, message):
         if self.messages == None:
