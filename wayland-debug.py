@@ -40,6 +40,12 @@ def log(msg):
 def warning(msg):
     print(color('1;33', 'Warning: ') + msg)
 
+def str_matches(pattern, txt):
+    pattern = re.escape(pattern)
+    pattern = pattern.replace('\*', '.*')
+    pattern = '^' + pattern + '$'
+    return len(re.findall(pattern, txt)) == 1
+
 class WlObject:
 
     # keys are ids, values are arrays of objects in the order they are created
@@ -47,23 +53,30 @@ class WlObject:
     display = None
     registry = None
 
-    def look_up_most_recent(obj_id, type_name = None):
+    def look_up_specific(obj_id, obj_generation, type_name = None):
         assert obj_id in WlObject.db, 'Id ' + str(obj_id) + ' of type ' + str(type_name) + ' not in object database'
-        obj = WlObject.db[obj_id][-1]
-        if not obj.alive:
-            warning(str(obj) + ' used after destroyed')
+        assert obj_generation >= 0 and len(WlObject.db[obj_id]) > obj_generation, (
+            'Invalid generation ' + str(obj_generation) + ' for id ' + str(obj_id))
+        obj = WlObject.db[obj_id][obj_generation]
         if type_name:
             if obj.type:
-                assert obj.type == type_name, 'Object of wrong type'
-            # Should work but is not needed
-            # else:
-            #    obj.type = type_name
+                assert str_matches(type_name, obj.type), str(obj) + ' expected to be of type ' + type_name
+        return obj
+
+    def look_up_most_recent(obj_id, type_name = None):
+        obj_generation = 0
+        if obj_id in WlObject.db:
+            obj_generation = len(WlObject.db[obj_id]) - 1
+        obj = WlObject.look_up_specific(obj_id, obj_generation, type_name)
+        if not obj.alive:
+            warning(str(obj) + ' used after destroyed')
         return obj
 
     def __init__(self, obj_id, type_name, parent_obj, create_time):
         assert(isinstance(obj_id, int))
         if obj_id in self.db:
-            assert not self.db[obj_id][-1].alive, 'Tried to create an object with the same ID as an existing one'
+            last_obj = self.db[obj_id][-1]
+            assert not last_obj.alive, 'Tried to create object of type ' + type_name + ' with the same id as ' + str(last_obj)
         else:
             self.db[obj_id] = []
         self.generation = len(self.db[obj_id])
@@ -193,7 +206,7 @@ class WlArgs:
             i += 1
         return args
 
-class WaylandMessage:
+class WlMessage:
     def __init__(self, raw):
         timestamp_regex = '\[(\d+\.\d+)\]'
         message_regex = '(\w+)@(\d+)\.(\w+)\((.*)\)$'
@@ -251,7 +264,7 @@ class WaylandMessage:
             color(timestamp_color, ' ↲' if not self.sent else ''))
 
 class Session():
-    def __init__(self, input_file, types, use_whitelist):
+    def __init__(self, input_file, matcher):
         self.messages = []
         while True:
             line = input_file.readline()
@@ -259,28 +272,118 @@ class Session():
                 break
             line = line.strip() # be sure to strip after the empty check
             try:
-                message = WaylandMessage(line)
+                message = WlMessage(line)
                 self.messages.append(message)
                 message.resolve_objects(self)
-                is_in_list = message.obj.type in types
-                if is_in_list == use_whitelist:
+                if matcher.matches(message):
                     print(message)
             except RuntimeError as e:
                 if unparsable_output:
                     print(color('37', ' ' * 10 + ' |  ' + line))
 
-def interactive(session, types, use_whitelist):
-    print('interactive')
+def interactive(session, matcher):
+    for i in session.messages:
+        if matcher.matches(i):
+            print(i)
 
-def main(file_path, type_list, use_whitelist):
-    types = {i: True for i in type_list.split(',')}
+class Matcher:
+
+    def __init__(self, matcher):
+        split_matches = re.findall('^([^\[]+)(\[\s*(.*)\])?$', matcher) # split the object matcher and the list of method matchers
+        if len(split_matches) != 1:
+            raise RuntimeError(
+                'Failed to parse structure of matcher, ' +
+                'should be in the form \'object_matcher\' or \'object_matcher[list_of_message_matchers]\'')
+        obj_matcher = split_matches[0][0] # the object portion
+        self._parse_obj_matcher(obj_matcher)
+        message_matchers = split_matches[0][1] # the list of message matchers, can be an empty string
+        self.messages = None
+        if message_matchers:
+            self.messages = re.findall('[\w\*]+', message_matchers)
+
+    def _parse_obj_matcher(self, matcher):
+        id_matches = re.findall('(^|[^\w\.-])(\d+)(\.(\d+))?', matcher)
+        obj_id = None
+        obj_generation = None
+        if id_matches:
+            if len(id_matches) > 1:
+                raise RuntimeError(
+                    'Found multiple object IDs (' +
+                    ', '.join(i[1] + ('.' + i[3] if i[3] else '') for i in id_matches) +
+                    ')')
+            obj_id = int(id_matches[0][1])
+            if id_matches[0][3]:
+                obj_generation = id_matches[0][3]
+        obj_name_matches = re.findall('([a-zA-Z\*][\w\*-]*)', matcher)
+        self.type = None
+        if obj_name_matches:
+            if len(obj_name_matches) > 1:
+                raise RuntimeError(
+                    'Found multiple object type names (' +
+                    ', '.join(i for i in obj_name_matches) +
+                    ')')
+            self.type = obj_name_matches[0]
+        self.obj = None
+        if obj_id:
+            try:
+                if obj_generation:
+                    self.obj = WlObject.look_up_specific(obj_id, obj_generation, self.type)
+                else:
+                    self.obj = WlObject.look_most_recent(obj_id, self.type)
+            except AssertionError as e:
+                raise RuntimeError('Invalid object specified: ' + str(e))
+
+    def _matches_obj(self, obj):
+        if self.obj:
+            return obj == self.obj
+        else:
+            return str_matches(self.type, obj.type)
+
+    def _matches_message(self, message):
+        if self.messages == None:
+            return True
+        for i in self.messages:
+            if str_matches(i, message.name):
+                return True
+        return False
+
+    def matches(self, item):
+        if isinstance(item, WlObject):
+            return _matches_obj(item)
+        elif isinstance(item, WlMessage):
+            return self._matches_obj(item.obj) and self._matches_message(item)
+        else:
+            raise TypeError()
+
+class MatcherCollection:
+    def __init__(self, matchers, is_whitelist):
+        self.matchers = []
+        self.is_whitelist = is_whitelist
+        for i in re.findall('([^\s;:,\[\]]+(\s*\[(.*)\])?)', matchers):
+            try:
+                self.matchers.append(Matcher(i[0]))
+            except RuntimeError as e:
+                warning('Failed to parse \'' + i[0] + '\': ' + str(e))
+
+    def matches(self, item):
+        found = False
+        for i in self.matchers:
+            if i.matches(item):
+                found = True
+        return found == self.is_whitelist
+
+    def match_none_matcher():
+        return MatcherCollection('', True)
+
+def main(file_path, matcher):
     if file_path:
         file = open(file_path)
-        session = Session(file, {}, True)
+        session = Session(file, MatcherCollection.match_none_matcher())
+        # session = Session(file, matcher)
         file.close()
-        interactive(session, types, use_whitelist)
+        interactive(session, matcher)
     else:
-        Session(sys.stdin, types, use_whitelist)
+        Session(sys.stdin, matcher)
 
 if __name__ == '__main__':
     import argparse
@@ -292,8 +395,8 @@ if __name__ == '__main__':
     parser.add_argument('-v', '--verbose', action='store_true', help='verbose output, mostly used for debugging this program')
     parser.add_argument('-f', '--file', type=str, help='Read Wayland events from the specified file instead of stdin')
     parser.add_argument('-t', '--show-trash', action='store_true', help='show output as-is if it can not be parsed, default is to filter it')
-    parser.add_argument('-b', '--blacklist', type=str, help='comma seporated list (no spaces) of wayland types to hide')
-    parser.add_argument('-w', '--whitelist', type=str, help='comma seporated list (no spaces) of wayland types to show (all objects are shown if not specified)')
+    parser.add_argument('-b', '--blacklist', type=str, help='colon seporated list (no spaces) of wayland types to hide. you can also put a comma seporated list of messages to hide in brackets after the type. example: type_a:type_b[message_a,message_b]')
+    parser.add_argument('-w', '--whitelist', type=str, help='only show these objects (all objects are shown if not specified). same syntax as blacklist')
 
     args = parser.parse_args()
 
@@ -306,14 +409,15 @@ if __name__ == '__main__':
         log('Showing unparsable output')
 
     use_whitelist = False
-    type_list = ''
+    matcher_list = ''
     if args.blacklist:
-        type_list = args.blacklist
+        matcher_list = args.blacklist
     if args.whitelist:
-        if type_list:
+        if matcher_list:
             warning('blacklist is ignored when a whitelist is provided')
-        type_list = args.whitelist
+        matcher_list = args.whitelist
         use_whitelist = True
 
-    main(args.file, type_list, use_whitelist)
+    matcher = MatcherCollection(matcher_list, use_whitelist)
+    main(args.file, matcher)
 
