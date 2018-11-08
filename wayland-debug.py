@@ -68,8 +68,10 @@ class WlObject:
         if obj_id in WlObject.db:
             obj_generation = len(WlObject.db[obj_id]) - 1
         obj = WlObject.look_up_specific(obj_id, obj_generation, type_name)
-        if not obj.alive:
-            warning(str(obj) + ' used after destroyed')
+        # This *would* be a useful warning, except somehow callback.done, delete(callback) (though sent in the right
+        # order), arrive to the client in the wrong order. I don't know a better workaround then just turning off the check
+        # if not obj.alive:
+        #    warning(str(obj) + ' used after destroyed')
         return obj
 
     def __init__(self, obj_id, type_name, parent_obj, create_time):
