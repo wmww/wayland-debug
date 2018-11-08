@@ -236,6 +236,7 @@ class WlMessage:
         self.obj = WlObject.look_up_most_recent(obj_id, type_name)
         self.name = message_name
         self.args = message_args
+        self.destroyed_obj = None
 
     def resolve_objects(self, session):
         if self.obj.type == 'wl_registry' and self.name == 'bind':
@@ -247,9 +248,21 @@ class WlMessage:
             if isinstance(i, WlArgs.Object):
                 i.resolve(self.obj, self.timestamp)
 
+    def used_objects(self):
+        result = []
+        for i in self.args:
+            if isinstance(i, WlArgs.Object):
+                if i.resolved:
+                    result.append(i.obj)
+                else:
+                    warning('used_objects() called on message with unresolved object')
+        if self.destroyed_obj:
+            result.append(self.destroyed_obj)
+        return result
+
     def __str__(self):
         destroyed = ''
-        if hasattr(self, 'destroyed_obj'):
+        if self.destroyed_obj:
             destroyed = (
                 color(timestamp_color, ' [') +
                 color('1;31', 'destroyed ') +
@@ -288,7 +301,7 @@ def interactive(session, matcher):
 
 class Matcher:
 
-    def __init__(self, matcher):
+    def __init__(self, matcher, match_when_used):
         split_matches = re.findall('^([^\[]+)(\[\s*(.*)\])?$', matcher) # split the object matcher and the list of method matchers
         if len(split_matches) != 1:
             raise RuntimeError(
@@ -300,6 +313,7 @@ class Matcher:
         self.messages = None
         if message_matchers:
             self.messages = re.findall('[\w\*]+', message_matchers)
+        self.match_when_used = match_when_used
 
     def _parse_obj_matcher(self, matcher):
         id_matches = re.findall('(^|[^\w\.-])(\d+)(\.(\d+))?', matcher)
@@ -350,6 +364,16 @@ class Matcher:
                 return True
 
     def _matches_message(self, message):
+        if not self._matches_obj(message.obj):
+            if not self.match_when_used:
+                return False
+            found_match = False
+            for i in message.used_objects():
+                if self._matches_obj(i):
+                    found_match = True
+                    break
+            if not found_match:
+                return False
         if self.messages == None:
             return True
         for i in self.messages:
@@ -361,7 +385,7 @@ class Matcher:
         if isinstance(item, WlObject):
             return _matches_obj(item)
         elif isinstance(item, WlMessage):
-            return self._matches_obj(item.obj) and self._matches_message(item)
+            return self._matches_message(item)
         else:
             raise TypeError()
 
@@ -371,7 +395,7 @@ class MatcherCollection:
         self.is_whitelist = is_whitelist
         for i in re.findall('([^\s;:,\[\]]+(\s*\[(.*)\])?)', matchers):
             try:
-                self.matchers.append(Matcher(i[0]))
+                self.matchers.append(Matcher(i[0], is_whitelist))
             except RuntimeError as e:
                 warning('Failed to parse \'' + i[0] + '\': ' + str(e))
 
@@ -405,8 +429,14 @@ if __name__ == '__main__':
     parser.add_argument('-v', '--verbose', action='store_true', help='verbose output, mostly used for debugging this program')
     parser.add_argument('-f', '--file', type=str, help='Read Wayland events from the specified file instead of stdin')
     parser.add_argument('-t', '--show-trash', action='store_true', help='show output as-is if it can not be parsed, default is to filter it')
-    parser.add_argument('-b', '--blacklist', type=str, help='colon seporated list (no spaces) of wayland types to hide. you can also put a comma seporated list of messages to hide in brackets after the type. example: type_a:type_b[message_a,message_b]')
-    parser.add_argument('-w', '--whitelist', type=str, help='only show these objects (all objects are shown if not specified). same syntax as blacklist')
+    parser.add_argument('-b', '--blacklist', type=str, help=
+        'colon seporated list (no spaces) of wayland types to hide.' +
+        'you can also put a comma seporated list of messages to hide in brackets after the type. ' +
+        'example: type_a:type_b[message_a,message_b]')
+    parser.add_argument('-w', '--whitelist', type=str, help=
+        'only show these objects (all objects are shown if not specified). ' +
+        'messages that reference these objects will also be shown, and the optional message list is used to filter those as well.' +
+        'same syntax as blacklist')
 
     args = parser.parse_args()
 
