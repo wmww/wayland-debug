@@ -395,7 +395,7 @@ class MatcherCollection:
     def __init__(self, matchers, is_whitelist):
         self.matchers = []
         self.is_whitelist = is_whitelist
-        for i in re.findall('([^\s;:,\[\]]+(\s*\[(.*)\])?)', matchers):
+        for i in re.findall('([^\s;:,\[\]]+(\s*\[([^\]]*)\])?)', matchers):
             try:
                 self.matchers.append(Matcher(i[0], is_whitelist))
             except RuntimeError as e:
