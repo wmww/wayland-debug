@@ -8,8 +8,7 @@ import matcher as wl_matcher
 import session as wl_session
 import parse_wl_debug as parse
 
-program_name = 'wayland-debug'
-example_usage = 'WAYLAND_DEBUG=1 server-or-client-program 2>&1 1>/dev/null | ' + program_name
+example_usage = 'WAYLAND_DEBUG=1 program 2>&1 1>/dev/null | ' + sys.argv[0]
 
 def piped_input_main(matcher, show_unparsable_output):
     session = wl_session.Session(matcher)
@@ -33,40 +32,39 @@ def main():
         'full usage looks like: ' +
         ' $ ' + color('1;37', example_usage))
     parser.add_argument('-v', '--verbose', action='store_true', help='verbose output, mostly used for debugging this program')
-    parser.add_argument('-f', '--file', type=str, help='Read Wayland events from the specified file instead of stdin')
-    parser.add_argument('-t', '--show-trash', action='store_true', help='show output as-is if it can not be parsed, default is to filter it')
-    parser.add_argument('-b', '--blacklist', type=str, help=
-        'colon seporated list (no spaces) of wayland types to hide.' +
-        'you can also put a comma seporated list of messages to hide in brackets after the type. ' +
-        'example: type_a:type_b[message_a,message_b]')
-    parser.add_argument('-w', '--whitelist', type=str, help=
-        'only show these objects (all objects are shown if not specified). ' +
-        'messages that reference these objects will also be shown, and the optional message list is used to filter those as well.' +
-        'same syntax as blacklist')
-
+    parser.add_argument('-l', '--load', type=str, help='Load Wayland events from a file instead of stdin')
+    parser.add_argument('-a', '--all', action='store_true', help='show output that can\'t be parsed as Wayland events')
+    parser.add_argument('-f', '--filter', type=str, help='only show these objects/messages (see --matcher-help for syntax)')
+    parser.add_argument('-F', '--filter-out', type=str, help='don\'t show these objects/messages (see --matcher-help for syntax)')
+    parser.add_argument('--matcher-help', action='store_true', help='show how to write matchers used by filter and quit')
+    
     args = parser.parse_args()
 
     if args.verbose:
         verbose = True
         log('Verbose output enabled')
 
+    if args.matcher_help:
+        wl_matcher.print_help()
+        exit(1)
+
     show_unparsable_output = False
-    if args.show_trash:
+    if args.all:
         show_unparsable_output = True
         log('Showing unparsable output')
 
     use_whitelist = False
     matcher_list = ''
-    if args.blacklist:
-        matcher_list = args.blacklist
-    if args.whitelist:
+    if args.filter_out:
+        matcher_list = args.filter_out
+    if args.filter:
         if matcher_list:
-            warning('blacklist is ignored when a whitelist is provided')
-        matcher_list = args.whitelist
+            warning('filter-out is ignored when a filter is provided')
+        matcher_list = args.filter
         use_whitelist = True
 
     matcher = wl_matcher.Collection(matcher_list, use_whitelist)
-    file_path = args.file
+    file_path = args.load
 
     if file_path:
         file_input_main(file_path, matcher, show_unparsable_output)

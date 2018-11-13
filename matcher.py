@@ -2,9 +2,44 @@ import re
 
 import wl_data as wl
 from util import *
+import argparse # only used for line wrapping in the help
+
+def print_help():
+#                                                                          |
+    print('''
+Matchers are used throught the program to show and hide messages. A matcher
+consists of a comma seporated list of objects. An object is a type name,
+and/or an object ID (in which case a generation can also be specified). An
+@ goes inbetween the name and ID, and is optional if both are not specified.
+A * can be used as a wildcard in type names.''')
+    print()
+    print('Examples of objects:')
+    for i in [
+            ('wl_surface  ', 'any wl_surface'),
+            ('@5          ', 'the object with ID 5 (@ is optional)'),
+            ('@4.12       ', 'the 12th object with ID 4 (@ is optional)'),
+            ('wl_surface@6', 'the object with ID 7, which is asserted to be a wl_surface'),
+            ('xdg_*@3.2   ', 'the 2nd object with ID 3, which is some sort of XDG type')]:
+        print('  ' + color('1;37', i[0]) + ' - Matches ' + i[1])
+#                                                                          |
+    print('''
+Matchers can optionally be followed by a brace enclosed, comma seporated
+list of messages. If the object is referenced by a message, it will match
+even if the message is not called on that object. Messages can have
+wildcards too.''')
+    print()
+    print('Examples of messages:')
+    for i in [
+            ('wl_surface[commit]  ', 'commit messages on wl_surfaces'),
+            ('@6.2[motion,button] ', 'motion or button messages on the 2nd object with ID 6'),
+            ('*_surface[delete_id]', 'delete_id messages on any sort of surface (this works\n' +
+             '                         even though the messages themselves are called on the wl_display)')]:
+        print('  ' + color('1;37', i[0]) + ' - Matches ' + i[1])
+    print()
+    print('A complete example of a matcher could look something like:')
+    print(color('1;37', '  wl_surface[delete_id,commit],*[destroy],@3.2'))
 
 class Matcher:
-
     def __init__(self, matcher, match_when_used):
         split_matches = re.findall('^([^\[]+)(\[\s*(.*)\])?$', matcher) # split the object matcher and the list of method matchers
         if len(split_matches) != 1:
