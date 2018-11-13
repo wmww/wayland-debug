@@ -115,17 +115,20 @@ class Arg:
 class Message:
     base_time = None
 
-    def __init__(self, abs_time, obj, sent, name, args):
+    def __init__(self, abs_time, obj_id, type_name, sent, name, args):
         if Message.base_time == None:
             Message.base_time = abs_time
         self.timestamp = abs_time - Message.base_time
-        self.obj = obj
+        self.obj = None
+        self.obj_id = obj_id
+        self.type_name = type_name
         self.sent = sent
         self.name = name
         self.args = args
         self.destroyed_obj = None
 
     def resolve_objects(self, session):
+        self.obj = Object.look_up_most_recent(self.obj_id, self.type_name)
         if self.obj.type == 'wl_registry' and self.name == 'bind':
             self.args[3].type = self.args[1].value
         if self.obj == Object.display and self.name == 'delete_id':

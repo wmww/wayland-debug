@@ -2,6 +2,7 @@ import re
 
 import wl_data as wl
 import session
+from util import *
 
 def argument(value_str):
     int_matches = re.findall('^-?\d+$', value_str)
@@ -70,20 +71,30 @@ def message(raw):
     message_name = match[3]
     message_args_str = match[4]
     message_args = argument_list(message_args_str)
-    obj = wl.Object.look_up_most_recent(obj_id, type_name)
-    return wl.Message(abs_timestamp, obj, sent, message_name, message_args)
+    return wl.Message(abs_timestamp, obj_id, type_name, sent, message_name, message_args)
+
+def show_raw_line(line):
+    print(color('37', ' ' * 10 + ' |  ' + line))
 
 def file(input_file, session, show_unparseable_output):
+    parse = True
     while True:
         line = input_file.readline()
         if line == '':
             break
         line = line.strip() # be sure to strip after the empty check
         try:
-            session.message(message(line))
+            msg = message(line)
+            if parse:
+                session.message(msg)
         except RuntimeError as e:
             if show_unparseable_output:
-                print(color('37', ' ' * 10 + ' |  ' + line))
+                show_raw_line(line)
+        except:
+            import traceback
+            traceback.print_exc()
+            warning('Parsing failed')
+            parse = False
 
 if __name__ == '__main__':
     print('File meant to be imported, not run')
