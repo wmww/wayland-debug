@@ -5,34 +5,27 @@ import re
 
 from util import *
 import matcher as wl_matcher
-import wl_data as wl
 import session as wl_session
 import parse_wl_debug as parse
-
-unparsable_output = False
-
-base_time = None
 
 program_name = 'wayland-debug'
 example_usage = 'WAYLAND_DEBUG=1 server-or-client-program 2>&1 1>/dev/null | ' + program_name
 
-def interactive(session, matcher):
-    for i in session.messages:
-        if matcher.matches(i):
-            print(i)
+def piped_input_main(matcher, show_unparsable_output):
+    session = wl_session.Session(matcher)
+    parse.file(sys.stdin, session, show_unparsable_output)
 
-def main(file_path, matcher):
-    if file_path:
-        input_file = open(file_path)
-        session = wl_session.Session(wl_matcher.Collection.match_none_matcher())
-        parse.file(input_file, session, unparsable_output)
-        input_file.close()
-        interactive(session, matcher)
-    else:
-        session = wl_session.Session(matcher)
-        parse.file(sys.stdin, session, unparsable_output)
+def file_input_main(file_path, matcher, show_unparsable_output):
+    log('Opening ' + file_path)
+    input_file = open(file_path)
+    session = wl_session.Session(wl_matcher.Collection.match_none_matcher())
+    log('Parsing messages')
+    parse.file(input_file, session, show_unparsable_output)
+    input_file.close()
+    session.print_messages(matcher)
+    log('Done')
 
-if __name__ == '__main__':
+def main():
     import argparse
     parser = argparse.ArgumentParser(description=
         'Debug Wayland protocol messages. ' +
@@ -57,8 +50,9 @@ if __name__ == '__main__':
         verbose = True
         log('Verbose output enabled')
 
+    show_unparsable_output = False
     if args.show_trash:
-        unparsable_output = True
+        show_unparsable_output = True
         log('Showing unparsable output')
 
     use_whitelist = False
@@ -72,5 +66,18 @@ if __name__ == '__main__':
         use_whitelist = True
 
     matcher = wl_matcher.Collection(matcher_list, use_whitelist)
-    main(args.file, matcher)
+    file_path = args.file
+
+    if file_path:
+        file_input_main(file_path, matcher, show_unparsable_output)
+    else:
+        piped_input_main(matcher, show_unparsable_output)
+
+def is_in_gdb():
+    import importlib
+    loader = importlib.find_loader('gdb')
+    return loader is not None
+
+if __name__ == '__main__':
+    main()
 

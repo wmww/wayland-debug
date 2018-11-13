@@ -9,6 +9,11 @@ class Session():
         if self.matcher.matches(message):
             print(message)
 
+    def print_messages(self, matcher):
+        for i in self.messages:
+            if matcher.matches(i):
+                print(i)
+
 if __name__ == '__main__':
     print('File meant to be imported, not run')
     exit(1)
