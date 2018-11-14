@@ -11,6 +11,11 @@ def proxy_to_str(proxy):
     proxy_class = proxy['object']['interface']['name'].string()
     return str(proxy_class) + '@' + str(int(proxy_id))
 
+def process_closure(closure):
+    proxy = closure['proxy']
+    message_name = closure['message']['name'].string()
+    gdb.write('event: ' + proxy_to_str(proxy) + '.' + message_name + '\n')
+
 class WlProxyCreateBp(gdb.Breakpoint):
     def __init__(self):
         super().__init__('wl_proxy_create')
@@ -23,7 +28,8 @@ class WlProxyMarshalBp(gdb.Breakpoint):
         super().__init__('wl_proxy_marshal')
     def stop(self):
         proxy = gdb.selected_frame().read_var('proxy')
-        gdb.write('wl_proxy_marshal(proxy: ' + proxy_to_str(proxy) + ')\n')
+        opcode = int(gdb.selected_frame().read_var('opcode'))
+        gdb.write('wl_proxy_marshal(proxy: ' + proxy_to_str(proxy) + ', opcode: ' + str(opcode) + ')\n')
         return False
 
 class WlProxyMarshalConstructorBp(gdb.Breakpoint):
@@ -32,7 +38,24 @@ class WlProxyMarshalConstructorBp(gdb.Breakpoint):
     def stop(self):
         # return True
         proxy = gdb.selected_frame().read_var('proxy')
-        gdb.write('wl_proxy_marshal_constructor(proxy: ' + proxy_to_str(proxy) + ')\n')
+        opcode = int(gdb.selected_frame().read_var('opcode'))
+        gdb.write('wl_proxy_marshal_constructor(proxy: ' + proxy_to_str(proxy) + ', opcode: ' + str(opcode) + ')\n')
+        return False
+
+class WlClosureInvokeBp(gdb.Breakpoint):
+    def __init__(self):
+        super().__init__('wl_closure_invoke')
+    def stop(self):
+        closure = gdb.selected_frame().read_var('closure')
+        process_closure(closure)
+        return False
+
+class WlClosureDispatchBp(gdb.Breakpoint):
+    def __init__(self):
+        super().__init__('wl_closure_dispatch')
+    def stop(self):
+        closure = gdb.selected_frame().read_var('closure')
+        process_closure(closure)
         return False
 
 def main(matcher):
@@ -40,5 +63,7 @@ def main(matcher):
     WlProxyCreateBp()
     WlProxyMarshalBp()
     WlProxyMarshalConstructorBp()
+    WlClosureInvokeBp()
+    WlClosureDispatchBp()
     gdb.write('breakpoints: ' + repr(gdb.breakpoints()) + '\n')
     gdb.write('GDB main\n')
