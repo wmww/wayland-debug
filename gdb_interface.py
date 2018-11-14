@@ -1,11 +1,14 @@
 import gdb
 import wl_data as wl
 import session as wl_session
+import matcher as wl_matcher
 
 # # libwayland client functions
 # wl_proxy_marshal
 # wl_proxy_destroy
 # wl_proxy_marshal_constructor
+
+break_matcher = None
 
 def gdb_is_null(val):
     return str(val) == '0x0'
@@ -63,6 +66,7 @@ def process_closure(session, closure, send):
 
     message = wl.Message(0, obj_id, proxy_class, send, message_name, args)
     session.message(message)
+    return message
 
 class WlClosureCallBreakpoint(gdb.Breakpoint):
     def __init__(self, session, name, send):
@@ -71,10 +75,19 @@ class WlClosureCallBreakpoint(gdb.Breakpoint):
         self.send = send
     def stop(self):
         closure = gdb.selected_frame().read_var('closure')
-        process_closure(self.session, closure, self.send)
-        return False
+        message = process_closure(self.session, closure, self.send)
+        matching = break_matcher.find_matching_matcher(message)
+        if matching == None:
+            return False
+        else:
+            print('Message matches ' + str(matching))
+            return True
 
-def main(matcher):
+def main(matcher, _break_matcher):
+    global break_matcher
+    break_matcher = _break_matcher
+    if break_matcher == None:
+        break_matcher = wl_matcher.Collection.match_none_matcher()
     gdb.execute('set python print-stack full')
     session = wl_session.Session(matcher)
     WlClosureCallBreakpoint(session, 'invoke', False)

@@ -89,6 +89,23 @@ class Matcher:
                 self.obj_id = obj_id
                 self.obj_generation = obj_generation
 
+    def __str__(self):
+        out = ''
+        if self.obj:
+            out += str(self.obj)
+        else:
+            if self.type:
+                out += self.type
+                if self.obj_id:
+                    out += '@'
+            if self.obj_id:
+                out += int(self.obj_id)
+                if self.obj_generation:
+                    out += int(self.obj_generation)
+        if self.messages:
+            out += '[' + ', '.join(i for i in self.messages) + ']'
+        return out
+
     def _matches_obj(self, obj):
         if self.obj:
             return obj == self.obj
@@ -139,11 +156,14 @@ class Collection:
                 warning('Failed to parse \'' + i[0] + '\': ' + str(e))
 
     def matches(self, item):
-        found = False
+        found = self.find_matching_matcher(item) != None
+        return found == self.is_whitelist
+
+    def find_matching_matcher(self, item):
         for i in self.matchers:
             if i.matches(item):
-                found = True
-        return found == self.is_whitelist
+                return i
+        return None
 
     def match_none_matcher():
         return Collection('', True)

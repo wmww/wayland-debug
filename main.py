@@ -38,6 +38,7 @@ def main():
     parser.add_argument('-a', '--all', action='store_true', help='show output that can\'t be parsed as Wayland events')
     parser.add_argument('-f', '--filter', type=str, help='only show these objects/messages (see --matcher-help for syntax)')
     parser.add_argument('-F', '--filter-out', type=str, help='don\'t show these objects/messages (see --matcher-help for syntax)')
+    parser.add_argument('-b', '--break', dest='_break', type=str, help='break on these objects/messages (see --matcher-help for syntax)')
     parser.add_argument('-d', '--gdb', type=str, help='run inside gdb, all subsequent arguments are sent to gdb')
     # NOTE: -d/--gdb is here only for the help text, it is processed without argparse in gdb_runner.main()
     
@@ -66,12 +67,16 @@ def main():
         matcher_list = args.filter
         use_whitelist = True
 
+    break_matcher = None
+    if args._break:
+        break_matcher = wl_matcher.Collection(args._break, True)
+
     matcher = wl_matcher.Collection(matcher_list, use_whitelist)
     file_path = args.load
 
     if check_gdb():
         import gdb_interface
-        gdb_interface.main(matcher)
+        gdb_interface.main(matcher, break_matcher)
     elif file_path:
         file_input_main(file_path, matcher, show_unparsable_output)
     else:
