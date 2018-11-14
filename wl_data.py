@@ -131,7 +131,7 @@ class Message:
         self.obj = Object.look_up_most_recent(self.obj_id, self.type_name)
         if self.obj.type == 'wl_registry' and self.name == 'bind':
             self.args[3].type = self.args[1].value
-        if self.obj == Object.display and self.name == 'delete_id':
+        if self.obj == Object.display and self.name == 'delete_id' and len(self.args) > 0:
             self.destroyed_obj = Object.look_up_most_recent(self.args[0].value, None)
             self.destroyed_obj.destroy(self.timestamp)
         for i in self.args:
