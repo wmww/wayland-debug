@@ -22,7 +22,12 @@ def main_with_args(my_args, gdb_args):
     call_args = ['gdb', '-ex', call_str] + gdb_args
     print('Running subprocess: ' + repr(call_args))
     sp = subprocess.Popen(call_args, env=env)
-    sp.communicate()
+    while True:
+        try:
+            sp.wait()
+            return
+        except KeyboardInterrupt:
+            pass
 
 def main():
     # Look for the -d or --gdb arguments, and split the argument list based on where they are
