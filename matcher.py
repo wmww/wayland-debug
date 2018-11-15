@@ -7,7 +7,7 @@ import argparse # only used for line wrapping in the help
 def print_help():
 #                                                                          |
     print('''
-Matchers are used throught the program to show and hide messages. A matcher
+Matchers are used through out the program to show and hide messages. A matcher
 consists of a comma seporated list of objects. An object is a type name,
 and/or an object ID (in which case a generation can also be specified). An
 @ goes inbetween the name and ID, and is optional if both are not specified.
@@ -23,21 +23,22 @@ A * can be used as a wildcard in type names.''')
         print('  ' + color('1;37', i[0]) + ' - Matches ' + i[1])
 #                                                                          |
     print('''
-Matchers can optionally be followed by a brace enclosed, comma seporated
-list of messages. If the object is referenced by a message, it will match
-even if the message is not called on that object. Messages can have
-wildcards too.''')
+Matchers can optionally be accompanied by a brace enclosed, comma seporated
+list of messages. Messages can have wildcards too. Messages before the
+object require the object to be on argument, and messages after require the
+message to be called on the object''')
     print()
     print('Examples of messages:')
     for i in [
             ('wl_surface[commit]  ', 'commit messages on wl_surfaces'),
             ('@6.2[motion,button] ', 'motion or button messages on the 2nd object with ID 6'),
-            ('*_surface[delete_id]', 'delete_id messages on any sort of surface (this works\n' +
+            ('[delete_id]*_surface', 'delete_id messages on any sort of surface (this works\n' +
              '                         even though the messages themselves are called on the wl_display)')]:
         print('  ' + color('1;37', i[0]) + ' - Matches ' + i[1])
-    print()
-    print('A complete example of a matcher could look something like:')
-    print(color('1;37', '  wl_surface[delete_id,commit],*[destroy],@3.2'))
+    print('''
+If the matcher list (or a message list) starts with \'^\', it matches everything but what\'s
+given. A complete example of a matcher could look something like:''')
+    print(color('1;37', '  \'[delete_id]wl_surface[commit], *[destroy], @3.2\''))
 
 def make_matcher(matcher, inversed):
     if isinstance(matcher, list):
