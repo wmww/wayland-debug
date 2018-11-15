@@ -1,5 +1,6 @@
 class Session():
     def __init__(self, matcher):
+        assert matcher
         self.messages = []
         self.matcher = matcher
 

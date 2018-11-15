@@ -18,7 +18,7 @@ def piped_input_main(matcher, show_unparsable_output):
 def file_input_main(file_path, matcher, show_unparsable_output):
     log('Opening ' + file_path)
     input_file = open(file_path)
-    session = wl_session.Session(wl_matcher.Collection.match_none_matcher())
+    session = wl_session.Session(wl_matcher.ConstMatcher.never)
     log('Parsing messages')
     parse.file(input_file, session, show_unparsable_output)
     input_file.close()
@@ -57,16 +57,18 @@ def main():
         show_unparsable_output = True
         log('Showing unparsable output')
 
-    use_whitelist = False
     matcher_list = ''
     if args.filter:
         matcher_list = args.filter
 
     break_matcher = None
     if args._break:
-        break_matcher = wl_matcher.Collection(args._break, True)
+        break_matcher = wl_matcher.parse_matcher(args._break)
 
     matcher = wl_matcher.parse_matcher(matcher_list)
+    assert matcher
+    log('matcher: ' + str(matcher))
+
     file_path = args.load
 
     if check_gdb():

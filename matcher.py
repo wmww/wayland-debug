@@ -40,12 +40,13 @@ wildcards too.''')
     print(color('1;37', '  wl_surface[delete_id,commit],*[destroy],@3.2'))
 
 def make_matcher(matcher, inversed):
-    assert matcher
     if isinstance(matcher, list):
-        elif len(matchers) == 1:
-            matcher = matchers[0]
+        if len(matcher) == 0:
+            matcher = ConstMatcher.always
+        elif len(matcher) == 1:
+            matcher = matcher[0]
         else:
-            matcher = ListMatcher(matchers)
+            matcher = ListMatcher(matcher)
     if inversed:
         matcher = InverseMatcher(matcher)
     return matcher
@@ -53,6 +54,12 @@ def make_matcher(matcher, inversed):
 # Matches a Wayland object
 class ObjectMatcher:
     def __init__(self, type_pattern, obj_id, obj_generation):
+        if type_pattern:
+            assert isinstance(type_pattern, str)
+        if obj_id:
+            assert isinstance(obj_id, int)
+        if obj_generation:
+            assert isinstance(obj_generation, int)
         try:
             assert obj_id is not None
             if obj_generation:
@@ -60,6 +67,7 @@ class ObjectMatcher:
             else:
                 self.obj = wl.Object.look_up_most_recent(obj_id, type_pattern)
         except AssertionError:
+            self.obj = None
             self.type = type_pattern
             self.id = obj_id
             self.generation = obj_generation
@@ -85,12 +93,12 @@ class ObjectMatcher:
             out = ''
             if self.type:
                 out += self.type
-                if self.obj_id:
+                if self.id:
                     out += ' @ '
-            if self.obj_id:
-                out += int(self.obj_id)
-                if self.obj_generation:
-                    out += '.' + int(self.obj_generation)
+            if self.id:
+                out += str(self.id)
+                if self.generation:
+                    out += '.' + str(self.generation)
             return color('1;35', out)
 
 # Matches a string (uses wildcards)
@@ -100,40 +108,40 @@ class StrMatcher:
         self.pattern = pattern
     def matches(self, name):
         assert isinstance(name, str)
-        return str_matches(self.pattern, name):
+        return str_matches(self.pattern, name)
     def __str__(self):
-        return color('1;35', self.pattern)
+        return color('1;34', self.pattern)
 
 # Matches any in a list of matchers
 class ListMatcher:
     def __init__(self, matchers):
         self.matchers = matchers
     def matches(self, thing):
-        for matcher in matchers:
+        for matcher in self.matchers:
             if matcher.matches(thing):
                 return True
         return False
     def __str__(self):
-        return ', '.join(str(matcher) for matcher in matchers)
+        return ', '.join(str(matcher) for matcher in self.matchers)
 
 # Reverses another matcher
-def InverseMatcher:
+class InverseMatcher:
     def __init__(self, matcher):
         self.matcher = matcher
     def matches(self, thing):
         return not self.matcher.matches(thing)
     def __str__(self):
-        return color('1;32', '^') + str(self.matcher)
+        return color('1;31', '(^ ') + str(self.matcher) + color('1;31', ')')
 
 # Always matches or does not match
-def ConstMatcher:
+class ConstMatcher:
     def __init__(self, val):
         self.val = val
     def matches(self, thing):
         return self.val
     def __str__(self):
         if self.val:
-            return color('32', 'any')
+            return color('32', '*')
         else:
             return color('31', 'none')
 ConstMatcher.always = ConstMatcher(True)
@@ -152,7 +160,7 @@ class MessageWithArgMatcher:
                 return True
         return False
     def __str__(self):
-        return '[' + str(self.message_name_matcher) + '] {' + str(self.object_matcher) + '}'
+        return '[' + str(self.message_name_matcher) + '] <' + str(self.object_matcher) + '>'
 
 # Matches a method called on a specific object
 class MessageOnObjMatcher:
@@ -167,20 +175,52 @@ class MessageOnObjMatcher:
             return False
         return True
     def __str__(self):
-        return '{' + str(self.object_matcher) + '} [' + str(self.message_name_matcher) + ']'
+        return '<' + str(self.object_matcher) + '> [' + str(self.message_name_matcher) + ']'
+
+_op_braces = {'(': ')', '[': ']', '<': '>'}
+_cl_braces = {a: b for b, a in _op_braces.items()}
+
+def _parse_comma_list(raw):
+    chunks = []
+    start = 0
+    i = 0
+    while i <= len(raw):
+        if i == len(raw) or raw[i] == ',':
+            chunks.append(raw[start:i])
+            start = i + 1
+        elif raw[i] in _cl_braces:
+            raise RuntimeError('\'' + raw + '\' has mismatched braces')
+        elif raw[i] in _op_braces:
+            j = i
+            op = raw[i]
+            cl = _op_braces[op]
+            count = 1
+            while count > 0:
+                j += 1
+                if j >= len(raw):
+                    raise RuntimeError('\'' + raw + '\' has mismatched braces')
+                if raw[j] == op:
+                    count += 1
+                if raw[j] == cl:
+                    count -= 1
+            i = j
+        i += 1
+    return chunks
 
 # returns (is_inversed, ['comma', 'seporated', 'stripped', 'strings'])
 def _parse_sequence(raw):
     raw = raw.strip()
+    if raw.startswith('(') and raw.endswith(')'):
+        return _parse_sequence(raw[1:-1])
     is_inversed = False
     if raw.startswith('^'):
         is_inversed = True
         raw = raw[1:]
     elems = []
-    for elem in raw.split(','):
+    for elem in _parse_comma_list(raw):
         elem = elem.strip()
         if elem.startswith('^'):
-            warning('\'^\' can only be at the start of a sequence, not before \'' + i[1:] + '\'')
+            warning('\'^\' can only be at the start of a sequence, not before \'' + elem[1:] + '\'')
             elem = elem[1:]
         elems.append(elem)
     return (is_inversed, elems)
@@ -197,10 +237,7 @@ def _parse_message_list(raw):
                 elems.append(StrMatcher(elem))
             else:
                 warning('Failed to parse message matcher \'' + elem + '\'')
-    if len(elems) == 0:
-        return ConstMatcher.always
-    else:
-        return make_matcher(elems, is_inversed)
+    return make_matcher(elems, is_inversed)
 
 def _parse_obj_matcher(raw):
     id_matches = re.findall('(^|[^\w\.-])(\d+)(\.(\d+))?', raw)
@@ -232,8 +269,8 @@ def _parse_obj_list(raw):
     raw = raw.strip()
     if not raw:
         return ConstMatcher.always
-    if raw.startswith('{') and raw.endswith('}'):
-        return _parse_obj_list(raw[1:-1]
+    if raw.startswith('<') and raw.endswith('>'):
+        return _parse_obj_list(raw[1:-1])
     is_inversed, sequence = _parse_sequence(raw)
     elems = []
     for elem in sequence:
@@ -242,24 +279,21 @@ def _parse_obj_list(raw):
             try:
                 elems.append(_parse_obj_matcher(elem))
             except RuntimeError as e:
-                warning(e)
-    if len(elems) == 0:
-        return ConstMatcher.always
-    else:
-        return make_matcher(elems, is_inversed)
+                warning(str(e))
+    return make_matcher(elems, is_inversed)
 
 def _parse_single_matcher(raw):
     assert not raw.startswith('^')
-    if raw.startswith('{') and raw.endswith('}'):
+    if raw.startswith('(') and raw.endswith(')'):
         return parse_matcher(raw[1:-1])
     else:
         not_bracs_regex = '([^\[\]]*)'
         message_list_regex = '(\[' + not_bracs_regex + '\])?'
         groups = re.findall('^' + message_list_regex + not_bracs_regex + message_list_regex + '$', raw)
         if groups:
-            message_list_a = _parse_message_list(groups[1])
-            object_list = _parse_obj_list(groups[2])
-            message_list_b = _parse_message_list(groups[4])
+            message_list_a = groups[0][1]
+            object_list = groups[0][2]
+            message_list_b = groups[0][4]
             # Check for special case where there is only one message list and no object matchers
             if message_list_a and not object_list and not message_list_b:
                 return MessageOnObjMatcher(
@@ -278,14 +312,14 @@ def _parse_single_matcher(raw):
                 matchers.append(MessageOnObjMatcher(
                     _parse_obj_list(object_list),
                     ConstMatcher.always))
-            make_matcher(matchers, False)
+            return make_matcher(matchers, False)
         else:
             warning('\'' + raw + '\' has invalid syntax')
             return ConstMatcher.never
 
 def parse_matcher(raw):
     is_inversed, sequence = _parse_sequence(raw)
-    matchers = (_parse_single_matcher(i) for i in sequence)
+    matchers = [_parse_single_matcher(i) for i in sequence]
     if len(matchers) == 0:
         return ConstMatcher.never
     else:
