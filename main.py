@@ -59,19 +59,14 @@ def main():
 
     use_whitelist = False
     matcher_list = ''
-    if args.filter_out:
-        matcher_list = args.filter_out
     if args.filter:
-        if matcher_list:
-            warning('filter-out is ignored when a filter is provided')
         matcher_list = args.filter
-        use_whitelist = True
 
     break_matcher = None
     if args._break:
         break_matcher = wl_matcher.Collection(args._break, True)
 
-    matcher = wl_matcher.Collection(matcher_list, use_whitelist)
+    matcher = wl_matcher.parse_matcher(matcher_list)
     file_path = args.load
 
     if check_gdb():
