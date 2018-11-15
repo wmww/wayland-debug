@@ -41,7 +41,7 @@ def main():
     parser.add_argument('-b', '--break', dest='_break', type=str, help='break on these objects/messages (see --matcher-help for syntax)')
     parser.add_argument('-d', '--gdb', type=str, help='run inside gdb, all subsequent arguments are sent to gdb')
     # NOTE: -d/--gdb is here only for the help text, it is processed without argparse in gdb_runner.main()
-    
+
     args = parser.parse_args()
 
     if args.verbose:

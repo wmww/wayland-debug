@@ -1,6 +1,5 @@
 import re
 
-import wl_data as wl
 from util import *
 import argparse # only used for line wrapping in the help
 
@@ -61,46 +60,31 @@ class ObjectMatcher:
             assert isinstance(obj_id, int)
         if obj_generation:
             assert isinstance(obj_generation, int)
-        try:
-            assert obj_id is not None
-            if obj_generation:
-                self.obj = wl.Object.look_up_specific(obj_id, obj_generation, type_pattern)
-            else:
-                self.obj = wl.Object.look_up_most_recent(obj_id, type_pattern)
-        except AssertionError:
-            self.obj = None
-            self.type = type_pattern
-            self.id = obj_id
-            self.generation = obj_generation
+        self.type = type_pattern
+        self.id = obj_id
+        self.generation = obj_generation
 
     def matches(self, obj):
-        assert isinstance(obj, wl.Object)
-        if self.obj:
-            return obj == self.obj
+        if self.id and self.id != obj.id:
+            return False
+        elif self.generation and self.generation != obj.generation:
+            return False
+        elif self.type and not str_matches(self.type, obj.type):
+            return False
         else:
-            if self.id and self.id != obj.id:
-                return False
-            elif self.generation and self.generation != obj.generation:
-                return False
-            elif self.type and not str_matches(self.type, obj.type):
-                return False
-            else:
-                return True
+            return True
 
     def __str__(self):
-        if self.obj:
-            return str(self.obj)
-        else:
-            out = ''
-            if self.type:
-                out += self.type
-                if self.id:
-                    out += ' @ '
+        out = ''
+        if self.type:
+            out += self.type
             if self.id:
-                out += str(self.id)
-                if self.generation:
-                    out += '.' + str(self.generation)
-            return color('1;35', out)
+                out += ' @ '
+        if self.id:
+            out += str(self.id)
+            if self.generation:
+                out += '.' + str(self.generation)
+        return color('1;35', out)
 
 # Matches a string (uses wildcards)
 class StrMatcher:
