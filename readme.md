@@ -22,6 +22,7 @@ Matchers are used through out the program to show and hide messages. A matcher c
 
 Examples of objects:
 
+| --- | --- |
 | wl_surface   | Matches any wl_surface |
 | @5           | Matches the object with ID 5 (@ is optional) |
 | @4.12        | Matches the 12th object with ID 4 (@ is optional) |
@@ -32,6 +33,7 @@ Matchers can optionally be accompanied by a brace enclosed, comma seporated list
 
 Examples of messages:
 
+| --- | --- |
 | wl_surface[commit]   | Matches commit messages on wl_surfaces |
 | @6.2[motion,button]  | Matches motion or button messages on the 2nd object with ID 6 |
 | [delete_id]*_surface | Matches delete_id messages on any sort of surface (this works even though the messages themselves are called on the wl_display) |
