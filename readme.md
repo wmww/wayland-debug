@@ -21,6 +21,7 @@ optional arguments:
 Matchers are used through out the program to show and hide messages. A matcher consists of a comma seporated list of objects. An object is a type name, and/or an object ID (in which case a generation can also be specified). An @ goes inbetween the name and ID, and is optional if both are not specified. A * can be used as a wildcard in type names.
 
 Examples of objects:
+
 | Matcher | Description |
 | --- | --- |
 | wl_surface   | Matches any wl_surface |
@@ -32,6 +33,7 @@ Examples of objects:
 Matchers can optionally be accompanied by a brace enclosed, comma seporated list of messages. Messages can have wildcards too. Messages before the object require the object to be on argument, and messages after require the message to be called on the object.
 
 Examples of messages:
+
 | Matcher | Description |
 | --- | --- |
 | wl_surface[commit]   | Matches commit messages on wl_surfaces |
