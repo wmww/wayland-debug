@@ -54,7 +54,7 @@ class Object:
 
     def __str__(self):
         assert self.db[self.id][self.generation] == self, 'Database corrupted'
-        return color('1;37', self.type_str() + '@' + str(self.id) + '.' + str(self.generation))
+        return color('1;36', self.type_str()) + color('37', '@') + color('1;37', str(self.id) + '.' + str(self.generation))
 
 Object.display = Object(1, 'wl_display', None, 0)
 

@@ -37,7 +37,6 @@ def main():
     parser.add_argument('-l', '--load', type=str, help='Load Wayland events from a file instead of stdin')
     parser.add_argument('-a', '--all', action='store_true', help='show output that can\'t be parsed as Wayland events')
     parser.add_argument('-f', '--filter', type=str, help='only show these objects/messages (see --matcher-help for syntax)')
-    parser.add_argument('-F', '--filter-out', type=str, help='don\'t show these objects/messages (see --matcher-help for syntax)')
     parser.add_argument('-b', '--break', dest='_break', type=str, help='break on these objects/messages (see --matcher-help for syntax)')
     parser.add_argument('-d', '--gdb', type=str, help='run inside gdb, all subsequent arguments are sent to gdb')
     # NOTE: -d/--gdb is here only for the help text, it is processed without argparse in gdb_runner.main()

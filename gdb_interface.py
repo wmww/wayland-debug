@@ -76,18 +76,13 @@ class WlClosureCallBreakpoint(gdb.Breakpoint):
     def stop(self):
         closure = gdb.selected_frame().read_var('closure')
         message = process_closure(self.session, closure, self.send)
-        matching = break_matcher.find_matching_matcher(message)
-        if matching == None:
-            return False
-        else:
-            print('Message matches ' + str(matching))
-            return True
+        return break_matcher.matches(message)
 
 def main(matcher, _break_matcher):
     global break_matcher
     break_matcher = _break_matcher
     if break_matcher == None:
-        break_matcher = wl_matcher.Collection.match_none_matcher()
+        break_matcher = wl_matcher.ConstMatcher.never
     gdb.execute('set python print-stack full')
     session = wl_session.Session(matcher)
     WlClosureCallBreakpoint(session, 'invoke', False)

@@ -171,7 +171,8 @@ def _parse_comma_list(raw):
     i = 0
     while i <= len(raw):
         if i == len(raw) or raw[i] == ',':
-            chunks.append(raw[start:i])
+            if i > start:
+                chunks.append(raw[start:i])
             start = i + 1
         elif raw[i] in _cl_braces:
             raise RuntimeError('\'' + raw + '\' has mismatched braces')
@@ -305,10 +306,7 @@ def _parse_single_matcher(raw):
 def parse_matcher(raw):
     is_inversed, sequence = _parse_sequence(raw)
     matchers = [_parse_single_matcher(i) for i in sequence]
-    if len(matchers) == 0:
-        return ConstMatcher.never
-    else:
-        return make_matcher(matchers, is_inversed)
+    return make_matcher(matchers, is_inversed)
 
 if __name__ == '__main__':
     print('File meant to be imported, not run')
