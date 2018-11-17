@@ -25,8 +25,8 @@ Examples of objects:
 | Matcher | Description |
 | --- | --- |
 | wl_surface   | Matches any wl_surface |
-| @5           | Matches the object with ID 5 (@ is optional) |
-| @4.12        | Matches the 12th object with ID 4 (@ is optional) |
+| 5            | Matches the object with ID 5 |
+| 4.12         | Matches the 12th object with ID 4 |
 | wl_surface@6 | Matches the object with ID 7, which is asserted to be a wl_surface |
 | xdg_*@3.2    | Matches the 2nd object with ID 3, which is some sort of XDG type |
 
@@ -37,7 +37,7 @@ Examples of messages:
 | Matcher | Description |
 | --- | --- |
 | wl_surface[commit]   | Matches commit messages on wl_surfaces |
-| @6.2[motion,button]  | Matches motion or button messages on the 2nd object with ID 6 |
+| 6.2[motion,button]   | Matches motion or button messages on the 2nd object with ID 6 |
 | [delete_id]*_surface | Matches delete_id messages on any sort of surface (this works even though the messages themselves are called on the wl_display) |
 
 If the matcher list (or a message list) starts with '^', it matches everything but what's given.
@@ -50,8 +50,8 @@ This will only show pointer, surface commit and surface destroy messages
 WAYLAND_DEBUG=1 program 2>&1 1>/dev/null | ./main.py -af 'wl_pointer, wl_surface[commit, destroy]'
 ```
 
-### Loading from a file (presumably from the output of libwayland with `WAYLAND_DEBUG=1` as before)
-This will show everything but callbacks and frame messages
+### Loading from a file
+This will show everything but callbacks and frame messages. file.log was presumably written from the output of libwayland with `WAYLAND_DEBUG=1`.
 ```
 ./main.py -l dir/file.log -f '^ wl_callback, *[frame]'
 ```
