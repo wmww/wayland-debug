@@ -30,9 +30,9 @@ def color(color, string):
     return result
 
 def log(msg):
-    if check_gdb():
-        print(color('1;34', 'wl log: '), end='')
     if verbose:
+        if check_gdb():
+            print(color('1;34', 'wl log: '), end='')
         print(color('37', msg))
 
 def set_verbose(val):
