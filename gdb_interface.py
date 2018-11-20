@@ -86,6 +86,17 @@ class WlCommand(gdb.Command):
     def complete(text, word):
         return None
 
+class WlSubcommand(gdb.Command):
+    'A Wayland debug command'
+    def __init__(self, name, session):
+        super().__init__('wl' + name, gdb.COMMAND_DATA)
+        self.session = session
+        self.cmd = name
+    def invoke(self, arg, from_tty):
+        self.session.command(self.cmd + ' ' + arg)
+    def complete(text, word):
+        return None
+
 def main(session):
     gdb.execute('set python print-stack full')
     if not session.out.show_unprocessed:
@@ -97,4 +108,6 @@ def main(session):
     WlCommand('w', session)
     WlCommand('wl', session)
     WlCommand('wayland', session)
+    for c in session.commands:
+        WlSubcommand(c.name, session)
     session.out.log('Breakpoints: ' + repr(gdb.breakpoints()))

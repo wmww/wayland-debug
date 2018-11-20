@@ -42,7 +42,7 @@ def main():
     parser.add_argument('-a', '--all', action='store_true', help='show output that can\'t be parsed as Wayland events')
     parser.add_argument('-f', '--filter', dest='f', type=str, help='only show these objects/messages (see --matcher-help for syntax)')
     parser.add_argument('-b', '--break', dest='b', type=str, help='stop on these objects/messages (see --matcher-help for syntax)')
-    parser.add_argument('-g', '--gdb', action='store_true', help='run inside gdb, all subsequent arguments are sent to gdb, when inside gdb start commands with \'w \'')
+    parser.add_argument('-g', '--gdb', action='store_true', help='run inside gdb, all subsequent arguments are sent to gdb, when inside gdb start commands with \'wl\'')
     # NOTE: -d/--gdb is here only for the help text, it is processed without argparse in gdb_runner.main()
 
     args = parser.parse_args()

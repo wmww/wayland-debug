@@ -18,7 +18,7 @@ optional arguments:
 ```
 
 ## Commands
-When you hit a breakpoint while reading from a file or in GDB (in the latter case, it can be a Wayland breakpoint or just a normal GDB one), you can issue a number of commands. If you are in GDB, wayland debug commands are subcommands of 'w '. When loading from a file, the wl can be dropped. use `w help` to see a list of commands.
+When you hit a breakpoint while reading from a file or in GDB (in the latter case, it can be a Wayland breakpoint or just a normal GDB one), you can issue a number of commands. If you are in GDB, wayland debug commands are subcommands of 'wl'. When loading from a file, the wl can be dropped. use `wlhelp` to see a list of commands.
 
 ## Matchers
 Matchers are used through out the program to show and hide messages. A matcher consists of a comma seporated list of objects. An object is a type name, and/or an object ID (in which case a generation can also be specified). An @ goes inbetween the name and ID, and is optional if both are not specified. A * can be used as a wildcard in type names.
