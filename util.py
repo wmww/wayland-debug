@@ -70,6 +70,9 @@ class Output:
     def warn(self, *msg):
         print(color('1;33', 'Warning: ') + ' '.join(msg), file=self.err)
 
+    def error(self, *msg):
+        print(color('1;31', 'Error: ') + ' '.join(msg), file=self.err)
+
 if __name__ == '__main__':
     print('File meant to be imported, not run')
     exit(1)

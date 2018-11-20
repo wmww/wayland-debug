@@ -4,7 +4,7 @@ import sys
 import re
 
 from util import *
-import matcher as wl_matcher
+import matcher
 import session as wl_session
 import parse_wl_debug as parse
 import gdb_runner
@@ -24,8 +24,12 @@ def file_input_main(session, file_path):
     for msg in parse.file(input_file, session.out):
         session.message(msg)
         while session.stopped():
+            if session.quit():
+                break
             cmd = input('wl debug $ ')
             session.command(cmd)
+        if session.quit():
+                break
     input_file.close()
     session.out.log('Done')
 
@@ -65,16 +69,16 @@ def main():
         output.log('Showing unparsable output')
 
     if args.matcher_help:
-        wl_matcher.print_help()
+        matcher.print_help()
         exit(1)
 
-    filter_matcher = wl_matcher.ConstMatcher.always
+    filter_matcher = matcher.ConstMatcher.always
     if args.filter:
-        filter_matcher = wl_matcher.parse_matcher(args.filter)
+        filter_matcher = matcher.parse(args.filter)
 
-    stop_matcher = wl_matcher.ConstMatcher.never
+    stop_matcher = matcher.ConstMatcher.never
     if args.stop:
-        stop_matcher = wl_matcher.parse_matcher(args.stop)
+        stop_matcher = matcher.parse(args.stop)
 
     session = wl_session.Session(filter_matcher, stop_matcher, output)
 

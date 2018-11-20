@@ -48,7 +48,7 @@ def make_matcher(matcher, inversed):
         else:
             matcher = ListMatcher(matcher)
     if inversed:
-        matcher = InverseMatcher(matcher)
+        matcher = _inverse_matcher(matcher)
     return matcher
 
 # Matches a Wayland object
@@ -161,6 +161,18 @@ class MessageOnObjMatcher:
         return True
     def __str__(self):
         return '<' + str(self.object_matcher) + '> [' + str(self.message_name_matcher) + ']'
+
+def _inverse_matcher(matcher):
+    if matcher == ConstMatcher.always:
+        return ConstMatcher.never
+    elif matcher == ConstMatcher.never:
+        return ConstMatcher.always
+    elif isinstance(matcher, InverseMatcher):
+        while isinstance(matcher, InverseMatcher) and isinstance(matcher.matcher, InverseMatcher):
+            matcher = matcher.matcher.matcher
+        return matcher.matcher
+    else:
+        return InverseMatcher(matcher)
 
 _op_braces = {'(': ')', '[': ']', '<': '>'}
 _cl_braces = {a: b for b, a in _op_braces.items()}
@@ -303,10 +315,24 @@ def _parse_single_matcher(raw):
             warning('\'' + raw + '\' has invalid syntax')
             return ConstMatcher.never
 
-def parse_matcher(raw):
+# Either returns a valid matcher or throws a RuntimeError with a description of why it could not be parsed
+# Other behavior (such as throwing an AssertionError) is possible, but should be considered a bug in this file
+def parse(raw):
     is_inversed, sequence = _parse_sequence(raw)
     matchers = [_parse_single_matcher(i) for i in sequence]
     return make_matcher(matchers, is_inversed)
+
+# Order matters
+def join(new, old):
+    if isinstance(new, InverseMatcher):
+        # When you don't feel like writing an 'AndMatcher', and know too much about boolean logic
+        return _inverse_matcher(join(_inverse_matcher(new), _inverse_matcher(old)))
+    else:
+        if isinstance(old, ListMatcher):
+            old.matchers.append(new)
+            return old
+        else:
+            return ListMatcher([old, new])
 
 if __name__ == '__main__':
     print('File meant to be imported, not run')
