@@ -76,6 +76,16 @@ class WlClosureCallBreakpoint(gdb.Breakpoint):
         self.session.message(message)
         return self.session.stopped()
 
+class WlCommand(gdb.Command):
+    'Issue a subcommand to Wayland Debug, use \'w help\' for details'
+    def __init__(self, name, session):
+        super().__init__(name, gdb.COMMAND_DATA)
+        self.session = session
+    def invoke(self, arg, from_tty):
+        self.session.command(arg)
+    def complete(text, word):
+        return None
+
 def main(session):
     gdb.execute('set python print-stack full')
     if not session.out.show_unprocessed:
@@ -84,4 +94,7 @@ def main(session):
     WlClosureCallBreakpoint(session, 'dispatch', False)
     WlClosureCallBreakpoint(session, 'send', True)
     WlClosureCallBreakpoint(session, 'queue', True)
+    WlCommand('w', session)
+    WlCommand('wl', session)
+    WlCommand('wayland', session)
     session.out.log('Breakpoints: ' + repr(gdb.breakpoints()))

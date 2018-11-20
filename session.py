@@ -4,6 +4,12 @@ import matcher
 
 help_command_color = '1;37'
 
+def command_format(cmd):
+    if check_gdb():
+        return '(gdb) ' + color(help_command_color, 'w ' + cmd)
+    else:
+        return '$ ' + color(help_command_color, cmd)
+
 class Command:
     def __init__(self, name, func, help_text):
         self.name = name
@@ -48,7 +54,7 @@ class Session():
         self.messages.append(message)
         message.resolve_objects(self)
         if self.display_matcher.matches(message):
-            self.out.show(color('37', '{:8.4f}'.format(message.timestamp)) + str(message))
+            self.out.show(color('37', '{:8.4f}'.format(message.timestamp)) + ' ' + str(message))
         if self.stop_matcher.matches(message):
             self.out.show(color('1;27', '    Stopped at ') + str(message).strip())
             self.is_stopped = True
@@ -66,6 +72,12 @@ class Session():
             return False
         cmd = args[0].strip()
         arg = None if len(args) < 2 else args[1].strip()
+        if cmd == '':
+            assert not arg
+            self.out.error('No command specified')
+            cmd = 'help'
+        if cmd == 'w': # in case they use GDB style commands when not in GDB
+            return self.command(arg)
         cmd = self._get_command(cmd)
         if cmd:
             self.out.log('Got ' + cmd.name + ' command' + (' with \'' + arg + '\'' if arg else ''))
@@ -94,15 +106,15 @@ class Session():
             else:
                 cmd = self._get_command(arg)
                 if cmd:
-                    self.out.show(color(help_command_color, cmd.name) + ': ' + cmd.help)
+                    self.out.show(command_format(cmd.name) + ': ' + cmd.help)
                     return
-        self.out.show('Usage: $ ' + color(help_command_color, '<command> <argument>'))
-        self.out.show('Help for specific command: $ ' + color(help_command_color, 'help <command>'))
-        self.out.show('Help with matcher syntax: $ ' + color(help_command_color, 'help matcher'))
+        self.out.show('Usage: ' + command_format('<command> <argument>'))
+        self.out.show('Help for specific command: ' + command_format('help <command>'))
+        self.out.show('Help with matcher syntax: ' + command_format('help matcher'))
         self.out.show('Commands can be abbreviated (down to just the first letter)')
         self.out.show('Commands:')
         for c in self.commands:
-            self.out.show('  ' + color(help_command_color, c.name))
+            self.out.show('  ' + command_format(c.name))
 
     def filter_command(self, arg):
         if arg:

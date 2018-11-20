@@ -35,18 +35,14 @@ def file_input_main(session, file_path):
 
 def main():
     import argparse
-    parser = argparse.ArgumentParser(description=
-        'Debug Wayland protocol messages. ' +
-        'To use, pipe in the stderr of a Wayland server or client run with WAYLAND_DEBUG=1. ' +
-        'full usage looks like: ' +
-        ' $ ' + color('1;37', example_usage))
+    parser = argparse.ArgumentParser(description='Debug Wayland protocol messages')
     parser.add_argument('--matcher-help', action='store_true', help='show how to write matchers used by filter and quit')
     parser.add_argument('-v', '--verbose', action='store_true', help='verbose output, mostly used for debugging this program')
-    parser.add_argument('-l', '--load', type=str, help='Load Wayland events from a file instead of stdin')
+    parser.add_argument('-l', '--load', dest='path', type=str, help='Load Wayland events from a file instead of stdin')
     parser.add_argument('-a', '--all', action='store_true', help='show output that can\'t be parsed as Wayland events')
-    parser.add_argument('-f', '--filter', type=str, help='only show these objects/messages (see --matcher-help for syntax)')
-    parser.add_argument('-b', '--break', dest='stop', type=str, help='stop on these objects/messages (see --matcher-help for syntax)')
-    parser.add_argument('-g', '--gdb', type=str, help='run inside gdb, all subsequent arguments are sent to gdb')
+    parser.add_argument('-f', '--filter', dest='f', type=str, help='only show these objects/messages (see --matcher-help for syntax)')
+    parser.add_argument('-b', '--break', dest='b', type=str, help='stop on these objects/messages (see --matcher-help for syntax)')
+    parser.add_argument('-g', '--gdb', action='store_true', help='run inside gdb, all subsequent arguments are sent to gdb, when inside gdb start commands with \'w \'')
     # NOTE: -d/--gdb is here only for the help text, it is processed without argparse in gdb_runner.main()
 
     args = parser.parse_args()
@@ -73,16 +69,16 @@ def main():
         exit(1)
 
     filter_matcher = matcher.ConstMatcher.always
-    if args.filter:
-        filter_matcher = matcher.parse(args.filter)
+    if args.f:
+        filter_matcher = matcher.parse(args.f)
 
     stop_matcher = matcher.ConstMatcher.never
-    if args.stop:
-        stop_matcher = matcher.parse(args.stop)
+    if args.b:
+        stop_matcher = matcher.parse(args.b)
 
     session = wl_session.Session(filter_matcher, stop_matcher, output)
 
-    file_path = args.load
+    file_path = args.path
 
     if check_gdb():
         if file_path:
@@ -92,7 +88,7 @@ def main():
     elif file_path:
         file_input_main(session, file_path)
     else:
-        if args.stop:
+        if args.b:
             output.warn('Ignoring stop matcher when stdin is used for messages')
         piped_input_main(session)
 

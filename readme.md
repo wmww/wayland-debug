@@ -4,18 +4,21 @@ A tool for debugging Wayland protocol messages. It can parse the output of a way
 
 ## Usage
 ```
-main.py [-h] [--matcher-help] [-v] [-l LOAD] [-a] [-f MATCHER] [-b MATCHER] [-d]
+main.py [-h] [--matcher-help] [-v] [-l PATH] [-a] [-f MATCHER] [-b MATCHER] [-g]
 
 optional arguments:
   -h, --help                    show this help message and exit
   --matcher-help                show how to write matchers used by filter and quit
   -v, --verbose                 verbose output, mostly used for debugging this program
-  -l LOAD, --load LOAD          Load Wayland events from a file instead of stdin
+  -l PATH, --load PATH          Load Wayland events from a file instead of stdin
   -a, --all                     show output that can't be parsed as Wayland events
   -f MATCHER, --filter MATCHER  only show these objects/messages (see --matcher-help for syntax)
   -b MATCHER, --break MATCHER   break on these objects/messages (see --matcher-help for syntax)
-  -d, --gdb                     run inside gdb, all subsequent arguments are sent to gdb
+  -g, --gdb                     run inside gdb, all subsequent arguments are sent to gdb
 ```
+
+## Commands
+When you hit a breakpoint while reading from a file or in GDB (in the latter case, it can be a Wayland breakpoint or just a normal GDB one), you can issue a number of commands. If you are in GDB, wayland debug commands are subcommands of 'w '. When loading from a file, the wl can be dropped. use `w help` to see a list of commands.
 
 ## Matchers
 Matchers are used through out the program to show and hide messages. A matcher consists of a comma seporated list of objects. An object is a type name, and/or an object ID (in which case a generation can also be specified). An @ goes inbetween the name and ID, and is optional if both are not specified. A * can be used as a wildcard in type names.

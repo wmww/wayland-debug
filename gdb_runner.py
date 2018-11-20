@@ -32,7 +32,7 @@ def main_with_args(my_args, gdb_args):
 def main():
     # Look for the -d or --gdb arguments, and split the argument list based on where they are
     for i in range(len(sys.argv)):
-        if sys.argv[i] == '-d' or sys.argv[i] == '--gdb':
+        if sys.argv[i] == '-g' or sys.argv[i] == '--gdb':
             main_with_args(sys.argv[:i], sys.argv[i+1:])
             return True
     return False

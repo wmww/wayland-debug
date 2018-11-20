@@ -283,7 +283,7 @@ def _parse_obj_list(raw):
 def _parse_single_matcher(raw):
     assert not raw.startswith('^')
     if raw.startswith('(') and raw.endswith(')'):
-        return parse_matcher(raw[1:-1])
+        return parse(raw[1:-1])
     else:
         not_bracs_regex = '([^\[\]]*)'
         message_list_regex = '(\[' + not_bracs_regex + '\])?'
@@ -324,7 +324,9 @@ def parse(raw):
 
 # Order matters
 def join(new, old):
-    if isinstance(new, InverseMatcher):
+    if isinstance(old, ConstMatcher):
+        return new
+    elif isinstance(new, InverseMatcher):
         # When you don't feel like writing an 'AndMatcher', and know too much about boolean logic
         return _inverse_matcher(join(_inverse_matcher(new), _inverse_matcher(old)))
     else:
