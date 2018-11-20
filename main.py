@@ -24,7 +24,7 @@ def file_input_main(session, file_path):
     for msg in parse.file(input_file, session.out):
         session.message(msg)
         while session.stopped():
-            cmd = input('wl debug > ')
+            cmd = input('wl debug $ ')
             session.command(cmd)
     input_file.close()
     session.out.log('Done')
