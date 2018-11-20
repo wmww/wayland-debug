@@ -159,12 +159,12 @@ class Message:
                 str(self.destroyed_obj) +
                 color(timestamp_color, ']'))
         return (
-            color('37', '{:10.4f}'.format(self.timestamp) + (' →  ' if self.sent else ' ') +
+            (' ' + color('37', '→  ') if self.sent else '') +
             str(self.obj) + ' ' +
             color(message_color, self.name + '(') +
-            color(message_color, ', ').join([str(i) for i in self.args]) + color(message_color, ')')) +
+            color(message_color, ', ').join([str(i) for i in self.args]) + color(message_color, ')') +
             destroyed +
-            color(timestamp_color, ' ↲' if not self.sent else ''))
+            (color(timestamp_color, ' ↲') if not self.sent else ''))
 
 if __name__ == '__main__':
     print('File meant to be imported, not run')

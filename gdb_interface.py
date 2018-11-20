@@ -8,14 +8,12 @@ import matcher as wl_matcher
 # wl_proxy_destroy
 # wl_proxy_marshal_constructor
 
-break_matcher = None
-
 def gdb_is_null(val):
     return str(val) == '0x0'
 
 type_codes = {i: True for i in ['i', 'u', 'f', 's', 'o', 'n', 'a', 'h']}
 
-def process_closure(session, closure, send):
+def process_closure(closure, send):
     obj_id = int(closure['sender_id'])
     proxy_class = None
     if not send:
@@ -65,7 +63,6 @@ def process_closure(session, closure, send):
             i += 1
 
     message = wl.Message(0, obj_id, proxy_class, send, message_name, args)
-    session.message(message)
     return message
 
 class WlClosureCallBreakpoint(gdb.Breakpoint):
@@ -75,19 +72,16 @@ class WlClosureCallBreakpoint(gdb.Breakpoint):
         self.send = send
     def stop(self):
         closure = gdb.selected_frame().read_var('closure')
-        message = process_closure(self.session, closure, self.send)
-        return break_matcher.matches(message)
+        message = process_closure(closure, self.send)
+        self.session.message(message)
+        return self.session.stopped()
 
-def main(matcher, _break_matcher):
-    global break_matcher
-    break_matcher = _break_matcher
-    if break_matcher == None:
-        break_matcher = wl_matcher.ConstMatcher.never
+def main(session):
     gdb.execute('set python print-stack full')
-    session = wl_session.Session(matcher)
+    if not session.out.show_unprocessed:
+        gdb.execute('set inferior-tty /dev/null')
     WlClosureCallBreakpoint(session, 'invoke', False)
     WlClosureCallBreakpoint(session, 'dispatch', False)
     WlClosureCallBreakpoint(session, 'send', True)
     WlClosureCallBreakpoint(session, 'queue', True)
-    gdb.write('breakpoints: ' + repr(gdb.breakpoints()) + '\n')
-    gdb.write('GDB main\n')
+    session.out.log('Breakpoints: ' + repr(gdb.breakpoints()))

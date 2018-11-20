@@ -73,10 +73,7 @@ def message(raw):
     message_args = argument_list(message_args_str)
     return wl.Message(abs_timestamp, obj_id, type_name, sent, message_name, message_args)
 
-def show_raw_line(line):
-    print(color('37', ' ' * 10 + ' |  ' + line))
-
-def file(input_file, session, show_unparseable_output):
+def file(input_file, out):
     parse = True
     while True:
         line = input_file.readline()
@@ -86,14 +83,12 @@ def file(input_file, session, show_unparseable_output):
         try:
             msg = message(line)
             if parse:
-                session.message(msg)
+                yield msg
         except RuntimeError as e:
-            if show_unparseable_output:
-                show_raw_line(line)
+            out.unprocessed(str(e))
         except:
             import traceback
-            traceback.print_exc()
-            warning('Parsing failed')
+            out.show(traceback.format_exc())
             parse = False
 
 if __name__ == '__main__':

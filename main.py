@@ -11,19 +11,23 @@ import gdb_runner
 
 example_usage = 'WAYLAND_DEBUG=1 program 2>&1 1>/dev/null | ' + sys.argv[0]
 
-def piped_input_main(matcher, show_unparsable_output):
-    session = wl_session.Session(matcher)
-    parse.file(sys.stdin, session, show_unparsable_output)
+def piped_input_main(session):
+    session.out.log('Getting input piped from stdin')
+    for msg in parse.file(sys.stdin, session.out):
+        session.message(msg)
+    session.out.log('Done')
 
-def file_input_main(file_path, matcher, show_unparsable_output):
-    log('Opening ' + file_path)
+def file_input_main(session, file_path):
+    session.out.log('Opening ' + file_path)
     input_file = open(file_path)
-    session = wl_session.Session(wl_matcher.ConstMatcher.never)
-    log('Parsing messages')
-    parse.file(input_file, session, show_unparsable_output)
+    session.out.log('Parsing messages')
+    for msg in parse.file(input_file, session.out):
+        session.message(msg)
+        while session.stopped():
+            cmd = input('wl debug > ')
+            session.command(cmd)
     input_file.close()
-    session.print_messages(matcher)
-    log('Done')
+    session.out.log('Done')
 
 def main():
     import argparse
@@ -37,46 +41,56 @@ def main():
     parser.add_argument('-l', '--load', type=str, help='Load Wayland events from a file instead of stdin')
     parser.add_argument('-a', '--all', action='store_true', help='show output that can\'t be parsed as Wayland events')
     parser.add_argument('-f', '--filter', type=str, help='only show these objects/messages (see --matcher-help for syntax)')
-    parser.add_argument('-b', '--break', dest='_break', type=str, help='break on these objects/messages (see --matcher-help for syntax)')
-    parser.add_argument('-d', '--gdb', type=str, help='run inside gdb, all subsequent arguments are sent to gdb')
+    parser.add_argument('-b', '--break', dest='stop', type=str, help='stop on these objects/messages (see --matcher-help for syntax)')
+    parser.add_argument('-g', '--gdb', type=str, help='run inside gdb, all subsequent arguments are sent to gdb')
     # NOTE: -d/--gdb is here only for the help text, it is processed without argparse in gdb_runner.main()
 
     args = parser.parse_args()
 
-    if args.verbose:
+    out_file = sys.stdout
+    err_file = sys.stderr
+    if check_gdb():
+        # Stops the annoying continue prompts in GDB
+        out_file = sys.stderr
+
+    verbose = bool(args.verbose)
+    unprocessed_output = bool(args.all)
+    output = Output(verbose, unprocessed_output, out_file, err_file)
+
+    if verbose:
         set_verbose(True)
-        log('Verbose output enabled')
+        output.log('Verbose output enabled')
+
+    if unprocessed_output:
+        output.log('Showing unparsable output')
 
     if args.matcher_help:
         wl_matcher.print_help()
         exit(1)
 
-    show_unparsable_output = False
-    if args.all:
-        show_unparsable_output = True
-        log('Showing unparsable output')
-
-    matcher_list = ''
+    filter_matcher = wl_matcher.ConstMatcher.always
     if args.filter:
-        matcher_list = args.filter
+        filter_matcher = wl_matcher.parse_matcher(args.filter)
 
-    break_matcher = None
-    if args._break:
-        break_matcher = wl_matcher.parse_matcher(args._break)
+    stop_matcher = wl_matcher.ConstMatcher.never
+    if args.stop:
+        stop_matcher = wl_matcher.parse_matcher(args.stop)
 
-    matcher = wl_matcher.parse_matcher(matcher_list)
-    assert matcher
-    log('matcher: ' + str(matcher))
+    session = wl_session.Session(filter_matcher, stop_matcher, output)
 
     file_path = args.load
 
     if check_gdb():
+        if file_path:
+            output.warn('load file ignored because we\'re inside GDB')
         import gdb_interface
-        gdb_interface.main(matcher, break_matcher)
+        gdb_interface.main(session)
     elif file_path:
-        file_input_main(file_path, matcher, show_unparsable_output)
+        file_input_main(session, file_path)
     else:
-        piped_input_main(matcher, show_unparsable_output)
+        if args.stop:
+            output.warn('Ignoring stop matcher when stdin is used for messages')
+        piped_input_main(session)
 
 if __name__ == '__main__':
     # First, we check if we're supposed to run inside GDB, and do that if so
