@@ -29,6 +29,9 @@ def color(color, string):
             result += '\x1b[0m'
     return result
 
+def no_color(string):
+    return re.sub('\x1b\[[\d;]*m', '', string)
+
 def log(msg):
     if verbose:
         if check_gdb():

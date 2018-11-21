@@ -6,13 +6,14 @@ help_command_color = '1;37'
 
 def command_format(cmd):
     if check_gdb():
-        return '(gdb) ' + color(help_command_color, 'w ' + cmd)
+        return '(gdb) ' + color(help_command_color, 'wl' + cmd)
     else:
         return '$ ' + color(help_command_color, cmd)
 
 class Command:
-    def __init__(self, name, func, help_text):
+    def __init__(self, name, arg, func, help_text):
         self.name = name
+        self.arg = arg
         self.func = func
         self.help = help_text
     def matches(self, command):
@@ -24,18 +25,18 @@ class Session():
         assert stop_matcher
         self.messages = []
         self.commands = [
-            Command('help', self.help_command,
+            Command('help', '[COMMAND]', self.help_command,
                 'Show this help message, or get help for a specific command'),
-            Command('filter', self.filter_command,
+            Command('filter', '[MATCHER]', self.filter_command,
                 'Show the current output filter matcher, or add a new one\n' +
-                'See $ ' + color('1;37', 'help matcher') + ' for matcher syntax'),
-            Command('breakpoint', self.break_point_command,
+                'See ' + command_format('help matcher') + ' for matcher syntax'),
+            Command('breakpoint', '[MATCHER]', self.break_point_command,
                 'Show the current breakpoint matcher, or add a new one\n' +
                 'Use an inverse matcher (^) to disable existing breakpoints\n' +
-                'See $ ' + color('1;37', 'help matcher') + ' for matcher syntax'),
-            Command('continue', self.continue_command,
+                'See ' + command_format('help matcher') + ' for matcher syntax'),
+            Command('continue', None, self.continue_command,
                 'Continue processing events'),
-            Command('quit', self.quit_command,
+            Command('quit', None, self.quit_command,
                 'Quit the program'),
         ]
         self.is_stopped = False
@@ -51,18 +52,19 @@ class Session():
         return self.should_quit
 
     def message(self, message):
+        self.is_stopped = False
         self.messages.append(message)
         message.resolve_objects(self)
         if self.display_matcher.matches(message):
-            self.out.show(color('37', '{:8.4f}'.format(message.timestamp)) + ' ' + str(message))
+            message.show(self.out)
         if self.stop_matcher.matches(message):
             self.out.show(color('1;27', '    Stopped at ') + str(message).strip())
             self.is_stopped = True
 
-    def print_messages(self, matcher):
-        for i in self.messages:
-            if matcher.matches(i):
-                print(i)
+    def show_messages(self, matcher):
+        for message in self.messages:
+            if matcher.matches(message):
+                message.show(self.out)
 
     def command(self, command):
         assert isinstance(command, str)
@@ -106,15 +108,22 @@ class Session():
             else:
                 cmd = self._get_command(arg)
                 if cmd:
-                    self.out.show(command_format(cmd.name) + ': ' + cmd.help)
+                    start = command_format(cmd.name) + ': '
+                    body = cmd.help.replace('\n', '\n' + ' ' * len(no_color(start)))
+                    self.out.show(start + body)
                     return
-        self.out.show('Usage: ' + command_format('<command> <argument>'))
-        self.out.show('Help for specific command: ' + command_format('help <command>'))
+        self.out.show('Usage: ' + command_format('<COMMAND> [ARGUMENT]'))
+        self.out.show('Commands can be abbreviated (down to just the first unique letter)')
         self.out.show('Help with matcher syntax: ' + command_format('help matcher'))
-        self.out.show('Commands can be abbreviated (down to just the first letter)')
         self.out.show('Commands:')
         for c in self.commands:
-            self.out.show('  ' + command_format(c.name))
+            s = c.name
+            if c.arg:
+                s += ' ' + c.arg
+            self.out.show('  ' + command_format(s))
+
+    def show_matcher_parse_failed(self, arg, error):
+        self.out.error('Failed to parse "' + arg + '":\n    ' + str(error))
 
     def filter_command(self, arg):
         if arg:
@@ -122,7 +131,7 @@ class Session():
                 m = matcher.parse(arg)
                 self.display_matcher = matcher.join(m, self.display_matcher)
             except RuntimeError as e:
-                self.out.error('Failed to parse "' + arg + '":\n    ' + str(e))
+                self.show_matcher_parse_failed(arg, e)
         else:
             self.out.show('Output filter: ' + str(self.display_matcher))
 
@@ -132,7 +141,7 @@ class Session():
                 m = matcher.parse(arg)
                 self.stop_matcher = matcher.join(m, self.stop_matcher)
             except RuntimeError as e:
-                self.out.error('Failed to parse "' + arg + '":\n    ' + str(e))
+                self.show_matcher_parse_failed(arg, e)
         else:
             self.out.show('Breakpoint matcher: ' + str(self.stop_matcher))
 

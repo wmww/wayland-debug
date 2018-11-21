@@ -166,6 +166,9 @@ class Message:
             destroyed +
             (color(timestamp_color, ' ↲') if not self.sent else ''))
 
+    def show(self, out):
+        out.show(color('37', '{:8.4f}'.format(self.timestamp)) + ' ' + str(self))
+
 if __name__ == '__main__':
     print('File meant to be imported, not run')
     exit(1)
