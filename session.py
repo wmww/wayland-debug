@@ -27,6 +27,9 @@ class Session():
         self.commands = [
             Command('help', '[COMMAND]', self.help_command,
                 'Show this help message, or get help for a specific command'),
+            Command('show', '[MATCHER]', self.show_command,
+                'Show messages matching given matcher (or all messages so far if no matcher provided)' +
+                'See ' + command_format('help matcher') + ' for matcher syntax'),
             Command('filter', '[MATCHER]', self.filter_command,
                 'Show the current output filter matcher, or add a new one\n' +
                 'See ' + command_format('help matcher') + ' for matcher syntax'),
@@ -144,6 +147,16 @@ class Session():
                 self.show_matcher_parse_failed(arg, e)
         else:
             self.out.show('Breakpoint matcher: ' + str(self.stop_matcher))
+
+    def show_command(self, arg):
+        if arg:
+            try:
+                m = matcher.parse(arg)
+                self.show_messages(m)
+            except RuntimeError as e:
+                self.show_matcher_parse_failed(arg, e)
+        else:
+            self.show_messages(matcher.ConstMatcher.always)
 
     def continue_command(self, arg):
         self.is_stopped = False
