@@ -128,7 +128,7 @@ class ConstMatcher:
         if self.val:
             return color('32', '*')
         else:
-            return color('31', 'none')
+            return color('31', '(^ *)')
 ConstMatcher.always = ConstMatcher(True)
 ConstMatcher.never = ConstMatcher(False)
 
@@ -224,6 +224,8 @@ def _parse_sequence(raw):
     return (is_inversed, elems)
 
 def _parse_message_list(raw):
+    assert raw.startswith('[') and raw.endswith(']')
+    raw = raw[1:-1]
     if not raw:
         return ConstMatcher.always
     is_inversed, sequence = _parse_sequence(raw)
@@ -231,7 +233,9 @@ def _parse_message_list(raw):
     for elem in sequence:
         elem = elem.strip()
         if elem:
-            if re.findall('^[\w\*]+$', elem):
+            if re.findall('^[\*]+$', elem):
+                elems.append(ConstMatcher.always)
+            elif re.findall('^[\w\*]+$', elem):
                 elems.append(StrMatcher(elem))
             else:
                 warning('Failed to parse message matcher \'' + elem + '\'')
@@ -289,9 +293,9 @@ def _parse_single_matcher(raw):
         message_list_regex = '(\[' + not_bracs_regex + '\])?'
         groups = re.findall('^' + message_list_regex + not_bracs_regex + message_list_regex + '$', raw)
         if groups:
-            message_list_a = groups[0][1]
+            message_list_a = groups[0][0]
             object_list = groups[0][2]
-            message_list_b = groups[0][4]
+            message_list_b = groups[0][3]
             # Check for special case where there is only one message list and no object matchers
             if message_list_a and not object_list and not message_list_b:
                 return MessageOnObjMatcher(
@@ -318,6 +322,7 @@ def _parse_single_matcher(raw):
 # Either returns a valid matcher or throws a RuntimeError with a description of why it could not be parsed
 # Other behavior (such as throwing an AssertionError) is possible, but should be considered a bug in this file
 def parse(raw):
+    raw = no_color(raw)
     is_inversed, sequence = _parse_sequence(raw)
     matchers = [_parse_single_matcher(i) for i in sequence]
     return make_matcher(matchers, is_inversed)

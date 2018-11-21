@@ -65,6 +65,14 @@ def process_closure(closure, send):
     message = wl.Message(0, obj_id, proxy_class, send, message_name, args)
     return message
 
+def invoke_wl_command(session, cmd):
+    session.set_stopped(True)
+    session.command(cmd)
+    if session.quit():
+        gdb.execute('quit')
+    elif not session.stopped():
+        gdb.execute('continue')
+
 class WlClosureCallBreakpoint(gdb.Breakpoint):
     def __init__(self, session, name, send):
         super().__init__('wl_closure_' + name)
@@ -77,23 +85,23 @@ class WlClosureCallBreakpoint(gdb.Breakpoint):
         return self.session.stopped()
 
 class WlCommand(gdb.Command):
-    'Issue a subcommand to Wayland Debug, use \'w help\' for details'
+    'Issue a subcommand to Wayland Debug, use \'wl help\' for details'
     def __init__(self, name, session):
         super().__init__(name, gdb.COMMAND_DATA)
         self.session = session
     def invoke(self, arg, from_tty):
-        self.session.command(arg)
+        invoke_wl_command(self.session, arg)
     def complete(text, word):
         return None
 
 class WlSubcommand(gdb.Command):
-    'A Wayland debug command'
+    'A Wayland debug command, use \'wl help\' for detail'
     def __init__(self, name, session):
         super().__init__('wl' + name, gdb.COMMAND_DATA)
         self.session = session
         self.cmd = name
     def invoke(self, arg, from_tty):
-        self.session.command(self.cmd + ' ' + arg)
+        invoke_wl_command(self.session, self.cmd + ' ' + arg)
     def complete(text, word):
         return None
 

@@ -6,7 +6,7 @@ help_command_color = '1;37'
 
 def command_format(cmd):
     if check_gdb():
-        return '(gdb) ' + color(help_command_color, 'wl' + cmd)
+        return '(gdb) wl' + color(help_command_color, cmd)
     else:
         return '$ ' + color(help_command_color, cmd)
 
@@ -47,6 +47,9 @@ class Session():
         self.display_matcher = display_matcher
         self.stop_matcher = stop_matcher
         self.out = output
+
+    def set_stopped(self, val):
+        self.is_stopped = val
 
     def stopped(self):
         return self.is_stopped
@@ -156,7 +159,7 @@ class Session():
             except RuntimeError as e:
                 self.show_matcher_parse_failed(arg, e)
         else:
-            self.show_messages(matcher.ConstMatcher.always)
+            self.show_messages(self.display_matcher)
 
     def continue_command(self, arg):
         self.is_stopped = False
