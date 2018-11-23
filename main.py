@@ -88,13 +88,15 @@ def main():
         matcher.print_help()
         exit(1)
 
-    filter_matcher = matcher.ConstMatcher.always
+    filter_matcher = matcher.always
     if args.f:
-        filter_matcher = matcher.parse(args.f)
+        filter_matcher = matcher.parse(args.f).simplify()
+        output.log('Filter matcher: ' + str(filter_matcher))
 
-    stop_matcher = matcher.ConstMatcher.never
+    stop_matcher = matcher.never
     if args.b:
-        stop_matcher = matcher.parse(args.b)
+        stop_matcher = matcher.parse(args.b).simplify()
+        output.log('Break matcher: ' + str(stop_matcherx))
 
     session = wl_session.Session(filter_matcher, stop_matcher, output)
 

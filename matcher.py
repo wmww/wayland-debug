@@ -41,45 +41,44 @@ given. A complete example of a matcher could look something like:''')
 
 def make_matcher(matcher, inversed):
     if isinstance(matcher, list):
-        if len(matcher) == 0:
-            matcher = ConstMatcher.always
-        elif len(matcher) == 1:
-            matcher = matcher[0]
-        else:
-            matcher = ListMatcher(matcher)
+        matcher = ListMatcher(matcher)
     if inversed:
-        matcher = _inverse_matcher(matcher)
+        matcher = InverseMatcher(matcher)
     return matcher
 
 # Matches a Wayland object
 class ObjectMatcher:
-    def __init__(self, type_pattern, obj_id, obj_generation):
-        if type_pattern:
-            assert isinstance(type_pattern, str)
+    def __init__(self, type_matcher, obj_id, obj_generation):
         if obj_id:
             assert isinstance(obj_id, int)
         if obj_generation:
             assert isinstance(obj_generation, int)
-        self.type = type_pattern
+        self.type = type_matcher
         self.id = obj_id
         self.generation = obj_generation
-
     def matches(self, obj):
         if self.id and self.id != obj.id:
             return False
         elif self.generation and self.generation != obj.generation:
             return False
-        elif self.type and not str_matches(self.type, obj.type):
+        elif not self.type.matches(obj.type):
             return False
         else:
             return True
-
+    def simplify(self):
+        self.type = self.type.simplify()
+        if self.type == never:
+            return never
+        if not self.id and not self.generation:
+            if isinstance(self.type, ConstMatcher):
+                return self.type
+        return self
     def __str__(self):
         out = ''
-        if self.type:
-            out += self.type
+        if self.type != always:
+            out += str(self.type)
             if self.id:
-                out += ' @ '
+                out += '@'
         if self.id:
             out += str(self.id)
             if self.generation:
@@ -94,6 +93,11 @@ class StrMatcher:
     def matches(self, name):
         assert isinstance(name, str)
         return str_matches(self.pattern, name)
+    def simplify(self):
+        self.pattern = re.sub('\*+', '*', self.pattern)
+        if self.pattern == '*':
+            return always
+        return self
     def __str__(self):
         return color('1;34', self.pattern)
 
@@ -106,6 +110,17 @@ class ListMatcher:
             if matcher.matches(thing):
                 return True
         return False
+    def simplify(self):
+        for i in range(len(self.matchers)):
+            self.matchers[i] = self.matchers[i].simplify()
+            if self.matchers[i] == always:
+                return always
+        if len(self.matchers) == 0:
+            return never
+        elif len(self.matchers) == 1:
+            return self.matchers[0]
+        else:
+            return self
     def __str__(self):
         return ', '.join(str(matcher) for matcher in self.matchers)
 
@@ -115,6 +130,16 @@ class InverseMatcher:
         self.matcher = matcher
     def matches(self, thing):
         return not self.matcher.matches(thing)
+    def simplify(self):
+        self.matcher = self.matcher.simplify()
+        if self.matcher == always:
+            return never
+        elif self.matcher == never:
+            return always
+        elif isinstance(self.matcher, InverseMatcher):
+            return matcher.matcher
+        else:
+            return self
     def __str__(self):
         return color('1;31', '(^ ') + str(self.matcher) + color('1;31', ')')
 
@@ -124,13 +149,18 @@ class ConstMatcher:
         self.val = val
     def matches(self, thing):
         return self.val
+    def simplify(self):
+        if self.val and self != always:
+            return always
+        elif not self.val and self != never:
+            return never
+        else:
+            return self
     def __str__(self):
         if self.val:
-            return color('32', '*')
+            return color('1;32', '*')
         else:
-            return color('31', '(^ *)')
-ConstMatcher.always = ConstMatcher(True)
-ConstMatcher.never = ConstMatcher(False)
+            return color('1;31', '(^)')
 
 # Matches a method if an argument is a specific object
 class MessageWithArgMatcher:
@@ -144,6 +174,16 @@ class MessageWithArgMatcher:
             if self.object_matcher.matches(obj):
                 return True
         return False
+    def simplify(self):
+        self.message_name_matcher = self.message_name_matcher.simplify()
+        self.object_matcher = self.object_matcher.simplify()
+        if self.message_name_matcher == never:
+            return never
+        if self.object_matcher == never:
+            return never
+        if self.message_name_matcher == always and self.object_matcher == always:
+            return always
+        return self
     def __str__(self):
         return '[' + str(self.message_name_matcher) + '] <' + str(self.object_matcher) + '>'
 
@@ -159,21 +199,21 @@ class MessageOnObjMatcher:
         if not self.object_matcher.matches(message.obj):
             return False
         return True
+    def simplify(self):
+        self.message_name_matcher = self.message_name_matcher.simplify()
+        self.object_matcher = self.object_matcher.simplify()
+        if self.message_name_matcher == never:
+            return never
+        if self.object_matcher == never:
+            return never
+        if self.message_name_matcher == always and self.object_matcher == always:
+            return always
+        return self
     def __str__(self):
         return '<' + str(self.object_matcher) + '> [' + str(self.message_name_matcher) + ']'
 
-def _inverse_matcher(matcher):
-    if matcher == ConstMatcher.always:
-        return ConstMatcher.never
-    elif matcher == ConstMatcher.never:
-        return ConstMatcher.always
-    elif isinstance(matcher, InverseMatcher):
-        while isinstance(matcher, InverseMatcher) and isinstance(matcher.matcher, InverseMatcher):
-            matcher = matcher.matcher.matcher
-        return matcher.matcher
-    else:
-        return InverseMatcher(matcher)
-
+always = ConstMatcher(True)
+never = ConstMatcher(False)
 _op_braces = {'(': ')', '[': ']', '<': '>'}
 _cl_braces = {a: b for b, a in _op_braces.items()}
 
@@ -210,10 +250,9 @@ def _parse_sequence(raw):
     raw = raw.strip()
     if raw.startswith('(') and raw.endswith(')'):
         return _parse_sequence(raw[1:-1])
-    is_inversed = False
     if raw.startswith('^'):
-        is_inversed = True
-        raw = raw[1:]
+        inversed, seq = _parse_sequence(raw[1:])
+        return (not inversed, seq)
     elems = []
     for elem in _parse_comma_list(raw):
         elem = elem.strip()
@@ -221,20 +260,20 @@ def _parse_sequence(raw):
             warning('\'^\' can only be at the start of a sequence, not before \'' + elem[1:] + '\'')
             elem = elem[1:]
         elems.append(elem)
-    return (is_inversed, elems)
+    return (False, elems)
 
 def _parse_message_list(raw):
     assert raw.startswith('[') and raw.endswith(']')
     raw = raw[1:-1]
     if not raw:
-        return ConstMatcher.always
+        return always
     is_inversed, sequence = _parse_sequence(raw)
     elems = []
     for elem in sequence:
         elem = elem.strip()
         if elem:
             if re.findall('^[\*]+$', elem):
-                elems.append(ConstMatcher.always)
+                elems.append(always)
             elif re.findall('^[\w\*]+$', elem):
                 elems.append(StrMatcher(elem))
             else:
@@ -265,12 +304,16 @@ def _parse_obj_matcher(raw):
         type_pattern = obj_name_matches[0]
     if not type_pattern and not obj_id:
         raise RuntimeError('Failed to parse object matcher \'' + raw + '\'')
-    return ObjectMatcher(type_pattern, obj_id, obj_generation)
+    if type_pattern:
+        type_matcher = StrMatcher(type_pattern)
+    else:
+        type_matcher = always
+    return ObjectMatcher(type_matcher, obj_id, obj_generation)
 
 def _parse_obj_list(raw):
     raw = raw.strip()
     if not raw:
-        return ConstMatcher.always
+        return always
     if raw.startswith('<') and raw.endswith('>'):
         return _parse_obj_list(raw[1:-1])
     is_inversed, sequence = _parse_sequence(raw)
@@ -299,7 +342,7 @@ def _parse_single_matcher(raw):
             # Check for special case where there is only one message list and no object matchers
             if message_list_a and not object_list and not message_list_b:
                 return MessageOnObjMatcher(
-                    ConstMatcher.always,
+                    always,
                     _parse_message_list(message_list_a))
             matchers = []
             if message_list_a:
@@ -313,11 +356,11 @@ def _parse_single_matcher(raw):
             if len(matchers) == 0:
                 matchers.append(MessageOnObjMatcher(
                     _parse_obj_list(object_list),
-                    ConstMatcher.always))
+                    always))
             return make_matcher(matchers, False)
         else:
             warning('\'' + raw + '\' has invalid syntax')
-            return ConstMatcher.never
+            return never
 
 # Either returns a valid matcher or throws a RuntimeError with a description of why it could not be parsed
 # Other behavior (such as throwing an AssertionError) is possible, but should be considered a bug in this file
@@ -333,7 +376,7 @@ def join(new, old):
         return new
     elif isinstance(new, InverseMatcher):
         # When you don't feel like writing an 'AndMatcher', and know too much about boolean logic
-        return _inverse_matcher(join(_inverse_matcher(new), _inverse_matcher(old)))
+        return InverseMatcher(join(InverseMatcher(new), InverseMatcher(old)))
     else:
         if isinstance(old, ListMatcher):
             old.matchers.append(new)

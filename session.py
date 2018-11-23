@@ -131,7 +131,7 @@ class Session():
     def parse_and_join(new_unparsed, old):
         try:
             parsed = matcher.parse(new_unparsed)
-            return matcher.join(parsed, old)
+            return matcher.join(parsed, old).simplify()
         except RuntimeError as e:
             self.out.error('Failed to parse "' + arg + '":\n    ' + str(e))
             return old
@@ -153,7 +153,7 @@ class Session():
     def show_command(self, arg):
         if arg:
             try:
-                m = matcher.parse(arg)
+                m = matcher.parse(arg).simplify()
                 self.show_messages(m)
             except RuntimeError as e:
                 self.show_matcher_parse_failed(arg, e)
