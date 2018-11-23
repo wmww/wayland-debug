@@ -2,6 +2,8 @@ import sys
 import subprocess
 import os
 
+import util
+
 def main_with_args(my_args, gdb_args):
     # The high level plan is to spin up an instance of gdb, and another instance of ourselves inside it
     
@@ -30,9 +32,19 @@ def main_with_args(my_args, gdb_args):
             pass
 
 def main():
+    if util.check_gdb():
+        # debugging infinitaly nested debuggers isn't fun
+        return False
     # Look for the -d or --gdb arguments, and split the argument list based on where they are
     for i in range(len(sys.argv)):
         if sys.argv[i] == '-g' or sys.argv[i] == '--gdb':
-            main_with_args(sys.argv[:i], sys.argv[i+1:])
+            main_with_args(sys.argv[:i+1], sys.argv[i+1:])
             return True
+        elif len(sys.argv[i]) > 2 and sys.argv[i][0] == '-' and sys.argv[i][1] != '-':
+            # loog for a g in the list of single char args
+            for c in sys.argv[i]:
+                if c == 'g':
+                    # the last batch of args will all go to the child wayland debug, which will simply ignore the 'g'
+                    main_with_args(sys.argv[:i+1], sys.argv[i+1:])
+                    return True
     return False
