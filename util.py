@@ -8,10 +8,14 @@ def check_gdb():
 verbose = False
 
 # if we print with colors and such
-color_output = check_gdb() or (hasattr(sys.stdout, 'isatty') and sys.stdout.isatty())
+color_output = False
 timestamp_color = '37'
 object_color = '1;37'
 message_color = None
+
+def set_color_output(val):
+    global color_output
+    color_output = val
 
 # if string is not None, resets to normal at end
 def color(color, string):

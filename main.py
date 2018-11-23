@@ -40,6 +40,8 @@ def main():
     parser.add_argument('-v', '--verbose', action='store_true', help='verbose output, mostly used for debugging this program')
     parser.add_argument('-l', '--load', dest='path', type=str, help='Load Wayland events from a file instead of stdin')
     parser.add_argument('-a', '--all', action='store_true', help='show output that can\'t be parsed as Wayland events')
+    parser.add_argument('-c', '--color', action='store_true', help='force color output (default for interactive sessions)')
+    parser.add_argument('-C', '--no-color', action='store_true', help='disable color output (default for non-interactive sessions)')
     parser.add_argument('-f', '--filter', dest='f', type=str, help='only show these objects/messages (see --matcher-help for syntax)')
     parser.add_argument('-b', '--break', dest='b', type=str, help='stop on these objects/messages (see --matcher-help for syntax)')
     parser.add_argument('-g', '--gdb', action='store_true', help='run inside gdb, all subsequent arguments are sent to gdb, when inside gdb start commands with \'wl\'')
@@ -53,6 +55,13 @@ def main():
         # Stops the annoying continue prompts in GDB
         out_file = sys.stderr
 
+    if args.no_color:
+        set_color_output(False)
+    elif args.color:
+        set_color_output(True)
+    elif check_gdb() or (hasattr(sys.stdout, 'isatty') and sys.stdout.isatty()):
+        set_color_output(True)
+
     verbose = bool(args.verbose)
     unprocessed_output = bool(args.all)
     output = Output(verbose, unprocessed_output, out_file, err_file)
@@ -60,6 +69,17 @@ def main():
     if verbose:
         set_verbose(True)
         output.log('Verbose output enabled')
+
+    if args.no_color:
+        if args.color:
+            output.warn('Ignoring --color, since --no-color was also specified')
+        output.log('Color output disabled')
+    elif args.color:
+        s = ''
+        i = 0
+        for i, c in enumerate('Color output enabled'):
+            s += color('1;' + str(i % 6 + 31), c)
+        output.log(s)
 
     if unprocessed_output:
         output.log('Showing unparsable output')
