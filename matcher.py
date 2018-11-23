@@ -116,7 +116,7 @@ class ListMatcher:
             if self.matchers[i] == always:
                 return always
         if len(self.matchers) == 0:
-            return never
+            return always
         elif len(self.matchers) == 1:
             return self.matchers[0]
         else:
