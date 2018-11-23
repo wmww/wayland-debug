@@ -213,53 +213,23 @@ class MessageOnObjMatcher:
         return '<' + str(self.object_matcher) + '> [' + str(self.message_name_matcher) + ']'
 
 always = ConstMatcher(True)
-never = ConstMatcher(False)
-_op_braces = {'(': ')', '[': ']', '<': '>'}
-_cl_braces = {a: b for b, a in _op_braces.items()}
-
-def _parse_comma_list(raw):
-    chunks = []
-    start = 0
-    i = 0
-    while i <= len(raw):
-        if i == len(raw) or raw[i] == ',':
-            if i > start:
-                chunks.append(raw[start:i])
-            start = i + 1
-        elif raw[i] in _cl_braces:
-            raise RuntimeError('\'' + raw + '\' has mismatched braces')
-        elif raw[i] in _op_braces:
-            j = i
-            op = raw[i]
-            cl = _op_braces[op]
-            count = 1
-            while count > 0:
-                j += 1
-                if j >= len(raw):
-                    raise RuntimeError('\'' + raw + '\' has mismatched braces')
-                if raw[j] == op:
-                    count += 1
-                if raw[j] == cl:
-                    count -= 1
-            i = j
-        i += 1
-    return chunks
+never = ConstMatcher(False)\
 
 # returns (is_inversed, ['comma', 'seporated', 'stripped', 'strings'])
-def _parse_sequence(raw):
+def _parse_expr(raw, parse_single_elem_func):
     raw = raw.strip()
-    if raw.startswith('(') and raw.endswith(')'):
-        return _parse_sequence(raw[1:-1])
     if raw.startswith('^'):
+        return InverseMatcher(_parse_expr(raw[1:], parse_single_elem_func))
+    and_elems = _par
         inversed, seq = _parse_sequence(raw[1:])
         return (not inversed, seq)
     elems = []
-    for elem in _parse_comma_list(raw):
+    for elem in _parse_raw_list(',', raw):
         elem = elem.strip()
         if elem.startswith('^'):
-            warning('\'^\' can only be at the start of a sequence, not before \'' + elem[1:] + '\'')
-            elem = elem[1:]
-        elems.append(elem)
+            raise RuntimeError('\'^\' can only be at the start of a sequence, not before \'' + elem[1:] + '\'')
+        if elem != '':
+            elems.append(elem)
     return (False, elems)
 
 def _parse_message_list(raw):
@@ -329,38 +299,35 @@ def _parse_obj_list(raw):
 
 def _parse_single_matcher(raw):
     assert not raw.startswith('^')
-    if raw.startswith('(') and raw.endswith(')'):
-        return parse(raw[1:-1])
+    not_bracs_regex = '([^\[\]]*)'
+    message_list_regex = '(\[' + not_bracs_regex + '\])?'
+    groups = re.findall('^' + message_list_regex + not_bracs_regex + message_list_regex + '$', raw)
+    if groups:
+        message_list_a = groups[0][0]
+        object_list = groups[0][2]
+        message_list_b = groups[0][3]
+        # Check for special case where there is only one message list and no object matchers
+        if message_list_a and not object_list and not message_list_b:
+            return MessageOnObjMatcher(
+                always,
+                _parse_message_list(message_list_a))
+        matchers = []
+        if message_list_a:
+            matchers.append(MessageWithArgMatcher(
+                _parse_message_list(message_list_a),
+                _parse_obj_list(object_list)))
+        if message_list_b:
+            matchers.append(MessageOnObjMatcher(
+                _parse_obj_list(object_list),
+                _parse_message_list(message_list_b)))
+        if len(matchers) == 0:
+            matchers.append(MessageOnObjMatcher(
+                _parse_obj_list(object_list),
+                always))
+        return make_matcher(matchers, False)
     else:
-        not_bracs_regex = '([^\[\]]*)'
-        message_list_regex = '(\[' + not_bracs_regex + '\])?'
-        groups = re.findall('^' + message_list_regex + not_bracs_regex + message_list_regex + '$', raw)
-        if groups:
-            message_list_a = groups[0][0]
-            object_list = groups[0][2]
-            message_list_b = groups[0][3]
-            # Check for special case where there is only one message list and no object matchers
-            if message_list_a and not object_list and not message_list_b:
-                return MessageOnObjMatcher(
-                    always,
-                    _parse_message_list(message_list_a))
-            matchers = []
-            if message_list_a:
-                matchers.append(MessageWithArgMatcher(
-                    _parse_message_list(message_list_a),
-                    _parse_obj_list(object_list)))
-            if message_list_b:
-                matchers.append(MessageOnObjMatcher(
-                    _parse_obj_list(object_list),
-                    _parse_message_list(message_list_b)))
-            if len(matchers) == 0:
-                matchers.append(MessageOnObjMatcher(
-                    _parse_obj_list(object_list),
-                    always))
-            return make_matcher(matchers, False)
-        else:
-            warning('\'' + raw + '\' has invalid syntax')
-            return never
+        warning('\'' + raw + '\' has invalid syntax')
+        return never
 
 # Either returns a valid matcher or throws a RuntimeError with a description of why it could not be parsed
 # Other behavior (such as throwing an AssertionError) is possible, but should be considered a bug in this file
