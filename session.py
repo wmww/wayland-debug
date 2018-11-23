@@ -128,26 +128,25 @@ class Session():
                 s += ' ' + c.arg
             self.out.show('  ' + command_format(s))
 
-    def show_matcher_parse_failed(self, arg, error):
-        self.out.error('Failed to parse "' + arg + '":\n    ' + str(error))
+    def parse_and_join(new_unparsed, old):
+        try:
+            parsed = matcher.parse(new_unparsed)
+            return matcher.join(parsed, old)
+        except RuntimeError as e:
+            self.out.error('Failed to parse "' + arg + '":\n    ' + str(e))
+            return old
 
     def filter_command(self, arg):
         if arg:
-            try:
-                m = matcher.parse(arg)
-                self.display_matcher = matcher.join(m, self.display_matcher)
-            except RuntimeError as e:
-                self.show_matcher_parse_failed(arg, e)
+            self.display_matcher = Session.parse_and_join(arg, self.display_matcher)
+            self.out.show('Only showing messages that match ' + str(self.display_matcher))
         else:
             self.out.show('Output filter: ' + str(self.display_matcher))
 
     def break_point_command(self, arg):
         if arg:
-            try:
-                m = matcher.parse(arg)
-                self.stop_matcher = matcher.join(m, self.stop_matcher)
-            except RuntimeError as e:
-                self.show_matcher_parse_failed(arg, e)
+            self.stop_matcher = Session.parse_and_join(arg, self.stop_matcher)
+            self.out.show('Breaking on messages that match: ' + str(self.stop_matcher))
         else:
             self.out.show('Breakpoint matcher: ' + str(self.stop_matcher))
 
