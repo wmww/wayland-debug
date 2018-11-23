@@ -124,6 +124,29 @@ class ListMatcher:
     def __str__(self):
         return ', '.join(str(matcher) for matcher in self.matchers)
 
+# Matches only if all matchers match
+class AllMatcher:
+    def __init__(self, matchers):
+        self.matchers = matchers
+    def matches(self, thing):
+        for matcher in self.matchers:
+            if not matcher.matches(thing):
+                return False
+        return True
+    def simplify(self):
+        for i in range(len(self.matchers)):
+            self.matchers[i] = self.matchers[i].simplify()
+            if self.matchers[i] == never:
+                return never
+        if len(self.matchers) == 0:
+            return never
+        elif len(self.matchers) == 1:
+            return self.matchers[0]
+        else:
+            return self
+    def __str__(self):
+        return '(' + ' & '.join(str(matcher) for matcher in self.matchers) + ')'
+
 # Reverses another matcher
 class InverseMatcher:
     def __init__(self, matcher):
@@ -214,73 +237,84 @@ class MessageOnObjMatcher:
 
 always = ConstMatcher(True)
 never = ConstMatcher(False)
-_op_braces = {'(': ')', '[': ']', '<': '>'}
+_op_braces = {'(': ')', '[': ']', '<': '>', "'": "'", '"': '"'}
 _cl_braces = {a: b for b, a in _op_braces.items()}
+_ignore = {' ': True, '\t': True, '\n': True}
 
-def _parse_comma_list(raw):
+def _split_raw_list(delimiter, raw, list_start, end):
     chunks = []
-    start = 0
-    i = 0
-    while i <= len(raw):
-        if i == len(raw) or raw[i] == ',':
-            if i > start:
-                chunks.append(raw[start:i])
+    start = list_start
+    i = start
+    while True:
+        if i == end or raw[i] == delimiter:
+            chunks.append((start, i))
             start = i + 1
+            if i == end:
+                return chunks
         elif raw[i] in _cl_braces:
-            raise RuntimeError('\'' + raw + '\' has mismatched braces')
+            raise RuntimeError('"' + raw[:i] + color('1;32', raw[i]) + raw[i+1:] + '" has extra \'' + raw[i] + '\'')
         elif raw[i] in _op_braces:
+            if not delimiter and i > start:
+                chunks.append((start, i))
+                start = i
             j = i
             op = raw[i]
             cl = _op_braces[op]
             count = 1
             while count > 0:
                 j += 1
-                if j >= len(raw):
-                    raise RuntimeError('\'' + raw + '\' has mismatched braces')
-                if raw[j] == op:
-                    count += 1
-                if raw[j] == cl:
+                if j >= end:
+                    raise RuntimeError('"' + raw[:i] + color('1;32', raw[i]) + raw[i+1:] + '" has unclosed \'' + raw[i] + '\'')
+                elif raw[j] == '\\' and op == cl and j + 1 < end and raw[j+1] == cl:
+                    j += 1
+                elif raw[j] == cl:
                     count -= 1
+                elif raw[j] == op:
+                    count += 1
             i = j
+            if not delimiter and i > start:
+                chunks.append((start, i))
+                start = i
         i += 1
-    return chunks
+    assert False
 
-# returns (is_inversed, ['comma', 'seporated', 'stripped', 'strings'])
-def _parse_sequence(raw):
-    raw = raw.strip()
-    if raw.startswith('(') and raw.endswith(')'):
-        return _parse_sequence(raw[1:-1])
-    if raw.startswith('^'):
-        inversed, seq = _parse_sequence(raw[1:])
-        return (not inversed, seq)
-    elems = []
-    for elem in _parse_comma_list(raw):
-        elem = elem.strip()
-        if elem.startswith('^'):
-            warning('\'^\' can only be at the start of a sequence, not before \'' + elem[1:] + '\'')
-            elem = elem[1:]
-        elems.append(elem)
-    return (False, elems)
+def _parse_expr(raw, start, end, allow_inverse, sub_parser_func):
+    while start < len(raw) and raw[start] in _ignore:
+        start += 1
+    while end > 0 and raw[end - 1] in _ignore:
+        end -= 1
+    if start >= end
+        raise RuntimeError('"' + raw[:start] + color('1;32', '__') + raw[end:] + '" has empty expression')
+    if raw[start] == '^':
+        if allow_inverse:
+            return InverseMatcher(_parse_expr(raw, start + 1, end, sub_parser_func))
+        else:
+            raise RuntimeError('"' + raw[:start] + color('1;32', '^') + raw[start+1:] + '" has incorrectly placed \'^\', you must use parentheses')
+    elems = _split_raw_list(',' raw, start, end)
+    if len(elems) > 1:
+        matchers = [_parse_expr(raw, i[0], i[1], False, sub_parser_func) for i in elems]
+        return ListMatcher(matchers)
+    elems = _split_raw_list('&' raw, start, end)
+    if len(elems) > 1:
+        matchers = [_parse_expr(raw, i[0], i[1], False, sub_parser_func) for i in elems]
+        return AllMatcher(matchers)
+    else:
+        return sub_parser_func(raw, start, end)
 
-def _parse_message_list(raw):
-    assert raw.startswith('[') and raw.endswith(']')
-    raw = raw[1:-1]
-    if not raw:
+def _parse_str(raw, start, end):
+    return StrMatcher(raw[start:end]
+
+def _parse_message_list(raw, start, end):
+    assert raw[start] == '[' and raw[end - 1] == ']'
+    start += 1
+    end -= 1
+    if start >= end:
         return always
-    is_inversed, sequence = _parse_sequence(raw)
-    elems = []
-    for elem in sequence:
-        elem = elem.strip()
-        if elem:
-            if re.findall('^[\*]+$', elem):
-                elems.append(always)
-            elif re.findall('^[\w\*]+$', elem):
-                elems.append(StrMatcher(elem))
-            else:
-                warning('Failed to parse message matcher \'' + elem + '\'')
-    return make_matcher(elems, is_inversed)
+    else:
+        return _parse_expr(raw, start, end, True, _parse_str)
 
 def _parse_obj_matcher(raw):
+    elems = _parse_raw_list(None, raw, start, end)
     id_matches = re.findall('(^|[^\w\.-])(\d+)(\.(\d+))?', raw)
     obj_id = None
     obj_generation = None
