@@ -96,7 +96,7 @@ def main():
     stop_matcher = matcher.never
     if args.b:
         stop_matcher = matcher.parse(args.b).simplify()
-        output.log('Break matcher: ' + str(stop_matcherx))
+        output.log('Break matcher: ' + str(stop_matcher))
 
     session = wl_session.Session(filter_matcher, stop_matcher, output)
 
@@ -104,7 +104,7 @@ def main():
 
     if check_gdb():
         if file_path:
-            output.warn('load file ignored because we\'re inside GDB')
+            output.warn('Ignoring load file because we\'re inside GDB')
         import gdb_interface
         gdb_interface.main(session)
     elif file_path:
