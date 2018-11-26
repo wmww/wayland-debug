@@ -94,6 +94,24 @@ class ListMatcher:
 class AndMatcher(ListMatcher):
     def __init__(self, matchers):
         super().__init__(matchers, False, ' & ')
+    def __str__(self):
+        # Special case the parts of an object matcher
+        obj_type = ''
+        obj_id = ''
+        obj_gen = ''
+        matchers = []
+        for matcher in self.matchers:
+            if not obj_type and isinstance(matcher, ObjectTypeMatcher):
+                obj_type = str(matcher)
+            elif not obj_id and isinstance(matcher, ObjectIdMatcher):
+                obj_id = str(matcher)
+            elif not obj_gen and isinstance(matcher, ObjectGenMatcher):
+                obj_gen = str(matcher)
+            else:
+                matchers.append(str(matcher))
+        if obj_type or obj_id or obj_gen:
+            matchers = [obj_type + obj_id + obj_gen] + matchers
+        return '(' + ' & '.join(matchers) + ')'
 
 class OrMatcher(ListMatcher):
     def __init__(self, matchers):
@@ -153,7 +171,7 @@ class ObjectOfMessageMatcher(TransformMatcher):
         assert message.obj is not None, 'Message objects must be resolved before matching'
         return message.obj
     def __str__(self):
-        return str(self.matcher) + '[]'
+        return str(self.matcher) + ' []'
 
 class MessageNameMatcher(TransformMatcher):
     def transform(self, message):
