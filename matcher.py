@@ -96,12 +96,21 @@ class AndMatcher(ListMatcher):
         super().__init__(matchers, False, ' & ')
     def __str__(self):
         # Special case the parts of an object matcher
+        msg_obj = ''
+        msg_obj_arg = ''
+        msg_name = ''
         obj_type = ''
         obj_id = ''
         obj_gen = ''
         matchers = []
         for matcher in self.matchers:
-            if not obj_type and isinstance(matcher, ObjectTypeMatcher):
+            if not msg_obj and isinstance(matcher, ObjectOfMessageMatcher):
+                msg_obj = str(matcher.matcher)
+            elif not msg_name and isinstance(matcher, MessageNameMatcher):
+                msg_name = str(matcher.matcher)
+            elif not msg_obj_arg and isinstance(matcher, ObjectMessageArgMatcher):
+                msg_obj_arg = str(matcher.matcher)
+            elif not obj_type and isinstance(matcher, ObjectTypeMatcher):
                 obj_type = str(matcher)
             elif not obj_id and isinstance(matcher, ObjectIdMatcher):
                 obj_id = str(matcher)
@@ -111,6 +120,10 @@ class AndMatcher(ListMatcher):
                 matchers.append(str(matcher))
         if obj_type or obj_id or obj_gen:
             matchers = [obj_type + obj_id + obj_gen] + matchers
+        if msg_obj or (msg_name and not msg_obj_arg):
+            matchers = [msg_obj + ' [' + msg_name + ']'] + matchers
+        if msg_obj_arg:
+            matchers = ['[' + msg_name + ']' + msg_obj_arg] + matchers
         return '(' + ' & '.join(matchers) + ')'
 
 class OrMatcher(ListMatcher):
@@ -177,7 +190,7 @@ class MessageNameMatcher(TransformMatcher):
     def transform(self, message):
         return message.name
     def __str__(self):
-        return str(self.matcher)
+        return '[' + str(self.matcher) + ']'
 
 class ObjectTypeMatcher(TransformMatcher):
     def transform(self, obj):
