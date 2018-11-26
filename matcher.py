@@ -76,7 +76,7 @@ class ListMatcher:
                 matcher = None
             if isinstance(matcher, ConstMatcher):
                 if matcher.val == self.match_any:
-                    return self.match_any
+                    return ConstMatcher(self.match_any).simplify()
                 else:
                     matcher = None
             if matcher:
@@ -389,7 +389,7 @@ def parse(raw):
 def join(new, old):
     if isinstance(old, ConstMatcher):
         return new
-    elif isinstance(new, InverseMatcher):
+    elif isinstance(new, InverseMatcher) or new == never:
         return AndMatcher([old, new])
     else:
         return OrMatcher([old, new])
