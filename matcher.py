@@ -39,45 +39,6 @@ If the matcher list (or a message list) starts with \'^\', it matches everything
 given. A complete example of a matcher could look something like:''')
     print(color('1;37', '  \'[delete_id]wl_surface[commit], *[destroy], @3.2\''))
 
-# Matches a Wayland object
-class ObjectMatcher:
-    def __init__(self, type_matcher, obj_id, obj_generation):
-        if obj_id:
-            assert isinstance(obj_id, int)
-        if obj_generation:
-            assert isinstance(obj_generation, int)
-        self.type = type_matcher
-        self.id = obj_id
-        self.generation = obj_generation
-    def matches(self, obj):
-        if self.id and self.id != obj.id:
-            return False
-        elif self.generation and self.generation != obj.generation:
-            return False
-        elif not self.type.matches(obj.type):
-            return False
-        else:
-            return True
-    def simplify(self):
-        self.type = self.type.simplify()
-        if self.type == never:
-            return never
-        if not self.id and not self.generation:
-            if isinstance(self.type, ConstMatcher):
-                return self.type
-        return self
-    def __str__(self):
-        out = ''
-        if self.type != always:
-            out += str(self.type)
-            if self.id:
-                out += '@'
-        if self.id:
-            out += str(self.id)
-            if self.generation:
-                out += '.' + str(self.generation)
-        return color('1;35', out)
-
 # Matches a string (uses wildcards)
 class StrMatcher:
     def __init__(self, pattern):
@@ -290,9 +251,7 @@ def _parse_expr(raw, start, end, allow_inverse, sub_parser_func):
         matchers = [_parse_expr(raw, i[0], i[1], False, sub_parser_func) for i in elems]
         return AndMatcher(matchers)
     if raw[start] == '(' and raw[end - 1] == ')':
-        print('Peren list: ' + repr([raw[i[0]:i[1]] for i in _split_raw_list(None, raw, start, end)]))
         return _parse_expr(raw, start + 1, end - 1, True, sub_parser_func)
-    print('Calling subparser on ' + raw[start:end])
     return sub_parser_func(raw, start, end)
 
 def _parse_str(raw, start, end):
