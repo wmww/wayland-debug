@@ -138,20 +138,46 @@ class ConstMatcher:
             return color('1;31', '(^)')
 
 class TransformMatcher:
-    def __init__(self, matcher, func, str_prefix, str_postfix):
+    def __init__(self, matcher):
         self.matcher = matcher
-        self.func = func
-        self.str_prefix = str_prefix
-        self.str_postfix = str_postfix
     def matches(self, thing):
-        return self.matcher.matches(self.func(thing))
+        return self.matcher.matches(self.transform(thing))
     def simplify(self):
         self.matcher = self.matcher.simplify()
         if isinstance(self.matcher, ConstMatcher):
             return self.matcher
         return self
+
+class ObjectOfMessageMatcher(TransformMatcher):
+    def transform(self, message):
+        assert message.obj is not None, 'Message objects must be resolved before matching'
+        return message.obj
     def __str__(self):
-        return self.str_prefix + str(self.matcher) + self.str_postfix
+        return str(self.matcher) + '[]'
+
+class MessageNameMatcher(TransformMatcher):
+    def transform(self, message):
+        return message.name
+    def __str__(self):
+        return str(self.matcher)
+
+class ObjectTypeMatcher(TransformMatcher):
+    def transform(self, obj):
+        return obj.type
+    def __str__(self):
+        return str(self.matcher)
+
+class ObjectIdMatcher(TransformMatcher):
+    def transform(self, obj):
+        return obj.id
+    def __str__(self):
+        return '@' + str(self.matcher)
+
+class ObjectGenMatcher(TransformMatcher):
+    def transform(self, obj):
+        return obj.generation
+    def __str__(self):
+        return '.' + str(self.matcher)
 
 class EqMatcher:
     def __init__(self, value):
@@ -162,10 +188,6 @@ class EqMatcher:
         return self
     def __str__(self):
         return color('1;37', str(self.value))
-
-def _get_object_of_message(message):
-    assert message.obj is not None, 'Message objects must be resolved before matching'
-    return message.obj
 
 class ObjectMessageArgMatcher:
     def __init__(self, matcher):
@@ -271,7 +293,7 @@ def _parse_message_list(raw, start, end):
         return always
     else:
         m = _parse_expr(raw, start, end, True, _parse_str)
-        return TransformMatcher(m, lambda msg: msg.name, '', '')
+        return MessageNameMatcher(m)
 
 def _parse_object_id_matcher(raw, start, end):
     elems = _split_raw_list('.', raw, start, end)
@@ -285,8 +307,8 @@ def _parse_object_id_matcher(raw, start, end):
     if len(elems) > 1:
         gen_matcher = _parse_expr(raw, elems[1][0], elems[1][1], False, _parse_int)
     return AndMatcher([
-        TransformMatcher(id_matcher, lambda obj: obj.id, '@', ''),
-        TransformMatcher(gen_matcher, lambda obj: obj.generation, '.', '')])
+        ObjectIdMatcher(id_matcher),
+        ObjectGenMatcher(gen_matcher)])
 
 _digit_chars = {i: True for i in [str(j) for j in range(10)] + ['.']}
 
@@ -307,7 +329,7 @@ def _parse_object_matcher(raw, start, end):
         id_matcher = _parse_expr(raw, elems[0][0], elems[0][1], True, _parse_object_id_matcher)
         elems = elems[1:]
     return AndMatcher([
-        TransformMatcher(name_matcher, lambda obj: obj.type, '', ''),
+        ObjectTypeMatcher(name_matcher),
         id_matcher])
 
 def _parse_message_matcher(raw, start, end):
@@ -335,7 +357,7 @@ def _parse_message_matcher(raw, start, end):
             a,
             ObjectMessageArgMatcher(obj)]),
         AndMatcher([
-            TransformMatcher(obj, _get_object_of_message, '', ' []'),
+            ObjectOfMessageMatcher(obj),
             b])])
 
 # Either returns a valid matcher or throws a RuntimeError with a description of why it could not be parsed
