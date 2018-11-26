@@ -63,22 +63,22 @@ class Output:
         self.err = err_file
 
     def show(self, *msg):
-        print(' '.join(msg), file=self.out)
+        print(' '.join(map(lambda m: str(m), msg)), file=self.out)
 
     # Used when parsing WAYLAND_DEBUG lines and we come across output we can't parse
     def unprocessed(self, *msg):
         if self.show_unprocessed:
-            self.show(color('37', ' ' * 10 + ' |  ' + ' '.join(msg)))
+            self.show(color('37', ' ' * 10 + ' |  ' + ' '.join(map(lambda m: str(m), msg))))
 
     def log(self, *msg):
         if self.verbose:
-            print(color('37', 'wl log: ') + ' '.join(msg), file=self.out)
+            print(color('37', 'wl log: ') + ' '.join(map(lambda m: str(m), msg)), file=self.out)
 
     def warn(self, *msg):
-        print(color('1;33', 'Warning: ') + ' '.join(msg), file=self.err)
+        print(color('1;33', 'Warning: ') + ' '.join(map(lambda m: str(m), msg)), file=self.err)
 
     def error(self, *msg):
-        print(color('1;31', 'Error: ') + ' '.join(msg), file=self.err)
+        print(color('1;31', 'Error: ') + ' '.join(map(lambda m: str(m), msg)), file=self.err)
 
 if __name__ == '__main__':
     print('File meant to be imported, not run')

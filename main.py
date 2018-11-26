@@ -90,13 +90,19 @@ def main():
 
     filter_matcher = matcher.always
     if args.f:
-        filter_matcher = matcher.parse(args.f).simplify()
-        output.log('Filter matcher: ' + str(filter_matcher))
+        try:
+            filter_matcher = matcher.parse(args.f).simplify()
+            output.log('Filter matcher: ' + str(filter_matcher))
+        except RuntimeError as e:
+            output.error(e)
 
     stop_matcher = matcher.never
     if args.b:
-        stop_matcher = matcher.parse(args.b).simplify()
-        output.log('Break matcher: ' + str(stop_matcher))
+        try:
+            stop_matcher = matcher.parse(args.b).simplify()
+            output.log('Break matcher: ' + str(stop_matcher))
+        except RuntimeError as e:
+            output.error(e)
 
     session = wl_session.Session(filter_matcher, stop_matcher, output)
 
