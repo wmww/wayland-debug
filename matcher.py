@@ -362,9 +362,10 @@ def _parse_message_matcher(raw, start, end):
         obj = always
     if len(elems) > 0 and raw[elems[0][0]] == '[':
         a = _parse_message_list(raw, elems[0][0], elems[0][1])
-        elems = elems[0:]
+        elems = elems[1:]
         obj = always
     if not obj:
+        a = always
         b = always
     if len(elems) > 0:
         obj = _parse_expr(raw, elems[0][0], elems[-1][1], False, _parse_object_matcher)
