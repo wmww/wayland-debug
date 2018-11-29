@@ -39,7 +39,7 @@ def main():
     parser.add_argument('--matcher-help', action='store_true', help='show how to write matchers used by filter and quit')
     parser.add_argument('-v', '--verbose', action='store_true', help='verbose output, mostly used for debugging this program')
     parser.add_argument('-l', '--load', dest='path', type=str, help='Load Wayland events from a file instead of stdin')
-    parser.add_argument('-a', '--all', action='store_true', help='show output that can\'t be parsed as Wayland events')
+    parser.add_argument('-s', '--supress', action='store_true', help='supress non-wayland output of the program')
     parser.add_argument('-c', '--color', action='store_true', help='force color output (default for interactive sessions)')
     parser.add_argument('-C', '--no-color', action='store_true', help='disable color output (default for non-interactive sessions)')
     parser.add_argument('-f', '--filter', dest='f', type=str, help='only show these objects/messages (see --matcher-help for syntax)')
@@ -63,7 +63,7 @@ def main():
         set_color_output(True)
 
     verbose = bool(args.verbose)
-    unprocessed_output = bool(args.all)
+    unprocessed_output = not bool(args.supress)
     output = Output(verbose, unprocessed_output, out_file, err_file)
 
     if verbose:
