@@ -396,6 +396,8 @@ def _parse_message_matcher(raw, start, end):
 # Other behavior (such as throwing an AssertionError) is possible, but should be considered a bug in this file
 def parse(raw):
     raw = no_color(raw)
+    if not raw.strip():
+        return always
     return _parse_expr(raw, 0, len(raw), True, _parse_message_matcher)
 
 # Order matters
