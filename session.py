@@ -38,6 +38,8 @@ class Session():
                 'Show the current breakpoint matcher, or add a new one\n' +
                 'Use an inverse matcher (^) to disable existing breakpoints\n' +
                 'See ' + command_format('help matcher') + ' for matcher syntax'),
+            Command('matcher', '[MATCHER]', self.matcher_command,
+                'Parse a matcher, and show it unsimplified'),
             Command('continue', None, self.continue_command,
                 'Continue processing events'),
             Command('quit', None, self.quit_command,
@@ -182,6 +184,19 @@ class Session():
             self.out.show('Breaking on messages that match: ' + str(self.stop_matcher))
         else:
             self.out.show('Breakpoint matcher: ' + str(self.stop_matcher))
+
+    def matcher_command(self, arg):
+        if arg:
+            try:
+                parsed = matcher.parse(arg)
+                unsimplified_str = str(parsed)
+                self.out.show('Unsimplified: ' + unsimplified_str)
+                self.out.show('  Simplified: ' + str(parsed.simplify()))
+                self.out.show('    Reparsed: ' + str(matcher.parse(unsimplified_str).simplify()))
+            except RuntimeError as e:
+                self.out.error('Failed to parse "' + arg + '":\n    ' + str(e))
+        else:
+            self.out.show('No matcher to parse')
 
     def show_command(self, arg):
         cap = None

@@ -6,7 +6,7 @@ import argparse # only used for line wrapping in the help
 def print_help():
 #                                                                          |
     print('''
-Matchers are used through out the program to show and hide messages. A matcher
+Matchers are used throughout the program to show and hide messages. A matcher
 consists of a comma seporated list of objects. An object is a type name,
 and/or an object ID (in which case a generation can also be specified). An
 @ goes inbetween the name and ID, and is optional if both are not specified.
@@ -37,7 +37,7 @@ message to be called on the object''')
     print('''
 If the matcher list (or a message list) starts with \'^\', it matches everything but what\'s
 given. A complete example of a matcher could look something like:''')
-    print(color('1;37', '  \'[delete_id]wl_surface[commit], *[destroy], @3.2\''))
+    print(color('1;37', '  \'[delete_id]wl_surface[^commit], *[destroy], @3.2\''))
 
 # Matches a string (uses wildcards)
 class StrMatcher:
@@ -76,14 +76,14 @@ class ListMatcher:
                 matcher = None
             if isinstance(matcher, ConstMatcher):
                 if matcher.val == self.match_any:
-                    return ConstMatcher(self.match_any).simplify()
+                    return matcher
                 else:
                     matcher = None
             if matcher:
                 matchers.append(matcher)
         self.matchers = matchers
         if len(self.matchers) == 0:
-            return ConstMatcher(self.match_any).simplify()
+            return ConstMatcher(not self.match_any).simplify()
         elif len(self.matchers) == 1:
             return self.matchers[0]
         else:
@@ -121,10 +121,10 @@ class AndMatcher(ListMatcher):
         if obj_type or obj_id or obj_gen:
             matchers = [obj_type + obj_id + obj_gen] + matchers
         if msg_obj or (msg_name and not msg_obj_arg):
-            matchers = [msg_obj + ' [' + msg_name + ']'] + matchers
+            matchers = [msg_obj + '[' + msg_name + ']'] + matchers
         if msg_obj_arg:
             matchers = ['[' + msg_name + ']' + msg_obj_arg] + matchers
-        return '(' + ' & '.join(matchers) + ')'
+        return '(' + ' & '.join(self.matchers) + ')'
 
 class OrMatcher(ListMatcher):
     def __init__(self, matchers):
@@ -308,7 +308,10 @@ def _parse_expr(raw, start, end, allow_inverse, sub_parser_func):
     return sub_parser_func(raw, start, end)
 
 def _parse_str(raw, start, end):
-    return StrMatcher(raw[start:end])
+    text = raw[start:end]
+    if not re.findall('^[\w\*]*$', text):
+        raise RuntimeError('"' + text + '" is not a valid string')
+    return StrMatcher(text)
 
 def _parse_int(raw, start, end):
     s = raw[start:end]
