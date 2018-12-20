@@ -61,6 +61,8 @@ class Session():
         return self.should_quit
 
     def message(self, message):
+        if message == None:
+            return
         self.is_stopped = False
         self.messages.append(message)
         message.resolve_objects(self)

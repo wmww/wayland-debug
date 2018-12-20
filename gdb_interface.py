@@ -12,15 +12,32 @@ from gdb_runner import check_libwayland
 def gdb_is_null(val):
     return str(val) == '0x0'
 
+first_connection_addr = None
+
 type_codes = {i: True for i in ['i', 'u', 'f', 's', 'o', 'n', 'a', 'h']}
 
-def process_closure(closure, send):
+def get_connection():
+    try:
+        return gdb.selected_frame().read_var('connection')
+    except ValueError:
+        if int(gdb.selected_frame().read_var('flags')) == 1:
+            return gdb.selected_frame().read_var('closure')['proxy']['display']['connection']
+        else:
+            target = gdb.selected_frame().read_var('target')
+            resource_type = gdb.lookup_type('wl_resource').pointer()
+            resource = target.cast(resource_type)
+            return resource['client']['connection']
+
+def process_closure(send):
+    closure = gdb.selected_frame().read_var('closure')
+    connection_addr = str(get_connection())
+    global first_connection_addr
+    if not first_connection_addr:
+        first_connection_addr = connection_addr
+    if first_connection_addr != connection_addr:
+        return None
+    print('connection_addr: ' + str(connection_addr))
     obj_id = int(closure['sender_id'])
-    proxy_class = None
-    if not send:
-        proxy = closure['proxy']
-        proxy_obj = proxy['object']
-        proxy_class = proxy_obj['interface']['name'].string()
     closure_message = closure['message']
     message_name = closure_message['name'].string()
     # The signiture is that stupid '2uufo?i' thing that has the type info
@@ -38,7 +55,6 @@ def process_closure(closure, send):
                 args.append(wl.Arg.Primitive(int(value)))
             elif c == 'f':
                 # Math is ripped out of wl_fixed_to_double() in libwayland
-                # This may be my favorite line of code I've ever written
                 f = float(gdb.parse_and_eval('(double)(void*)(((1023LL + 44LL) << 52) + (1LL << 51) + ' + str(value) + ') - (3LL << 43)'))
                 args.append(wl.Arg.Primitive(f))
             elif c == 's':
@@ -62,8 +78,7 @@ def process_closure(closure, send):
                     arg_id = int(value['id'])
                 args.append(wl.Arg.Object(arg_id, arg_type_name, c == 'n'))
             i += 1
-
-    message = wl.Message(0, obj_id, proxy_class, send, message_name, args)
+    message = wl.Message(0, obj_id, None, send, message_name, args)
     return message
 
 def invoke_wl_command(session, cmd):
@@ -80,8 +95,7 @@ class WlClosureCallBreakpoint(gdb.Breakpoint):
         self.session = session
         self.send = send
     def stop(self):
-        closure = gdb.selected_frame().read_var('closure')
-        message = process_closure(closure, self.send)
+        message = process_closure(self.send)
         self.session.message(message)
         return self.session.stopped()
 
