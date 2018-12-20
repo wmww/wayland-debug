@@ -2,6 +2,7 @@ import gdb
 import wl_data as wl
 import session as wl_session
 import matcher as wl_matcher
+from gdb_runner import check_libwayland
 
 # # libwayland client functions
 # wl_proxy_marshal
@@ -119,3 +120,12 @@ def main(session):
     for c in session.commands:
         WlSubcommand(c.name, session)
     session.out.log('Breakpoints: ' + repr(gdb.breakpoints()))
+    try:
+        result = check_libwayland()
+        if result == None:
+            session.out.log('libwayland found with debug symbols')
+        else:
+            session.out.log(result)
+            session.out.error('Installed libwayland lacks debug symbols, GDB mode will not function')
+    except RuntimeError as e:
+        session.out.warn('Checking libwayland failed: ' + str(e))

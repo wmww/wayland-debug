@@ -29,18 +29,6 @@ def check_libwayland():
         return None
 
 def main_with_args(my_args, gdb_args):
-    out = util.Output(False, True, sys.stdout, sys.stderr)
-    try:
-        result = check_libwayland()
-        if result == None:
-            out.log('libwayland found with debug symbols')
-        else:
-            out.warn(result)
-            out.error('Your installed libwayland does not have debug symbols, Wayland Debug can not function in GDB mode')
-            return
-    except RuntimeError as e:
-        out.warn('Checking libwayland failed: ' + str(e))
-
     # The high level plan is to spin up an instance of gdb, and another instance of ourselves inside it
 
     # Imports will be broken on this new version, so we need to fix the python import path for the child process
