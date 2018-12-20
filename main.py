@@ -59,8 +59,6 @@ def main():
         set_color_output(False)
     elif args.color:
         set_color_output(True)
-    elif check_gdb() or (hasattr(sys.stdout, 'isatty') and sys.stdout.isatty()):
-        set_color_output(True)
 
     verbose = bool(args.verbose)
     unprocessed_output = not bool(args.supress)
@@ -121,6 +119,8 @@ def main():
         piped_input_main(session)
 
 if __name__ == '__main__':
+    if check_gdb() or (hasattr(sys.stdout, 'isatty') and sys.stdout.isatty()):
+        set_color_output(True)
     # First, we check if we're supposed to run inside GDB, and do that if so
     if gdb_runner.main():
         pass

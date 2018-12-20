@@ -6,7 +6,7 @@ help_command_color = '1;37'
 
 def command_format(cmd):
     if check_gdb():
-        return '(gdb) wl' + color(help_command_color, cmd)
+        return '(gdb) ' + color(help_command_color, 'wl' + cmd)
     else:
         return '$ ' + color(help_command_color, cmd)
 
