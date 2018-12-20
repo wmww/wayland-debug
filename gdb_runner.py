@@ -42,7 +42,7 @@ def main_with_args(my_args, gdb_args):
         out.warn('Checking libwayland failed: ' + str(e))
 
     # The high level plan is to spin up an instance of gdb, and another instance of ourselves inside it
-    
+
     # Imports will be broken on this new version, so we need to fix the python import path for the child process
     env = os.environ.copy()
     python_path_var = 'PYTHONPATH'
@@ -77,7 +77,7 @@ def main():
             main_with_args(sys.argv[:i+1], sys.argv[i+1:])
             return True
         elif len(sys.argv[i]) > 2 and sys.argv[i][0] == '-' and sys.argv[i][1] != '-':
-            # loog for a g in the list of single char args
+            # look for a g in the list of single char args
             for c in sys.argv[i]:
                 if c == 'g':
                     # the last batch of args will all go to the child wayland debug, which will simply ignore the 'g'
