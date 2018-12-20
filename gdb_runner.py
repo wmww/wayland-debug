@@ -1,10 +1,46 @@
 import sys
 import subprocess
 import os
+import re
 
 import util
 
+def check_libwayland():
+    # First, we use ldconfig to find libwayland
+    cmd = ['ldconfig', '-p']
+    sp = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = sp.communicate()
+    stdout = stdout.decode('utf-8') if stdout != None else ''
+    if sp.returncode != 0:
+        raise RuntimeError('`' + ' '.join(cmd) + '` exited with code ' + str(sp.returncode))
+    result = re.findall('(libwayland-client.so).*=> (/.*)[\n$]', stdout)
+    if len(result) == 0:
+        raise RuntimeError('output of `' + ' '.join(cmd) + '` did not contain its path')
+    libwayland_path = result[0][1]
+    cmd = ['readelf', '-s', libwayland_path]
+    sp = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = sp.communicate()
+    stdout = stdout.decode('utf-8') if stdout != None else ''
+    if sp.returncode != 0:
+        RuntimeError('`' + ' '.join(cmd) + '` exited with code ' + str(sp.returncode))
+    if stdout.find(' wl_closure_invoke') == -1:
+        return 'output of `' + ' '.join(cmd) + '` does not contain wl_closure_invoke'
+    else:
+        return None
+
 def main_with_args(my_args, gdb_args):
+    out = util.Output(False, True, sys.stdout, sys.stderr)
+    try:
+        result = check_libwayland()
+        if result == None:
+            out.log('libwayland found with debug symbols')
+        else:
+            out.warn(result)
+            out.error('Your installed libwayland does not have debug symbols, Wayland Debug can not function in GDB mode')
+            return
+    except RuntimeError as e:
+        out.warn('Checking libwayland failed: ' + str(e))
+
     # The high level plan is to spin up an instance of gdb, and another instance of ourselves inside it
     
     # Imports will be broken on this new version, so we need to fix the python import path for the child process
