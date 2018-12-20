@@ -27,7 +27,10 @@ class Object:
         return obj
 
     def __init__(self, obj_id, type_name, parent_obj, create_time):
-        assert(isinstance(obj_id, int))
+        assert isinstance(obj_id, int)
+        assert isinstance(type_name, str)
+        assert isinstance(parent_obj, Object) or parent_obj == None
+        assert isinstance(create_time, float) or isinstance(create_time, int)
         if obj_id in self.db:
             last_obj = self.db[obj_id][-1]
             assert not last_obj.alive, 'Tried to create object of type ' + type_name + ' with the same id as ' + str(last_obj)
@@ -79,6 +82,9 @@ class Arg:
 
     class Object:
         def __init__(self, obj_id, type_name, is_new):
+            assert isinstance(obj_id, int)
+            assert isinstance(type_name, str) or type_name == None
+            assert isinstance(is_new, bool)
             self.id = obj_id
             self.type = type_name
             self.is_new = is_new
@@ -116,6 +122,10 @@ class Message:
     base_time = None
 
     def __init__(self, abs_time, obj_id, type_name, sent, name, args):
+        assert isinstance(abs_time, float) or isinstance(abs_time, int)
+        assert isinstance(obj_id, int)
+        assert isinstance(type_name, str) or type_name == None
+        assert isinstance(sent, bool)
         if Message.base_time == None:
             Message.base_time = abs_time
         self.timestamp = abs_time - Message.base_time

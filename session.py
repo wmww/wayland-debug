@@ -70,7 +70,7 @@ class Session():
 
     def show_messages(self, matcher, cap=None):
         self.out.show('Messages that match ' + str(matcher) + ':')
-        matching, didnt_match = self.get_matching(matcher, cap)
+        matching, matched, didnt_match = self._get_matching(matcher, cap)
         if not matching:
             if not self.messages:
                 self.out.show(' ╰╴ No messages yet')
@@ -82,12 +82,12 @@ class Session():
                 message.show(self.out)
             self.out.show(
                 '(' +
-                color(('1;32' if len(matching) != cap else '37'), str(len(matching))) +
+                color(('1;32' if matched != cap else '37'), str(matched)) +
                 ' matched, ' +
                 color(('1;31' if didnt_match else '37'), str(didnt_match)) +
                 ' didn\'t)')
 
-    def get_matching(self, matcher, cap=None):
+    def _get_matching(self, matcher, cap=None):
         if cap == 0:
             cap = None
         didnt_match = 0
@@ -99,7 +99,7 @@ class Session():
                     break
             else:
                 didnt_match += 1
-        return (acc, didnt_match)
+        return (reversed(acc), len(acc), didnt_match)
 
     def command(self, command):
         assert isinstance(command, str)
