@@ -43,8 +43,11 @@ class Session:
                 'See ' + command_format('help matcher') + ' for matcher syntax'),
             Command('matcher', '[MATCHER]', self.matcher_command,
                 'Parse a matcher, and show it unsimplified'),
-            Command('continue', None, self.continue_command,
-                'Continue processing events'),
+            Command('connection', '[CONNECTION]', self.connection_command,
+                'Show Wayland connections, or switch to another connection'),
+            Command('resume', None, self.continue_command,
+                'Resume processing events\n' +
+                'In GDB you can also use the continue gdb command'),
             Command('quit', None, self.quit_command,
                 'Quit the program'),
         ]
@@ -162,6 +165,8 @@ class Session:
 
     def help_command(self, arg):
         if arg:
+            if arg.startswith('wl'):
+                arg = arg[2:].strip()
             if arg == 'matcher':
                 import matcher
                 matcher.print_help()
@@ -238,6 +243,21 @@ class Session:
         else:
             m = matcher.always
         self.show_messages(m, cap)
+
+    def connection_command(self, arg):
+        if arg:
+            arg = no_color(arg)
+            if arg in self.connections:
+                self.current_connection_id = arg
+                self.out.show('Switched to connection ' + repr(arg))
+            else:
+                self.out.error(repr(arg) + ' is not a known connection')
+        for k, v in self.connections.items():
+            if k == self.current_connection_id:
+                name = color('1;37', ' > ' + k)
+            else:
+                name = color('37', '   ' + k)
+            self.out.show(name + ' (' + str(len(v.messages)) + ' messages)')
 
     def continue_command(self, arg):
         self.is_stopped = False
