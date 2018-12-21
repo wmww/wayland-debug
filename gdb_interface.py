@@ -95,7 +95,7 @@ class WlConnectionDestroyBreakpoint(gdb.Breakpoint):
         self.session = session
     def stop(self):
         connection_id = str(gdb.selected_frame().read_var('connection'))
-        self.session.close_connection(connection_id)
+        self.session.close_connection(connection_id, 0)
         return False
 
 class WlConnectionCreateBreakpoint(gdb.Breakpoint):
@@ -108,11 +108,19 @@ class WlConnectionCreateBreakpoint(gdb.Breakpoint):
 
     class FinishBreakpoint(gdb.FinishBreakpoint):
         def __init__(self, session):
-            super().__init__(gdb.selected_frame())
+            super().__init__(gdb.selected_frame(), internal=True)
             self.session = session
         def stop(self):
             connection_id = str(self.return_value)
-            self.session.open_connection(connection_id)
+            calling_function = str(gdb.selected_frame().function())
+            if calling_function == 'wl_display_connect_to_fd':
+                is_server = False
+            elif calling_function == 'wl_client_create':
+                is_server = True
+            else:
+                self.session.out.warn('Function ' + calling_function + '() called wl_connection_create()')
+                is_server = None
+            self.session.open_connection(connection_id, is_server, 0)
             return False
 
 class WlClosureCallBreakpoint(gdb.Breakpoint):

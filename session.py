@@ -21,11 +21,16 @@ class Command:
         return self.name.startswith(command.lower())
 
 class Session:
+
     def __init__(self, display_matcher, stop_matcher, output):
         assert display_matcher
         assert stop_matcher
-        self.current_connection_id = None
+        # The connection that is currently being shown
+        self.current_connection = None
+        # A list of connections in the order they were created
+        # Each connection has a name (single letter) and id (string containing pointer address, if coming from libwayland)
         self.connection_list = []
+        # Mapping of open connection ids to connection objects
         self.connections = {}
         self.commands = [
             Command('help', '[COMMAND]', self.help_command,
@@ -45,7 +50,7 @@ class Session:
                 'Parse a matcher, and show it unsimplified'),
             Command('connection', '[CONNECTION]', self.connection_command,
                 'Show Wayland connections, or switch to another connection'),
-            Command('resume', None, self.continue_command,
+            Command('resume', None, self.resume_command,
                 'Resume processing events\n' +
                 'In GDB you can also use the continue gdb command'),
             Command('quit', None, self.quit_command,
@@ -73,28 +78,50 @@ class Session:
         if not connection_id in self.connections:
             self.out.warn('connection_id ' + repr(connection_id) + ' never explicitly created')
             self.open_connection(connection_id)
-        self.connections[connection_id].message(message)
-        if connection_id == self.current_connection_id:
+        connection = self.connections[connection_id]
+        connection.message(message)
+        if connection == self.current_connection:
             if self.display_matcher.matches(message):
                 message.show(self.out)
             if self.stop_matcher.matches(message):
                 self.out.show(color('1;37', '    Stopped at ') + str(message).strip())
                 self.is_stopped = True
 
-    def open_connection(self, connection_id):
-        self.close_connection(connection_id)
-        if not self.connections:
-            self.current_connection_id = connection_id
-            self.out.show(color('1;32', 'First connection ' + repr(connection_id)))
+    def open_connection(self, connection_id, is_server, time):
+        self.close_connection(connection_id, time)
+        if len(self.connection_list) > 26:
+            name = str(len(self.connection_list))
         else:
-            self.out.show(color('1;32', 'New connection ' + repr(connection_id)))
-        self.connections[connection_id] = wl.Connection()
-        self.connection_list.append(self.connections[connection_id])
+            name = chr(len(self.connection_list) + ord('A'))
+        connection = wl.Connection()
+        connection.name = name
+        connection.open_time = time
+        connection.is_server = is_server
+        if is_server == None:
+            connection.type = 'Unknown Type'
+        elif is_server:
+            connection.type = 'Server'
+        else:
+            connection.type = 'Client'
+        connection.id = connection_id
+        connection.title = None
+        connection.open = True
+        if not self.connections:
+            self.current_connection = connection
+            self.out.show(color('1;32', 'First ' + connection.type.lower() + ' connection ' + name))
+        else:
+            self.out.show(color('1;32', 'New ' + connection.type.lower() + ' connection ' + name))
+        self.connections[connection_id] = connection
+        self.connection_list.append(connection)
 
-    def close_connection(self, connection_id):
+    def close_connection(self, connection_id, time):
         if connection_id in self.connections:
+            connection = self.connections[connection_id]
             del self.connections[connection_id]
-            self.out.show(color('1;31', 'Closed connection ' + repr(connection_id)))
+            # Connection will still be in connection list
+            connection.open = False
+            connection.close_time = time
+            self.out.show(color('1;31', 'Closed ' + connection.type.lower() + ' connection ' + connection.name))
 
     def show_messages(self, matcher, cap=None):
         self.out.show('Messages that match ' + str(matcher) + ':')
@@ -120,7 +147,10 @@ class Session:
             cap = None
         didnt_match = 0
         acc = []
-        messages = self.connections[self.current_connection_id].messages
+        if self.current_connection:
+            messages = self.current_connection.messages
+        else:
+            messages = []
         for message in reversed(messages):
             if matcher.matches(message):
                 acc.append(message)
@@ -136,8 +166,8 @@ class Session:
         args = re.split('\s', command, 1)
         if len(args) == 0:
             return False
-        cmd = args[0].strip()
-        arg = None if len(args) < 2 else args[1].strip()
+        cmd = no_color(args[0]).strip()
+        arg = None if len(args) < 2 else no_color(args[1]).strip()
         if cmd == '':
             assert not arg
             self.out.error('No command specified')
@@ -246,22 +276,46 @@ class Session:
 
     def connection_command(self, arg):
         if arg:
-            arg = no_color(arg)
-            if arg in self.connections:
-                self.current_connection_id = arg
-                self.out.show('Switched to connection ' + repr(arg))
+            found = None
+            for c in self.connection_list:
+                l = [c.name, c.id, c.title]
+                for i in l:
+                    if i and arg.lower() == i.lower():
+                        found = c
+                if found:
+                    break
+            if found:
+                self.current_connection = found
+                self.out.show('Switched to connection ' + self.current_connection.name)
+                return
             else:
-                self.out.error(repr(arg) + ' is not a known connection')
-        for k, v in self.connections.items():
-            if k == self.current_connection_id:
-                name = color('1;37', ' > ' + k)
+                self.out.error(repr(arg) + ' does not name a connection')
+        for c in self.connection_list:
+            delim = ', '
+            if c == self.current_connection:
+                clr = '1;37'
+                line = ' => '
             else:
-                name = color('37', '   ' + k)
-            self.out.show(name + ' (' + str(len(v.messages)) + ' messages)')
+                clr = '37'
+                line = '    '
+            line += c.name + ': '
+            line = color(clr, line)
+            line += color('36', c.type) + delim
+            if c.title:
+                line += color('1;33', c.title) + delim
+            if c.id:
+                line += color('1;33', '"' + (c.id) + '"') + delim
+            if c.open:
+                line += color('1;32', 'open')
+            else:
+                line += color('1;31', 'closed')
+            line += delim
+            line += color('1;34', str(len(c.messages))) + ' messages'
+            self.out.show(line)
 
-    def continue_command(self, arg):
+    def resume_command(self, arg):
         self.is_stopped = False
-        self.out.log('Continuing...')
+        self.out.log('Resuming...')
 
     def quit_command(self, arg):
         self.should_quit = True
