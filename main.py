@@ -36,7 +36,7 @@ def file_input_main(session, file_path):
 def main():
     import argparse
     parser = argparse.ArgumentParser(description='Debug Wayland protocol messages, see https://github.com/wmww/wayland-debug for additional info')
-    parser.add_argument('--matcher-help', action='store_true', help='show how to write matchers used by filter and quit')
+    parser.add_argument('--matcher-help', action='store_true', help='show how to write matchers and exit')
     parser.add_argument('-v', '--verbose', action='store_true', help='verbose output, mostly used for debugging this program')
     parser.add_argument('-l', '--load', dest='path', type=str, help='load Wayland events from a file instead of stdin')
     parser.add_argument('-s', '--supress', action='store_true', help='supress non-wayland output of the program')
