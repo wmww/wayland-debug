@@ -78,7 +78,7 @@ class Session:
             if self.display_matcher.matches(message):
                 message.show(self.out)
             if self.stop_matcher.matches(message):
-                self.out.show(color('1;27', '    Stopped at ') + str(message).strip())
+                self.out.show(color('1;37', '    Stopped at ') + str(message).strip())
                 self.is_stopped = True
 
     def open_connection(self, connection_id):

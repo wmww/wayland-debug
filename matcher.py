@@ -197,7 +197,7 @@ class MessageNameMatcher(TransformMatcher):
 
 class ObjectTypeMatcher(TransformMatcher):
     def transform(self, obj):
-        return obj.type
+        return obj.type_str()
     def __str__(self):
         return str(self.matcher)
 
@@ -312,7 +312,7 @@ def _parse_expr(raw, start, end, allow_inverse, sub_parser_func):
 
 def _parse_str(raw, start, end):
     text = raw[start:end]
-    if not re.findall('^[\w\*]*$', text):
+    if not re.findall('^[^\(\)\[\]~,@&\.]*$', text):
         raise RuntimeError('"' + text + '" is not a valid string')
     return StrMatcher(text)
 

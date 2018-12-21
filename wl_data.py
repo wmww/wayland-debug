@@ -37,7 +37,16 @@ class ObjBase:
         if self.type:
             return self.type
         else:
-            return color('1;31', '[unknown]')
+            return '???'
+    def id_str(self):
+        ret = str(self.id)
+        if self.generation:
+            ret += '.' + str(self.generation)
+        else:
+            ret += '.?'
+        return ret
+    def to_str(self):
+        return color('1;36' if self.type else '1;31', self.type_str()) + color('37', '@') + color('1;37', self.id_str())
 
 class Object(ObjBase):
     def __init__(self, connection, obj_id, type_name, parent_obj, create_time):
@@ -67,7 +76,7 @@ class Object(ObjBase):
 
     def __str__(self):
         assert self.connection.db[self.id][self.generation] == self, 'Database corrupted'
-        return color('1;36', self.type_str()) + color('37', '@') + color('1;37', str(self.id) + '.' + str(self.generation))
+        return self.to_str()
 
     class Unresolved(ObjBase):
         def __init__(self, obj_id, type_name):
@@ -75,11 +84,15 @@ class Object(ObjBase):
             assert obj_id > 0
             assert isinstance(type_name, str) or type_name == None
             self.id = obj_id
+            self.generation = None
             self.type = type_name
         def resolve(self, connection):
+            if self.id > 100000:
+                warning('Ignoreing unreasonably large ID ' + str(self.id) + ' as it is likely to cause an error')
+                return self
             return connection.look_up_most_recent(self.id, self.type)
         def __str__(self):
-            return color('1;31', 'unresolved ' + (self.type if self.type else '???') + '@' + str(self.id))
+            return color('1;31', 'unresolved ') + self.to_str()
 
 class ArgBase:
     pass
