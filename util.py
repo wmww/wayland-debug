@@ -68,7 +68,7 @@ class Output:
     # Used when parsing WAYLAND_DEBUG lines and we come across output we can't parse
     def unprocessed(self, *msg):
         if self.show_unprocessed:
-            self.show(color('37', ' ' * 10 + ' |  ' + ' '.join(map(lambda m: str(m), msg))))
+            self.show(color('37', ' ' * 6 + ' |  ' + ' '.join(map(lambda m: str(m), msg))))
 
     def log(self, *msg):
         if self.verbose:

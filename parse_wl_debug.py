@@ -22,13 +22,13 @@ def argument(value_str):
         return wl.Arg.Primitive(str_matches[0])
     new_id_unknown_matches = re.findall('^new id \[unknown\]@(\d+)$', value_str)
     if new_id_unknown_matches:
-        return wl.Arg.Object(int(new_id_unknown_matches[0]), None, True)
+        return wl.Arg.Object(wl.Object.Unresolved(int(new_id_unknown_matches[0]), None), True)
     new_id_matches = re.findall('^new id (\w+)@(\d+)$', value_str)
     if new_id_matches:
-        return wl.Arg.Object(int(new_id_matches[0][1]), new_id_matches[0][0], True)
+        return wl.Arg.Object(wl.Object.Unresolved(int(new_id_matches[0][1]), new_id_matches[0][0]), True)
     obj_matches = re.findall('^(\w+)@(\d+)$', value_str)
     if obj_matches:
-        return wl.Arg.Object(int(obj_matches[0][1]), obj_matches[0][0], False)
+        return wl.Arg.Object(wl.Object.Unresolved(int(obj_matches[0][1]), obj_matches[0][0]), False)
     else:
         return wl.Arg.Unknown(value_str)
 
@@ -60,9 +60,7 @@ def message(raw):
         sent = False
         matches = re.findall(timestamp_regex + ' ' + message_regex, raw)
     if len(matches) != 1:
-        raise RuntimeError(
-            'Could not parse "' + raw + '" as Wayland debug message' +
-            (' (' + str(len(matches)) + ' regex matches)' if len(matches) > 1 else ''))
+        raise RuntimeError(raw)
     match = matches[0]
     assert isinstance(match, tuple), repr(match)
     abs_timestamp = float(match[0]) / 1000.0
@@ -71,7 +69,7 @@ def message(raw):
     message_name = match[3]
     message_args_str = match[4]
     message_args = argument_list(message_args_str)
-    return wl.Message(abs_timestamp, obj_id, type_name, sent, message_name, message_args)
+    return wl.Message(abs_timestamp, wl.Object.Unresolved(obj_id, type_name), sent, message_name, message_args)
 
 def file(input_file, out):
     parse = True
