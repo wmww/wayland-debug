@@ -40,10 +40,10 @@ class ObjBase:
             return '???'
     def id_str(self):
         ret = str(self.id)
-        if self.generation:
-            ret += '.' + str(self.generation)
-        else:
+        if self.generation == None:
             ret += '.?'
+        else:
+            ret += '.' + str(self.generation)
         return ret
     def to_str(self):
         return color('1;36' if self.type else '1;31', self.type_str()) + color('37', '@') + color('1;37', self.id_str())
@@ -92,7 +92,7 @@ class Object(ObjBase):
                 return self
             return connection.look_up_most_recent(self.id, self.type)
         def __str__(self):
-            return color('1;31', 'unresolved ') + self.to_str()
+            return color('1;31', 'unresolved<') + self.to_str() + color('1;31', '>')
 
 class ArgBase:
     pass

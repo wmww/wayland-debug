@@ -14,22 +14,28 @@ def gdb_is_null(val):
 
 type_codes = {i: True for i in ['i', 'u', 'f', 's', 'o', 'n', 'a', 'h']}
 
-def get_connection():
-    try:
-        return gdb.selected_frame().read_var('connection')
-    except ValueError:
-        if int(gdb.selected_frame().read_var('flags')) == 1:
-            return gdb.selected_frame().read_var('closure')['proxy']['display']['connection']
-        else:
-            target = gdb.selected_frame().read_var('target')
-            resource_type = gdb.lookup_type('wl_resource').pointer()
-            resource = target.cast(resource_type)
-            return resource['client']['connection']
-
 def process_closure(send):
     closure = gdb.selected_frame().read_var('closure')
-    connection_addr = str(get_connection())
+    wl_object = None
+    connection = None
+    try:
+        connection = gdb.selected_frame().read_var('connection')
+    except ValueError:
+        if int(gdb.selected_frame().read_var('flags')) == 1:
+            proxy = closure['proxy']
+            wl_object = proxy['object']
+            connection = proxy['display']['connection']
+        else:
+            target = gdb.selected_frame().read_var('target')
+            resource_type = gdb.lookup_type('struct wl_resource').pointer()
+            resource = target.cast(resource_type)
+            wl_object = resource['object']
+            connection = resource['client']['connection']
+    connection_addr = str(connection)
     obj_id = int(closure['sender_id'])
+    obj_type = None
+    if wl_object:
+        obj_type = wl_object['interface']['name'].string()
     closure_message = closure['message']
     message_name = closure_message['name'].string()
     # The signiture is that stupid '2uufo?i' thing that has the type info
@@ -72,7 +78,7 @@ def process_closure(send):
                     is_new = False
                 args.append(wl.Arg.Object(wl.Object.Unresolved(arg_id, arg_type_name), is_new))
             i += 1
-    message = wl.Message(0, wl.Object.Unresolved(obj_id, None), send, message_name, args)
+    message = wl.Message(0, wl.Object.Unresolved(obj_id, obj_type), send, message_name, args)
     return (connection_addr, message)
 
 def invoke_wl_command(session, cmd):
