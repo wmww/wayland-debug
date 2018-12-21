@@ -95,6 +95,8 @@ class AndMatcher(ListMatcher):
     def __init__(self, matchers):
         super().__init__(matchers, False, ' & ')
     def __str__(self):
+        return '(' + ' & '.join([str(i) for i in self.matchers]) + ')'
+        """
         # Special case the parts of an object matcher
         msg_obj = ''
         msg_obj_arg = ''
@@ -124,7 +126,8 @@ class AndMatcher(ListMatcher):
             matchers = [msg_obj + '[' + msg_name + ']'] + matchers
         if msg_obj_arg:
             matchers = ['[' + msg_name + ']' + msg_obj_arg] + matchers
-        return '(' + ' & '.join(self.matchers) + ')'
+        return '(' + ' & '.join(matchers) + ')'
+        """
 
 class OrMatcher(ListMatcher):
     def __init__(self, matchers):

@@ -14,7 +14,7 @@ example_usage = 'WAYLAND_DEBUG=1 program 2>&1 1>/dev/null | ' + sys.argv[0]
 def piped_input_main(session):
     session.out.log('Getting input piped from stdin')
     for msg in parse.file(sys.stdin, session.out):
-        session.message(msg)
+        session.message('PIPE', msg)
     session.out.log('Done')
 
 def file_input_main(session, file_path):
@@ -22,7 +22,7 @@ def file_input_main(session, file_path):
     input_file = open(file_path)
     session.out.log('Parsing messages')
     for msg in parse.file(input_file, session.out):
-        session.message(msg)
+        session.message('FILE', msg)
         while session.stopped():
             if session.quit():
                 break

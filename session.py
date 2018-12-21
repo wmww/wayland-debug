@@ -1,5 +1,6 @@
 import re
 from util import *
+import wl_data as wl
 import matcher
 
 help_command_color = '1;37'
@@ -19,11 +20,13 @@ class Command:
     def matches(self, command):
         return self.name.startswith(command.lower())
 
-class Session():
+class Session:
     def __init__(self, display_matcher, stop_matcher, output):
         assert display_matcher
         assert stop_matcher
-        self.messages = []
+        self.current_connection_id = None
+        self.connection_list = []
+        self.connections = {}
         self.commands = [
             Command('help', '[COMMAND]', self.help_command,
                 'Show this help message, or get help for a specific command'),
@@ -60,23 +63,30 @@ class Session():
     def quit(self):
         return self.should_quit
 
-    def message(self, message):
+    def message(self, connection_id, message):
         if message == None:
             return
         self.is_stopped = False
-        self.messages.append(message)
-        message.resolve_objects(self)
-        if self.display_matcher.matches(message):
-            message.show(self.out)
-        if self.stop_matcher.matches(message):
-            self.out.show(color('1;27', '    Stopped at ') + str(message).strip())
-            self.is_stopped = True
+        if not connection_id in self.connections:
+            if not self.connections:
+                self.current_connection_id = connection_id
+            else:
+                self.out.show(color('1;32', 'New connection named "' + connection_id + '"'))
+            self.connections[connection_id] = wl.Connection()
+            self.connection_list.append(self.connections[connection_id])
+        self.connections[connection_id].message(message)
+        if connection_id == self.current_connection_id:
+            if self.display_matcher.matches(message):
+                message.show(self.out)
+            if self.stop_matcher.matches(message):
+                self.out.show(color('1;27', '    Stopped at ') + str(message).strip())
+                self.is_stopped = True
 
     def show_messages(self, matcher, cap=None):
         self.out.show('Messages that match ' + str(matcher) + ':')
-        matching, matched, didnt_match = self._get_matching(matcher, cap)
+        matching, matched, didnt_match, not_searched = self._get_matching(matcher, cap)
         if not matching:
-            if not self.messages:
+            if not self.connections:
                 self.out.show(' ╰╴ No messages yet')
             else:
                 assert didnt_match == len(self.messages)
@@ -86,24 +96,25 @@ class Session():
                 message.show(self.out)
             self.out.show(
                 '(' +
-                color(('1;32' if matched != cap else '37'), str(matched)) +
-                ' matched, ' +
-                color(('1;31' if didnt_match else '37'), str(didnt_match)) +
-                ' didn\'t)')
+                color(('1;32' if matched > 0 else '37'), str(matched)) + ' matched, ' +
+                color(('1;31' if didnt_match > 0 else '37'), str(didnt_match)) + ' didn\'t' +
+                (', ' + color(('37'), str(not_searched)) + ' not checked' if not_searched != 0 else '') +
+                ')')
 
     def _get_matching(self, matcher, cap=None):
         if cap == 0:
             cap = None
         didnt_match = 0
         acc = []
-        for message in reversed(self.messages):
+        messages = self.connections[self.current_connection_id].messages
+        for message in reversed(messages):
             if matcher.matches(message):
                 acc.append(message)
                 if cap and len(acc) >= cap:
                     break
             else:
                 didnt_match += 1
-        return (reversed(acc), len(acc), didnt_match)
+        return (reversed(acc), len(acc), didnt_match, len(messages) - len(acc) - didnt_match)
 
     def command(self, command):
         assert isinstance(command, str)

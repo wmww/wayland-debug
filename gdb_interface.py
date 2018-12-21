@@ -12,8 +12,6 @@ from gdb_runner import check_libwayland
 def gdb_is_null(val):
     return str(val) == '0x0'
 
-first_connection_addr = None
-
 type_codes = {i: True for i in ['i', 'u', 'f', 's', 'o', 'n', 'a', 'h']}
 
 def get_connection():
@@ -31,12 +29,6 @@ def get_connection():
 def process_closure(send):
     closure = gdb.selected_frame().read_var('closure')
     connection_addr = str(get_connection())
-    global first_connection_addr
-    if not first_connection_addr:
-        first_connection_addr = connection_addr
-    if first_connection_addr != connection_addr:
-        return None
-    print('connection_addr: ' + str(connection_addr))
     obj_id = int(closure['sender_id'])
     closure_message = closure['message']
     message_name = closure_message['name'].string()
@@ -74,12 +66,14 @@ def process_closure(send):
                     arg_type_name = arg_type['name'].string()
                 if c == 'n':
                     arg_id = int(value)
+                    is_new = True
                 else:
                     arg_id = int(value['id'])
-                args.append(wl.Arg.Object(arg_id, arg_type_name, c == 'n'))
+                    is_new = False
+                args.append(wl.Arg.Object(wl.Object.Unresolved(arg_id, arg_type_name), is_new))
             i += 1
-    message = wl.Message(0, obj_id, None, send, message_name, args)
-    return message
+    message = wl.Message(0, wl.Object.Unresolved(obj_id, None), send, message_name, args)
+    return (connection_addr, message)
 
 def invoke_wl_command(session, cmd):
     session.set_stopped(True)
@@ -95,8 +89,8 @@ class WlClosureCallBreakpoint(gdb.Breakpoint):
         self.session = session
         self.send = send
     def stop(self):
-        message = process_closure(self.send)
-        self.session.message(message)
+        connection_id, message = process_closure(self.send)
+        self.session.message(connection_id, message)
         return self.session.stopped()
 
 class WlCommand(gdb.Command):

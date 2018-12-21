@@ -1,43 +1,59 @@
 from util import *
 
-class Object:
-    # keys are ids, values are arrays of objects in the order they are created
-    db = {}
-    display = None
+class Connection:
+    def __init__(self):
+        # keys are ids, values are arrays of objects in the order they are created
+        self.db = {}
+        self.messages = []
+        self.display = Object(self, 1, 'wl_display', None, 0)
 
-    def look_up_specific(obj_id, obj_generation, type_name = None):
-        assert obj_id in Object.db, 'Id ' + str(obj_id) + ' of type ' + str(type_name) + ' not in object database'
-        assert obj_generation >= 0 and len(Object.db[obj_id]) > obj_generation, (
+    def look_up_specific(self, obj_id, obj_generation, type_name = None):
+        assert obj_id in self.db, 'Id ' + str(obj_id) + ' of type ' + str(type_name) + ' not in object database'
+        assert obj_generation >= 0 and len(self.db[obj_id]) > obj_generation, (
             'Invalid generation ' + str(obj_generation) + ' for id ' + str(obj_id))
-        obj = Object.db[obj_id][obj_generation]
+        obj = self.db[obj_id][obj_generation]
         if type_name:
             if obj.type:
                 assert str_matches(type_name, obj.type), str(obj) + ' expected to be of type ' + type_name
         return obj
 
-    def look_up_most_recent(obj_id, type_name = None):
+    def look_up_most_recent(self, obj_id, type_name = None):
         obj_generation = 0
-        if obj_id in Object.db:
-            obj_generation = len(Object.db[obj_id]) - 1
-        obj = Object.look_up_specific(obj_id, obj_generation, type_name)
+        if obj_id in self.db:
+            obj_generation = len(self.db[obj_id]) - 1
+        obj = self.look_up_specific(obj_id, obj_generation, type_name)
         # This *would* be a useful warning, except somehow callback.done, delete(callback) (though sent in the right
         # order), arrive to the client in the wrong order. I don't know a better workaround then just turning off the check
         # if not obj.alive:
         #    warning(str(obj) + ' used after destroyed')
         return obj
 
-    def __init__(self, obj_id, type_name, parent_obj, create_time):
+    def message(self, message):
+        self.messages.append(message)
+        message.resolve(self)
+
+class ObjBase:
+    def type_str(self):
+        if self.type:
+            return self.type
+        else:
+            return color('1;31', '[unknown]')
+
+class Object(ObjBase):
+    def __init__(self, connection, obj_id, type_name, parent_obj, create_time):
         assert isinstance(obj_id, int)
+        assert obj_id > 0
         assert isinstance(type_name, str)
-        assert isinstance(parent_obj, Object) or parent_obj == None
+        assert isinstance(parent_obj, Object) or (parent_obj == None and obj_id == 1)
         assert isinstance(create_time, float) or isinstance(create_time, int)
-        if obj_id in self.db:
-            last_obj = self.db[obj_id][-1]
+        if obj_id in connection.db:
+            last_obj = connection.db[obj_id][-1]
             assert not last_obj.alive, 'Tried to create object of type ' + type_name + ' with the same id as ' + str(last_obj)
         else:
-            self.db[obj_id] = []
-        self.generation = len(self.db[obj_id])
-        self.db[obj_id].append(self)
+            connection.db[obj_id] = []
+        self.generation = len(connection.db[obj_id])
+        connection.db[obj_id].append(self)
+        self.connection = connection
         self.type = type_name
         self.id = obj_id
         self.parent = parent_obj
@@ -46,26 +62,33 @@ class Object:
         self.alive = True
 
     def destroy(self, time):
-        self.destroy_time = None
+        self.destroy_time = time
         self.alive = False
 
-    def type_str(self):
-        if self.type:
-            return self.type
-        else:
-            return color('1;31', '[unknown]')
-
     def __str__(self):
-        assert self.db[self.id][self.generation] == self, 'Database corrupted'
+        assert self.connection.db[self.id][self.generation] == self, 'Database corrupted'
         return color('1;36', self.type_str()) + color('37', '@') + color('1;37', str(self.id) + '.' + str(self.generation))
 
-Object.display = Object(1, 'wl_display', None, 0)
+    class Unresolved(ObjBase):
+        def __init__(self, obj_id, type_name):
+            assert isinstance(obj_id, int)
+            assert obj_id > 0
+            assert isinstance(type_name, str) or type_name == None
+            self.id = obj_id
+            self.type = type_name
+        def resolve(self, connection):
+            return connection.look_up_most_recent(self.id, self.type)
+        def __str__(self):
+            return color('1;31', 'unresolved ' + (self.type if self.type else '???') + '@' + str(self.id))
+
+class ArgBase:
+    pass
 
 class Arg:
     error_color = '2;33'
 
     # ints, floats, strings and nulls
-    class Primitive:
+    class Primitive(ArgBase):
         def __init__(self, value):
             self.value = value
         def __str__(self):
@@ -80,38 +103,31 @@ class Arg:
             else:
                 return color(Arg.error_color, type(self.value).__name__ + ': ' + repr(self.value))
 
-    class Object:
-        def __init__(self, obj_id, type_name, is_new):
-            assert isinstance(obj_id, int)
-            assert isinstance(type_name, str) or type_name == None
+    class Object(ArgBase):
+        def __init__(self, obj, is_new):
+            assert isinstance(obj, ObjBase)
             assert isinstance(is_new, bool)
-            self.id = obj_id
-            self.type = type_name
+            self.obj = obj
             self.is_new = is_new
-            self.resolved = False
-        def resolve(self, parent_obj, time):
-            if self.resolved:
-                return True
-            if self.is_new:
-                self.obj = Object(self.id, self.type, parent_obj, time)
-            else:
-                self.obj = Object.look_up_most_recent(self.id, self.type)
-            del self.id
-            del self.type
-            self.resolved = True
+        def set_type(self, new_type):
+            if isinstance(self.obj, Object.Unresolved) and self.obj.type == None:
+                self.obj.type = new_type
+            assert new_type == self.obj.type, 'Object arg already has type ' + self.obj.type + ', so can not be set to ' + new_type
+        def resolve(self, connection, parent_obj, time):
+            if isinstance(self.obj, Object.Unresolved):
+                if self.is_new:
+                    Object(connection, self.obj.id, self.obj.type, parent_obj, time)
+                self.obj = self.obj.resolve(connection)
         def __str__(self):
-            if self.resolved:
-                return (color('1;32', 'new ') if self.is_new else '') + str(self.obj)
-            else:
-                return color(Arg.error_color, ('New u' if self.is_new else 'U') + 'nresolved object: ' + self.type + '@' + str(self.id))
+            return (color('1;32', 'new ') if self.is_new else '') + str(self.obj)
 
-    class Fd:
+    class Fd(ArgBase):
         def __init__(self, value):
             self.value = value
         def __str__(self):
             return color('36', 'fd ' + str(self.value))
 
-    class Unknown:
+    class Unknown(ArgBase):
         def __init__(self, string):
             assert isinstance(string, str)
             self.string = string
@@ -121,41 +137,40 @@ class Arg:
 class Message:
     base_time = None
 
-    def __init__(self, abs_time, obj_id, type_name, sent, name, args):
+    def __init__(self, abs_time, obj, sent, name, args):
         assert isinstance(abs_time, float) or isinstance(abs_time, int)
-        assert isinstance(obj_id, int)
-        assert isinstance(type_name, str) or type_name == None
+        assert isinstance(obj, ObjBase)
         assert isinstance(sent, bool)
+        assert isinstance(name, str)
+        for arg in args:
+            assert isinstance(arg, ArgBase)
         if Message.base_time == None:
             Message.base_time = abs_time
         self.timestamp = abs_time - Message.base_time
-        self.obj = None
-        self.obj_id = obj_id
-        self.type_name = type_name
+        self.obj = obj
         self.sent = sent
         self.name = name
         self.args = args
         self.destroyed_obj = None
 
-    def resolve_objects(self, session):
-        self.obj = Object.look_up_most_recent(self.obj_id, self.type_name)
+    def resolve(self, connection):
+        if isinstance(self.obj, Object.Unresolved):
+            self.obj = self.obj.resolve(connection)
         if self.obj.type == 'wl_registry' and self.name == 'bind':
-            self.args[3].type = self.args[1].value
-        if self.obj == Object.display and self.name == 'delete_id' and len(self.args) > 0:
-            self.destroyed_obj = Object.look_up_most_recent(self.args[0].value, None)
+            assert isinstance(self.args[3], Arg.Object)
+            self.args[3].set_type(self.args[1].value)
+        if self.obj == connection.display and self.name == 'delete_id' and len(self.args) > 0:
+            self.destroyed_obj = connection.look_up_most_recent(self.args[0].value, None)
             self.destroyed_obj.destroy(self.timestamp)
         for i in self.args:
             if isinstance(i, Arg.Object):
-                i.resolve(self.obj, self.timestamp)
+                i.resolve(connection, self.obj, self.timestamp)
 
     def used_objects(self):
         result = []
         for i in self.args:
             if isinstance(i, Arg.Object):
-                if i.resolved:
-                    result.append(i.obj)
-                else:
-                    warning('used_objects() called on message with unresolved object')
+                result.append(i.obj)
         if self.destroyed_obj:
             result.append(self.destroyed_obj)
         return result
