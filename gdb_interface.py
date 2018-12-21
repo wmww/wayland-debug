@@ -83,6 +83,14 @@ def invoke_wl_command(session, cmd):
     elif not session.stopped():
         gdb.execute('continue')
 
+class WlConnectionDestroyBreakpoint(gdb.Breakpoint):
+    def __init__(self, session):
+        super().__init__('wl_connection_destroy')
+        self.session = session
+    def stop(self):
+        connection_id = str(gdb.selected_frame().read_var('connection'))
+        self.session.close_connection(connection_id)
+
 class WlClosureCallBreakpoint(gdb.Breakpoint):
     def __init__(self, session, name, send):
         super().__init__('wl_closure_' + name)
@@ -118,6 +126,7 @@ def main(session):
     gdb.execute('set python print-stack full')
     if not session.out.show_unprocessed:
         gdb.execute('set inferior-tty /dev/null')
+    WlConnectionDestroyBreakpoint(session)
     WlClosureCallBreakpoint(session, 'invoke', False)
     WlClosureCallBreakpoint(session, 'dispatch', False)
     WlClosureCallBreakpoint(session, 'send', True)

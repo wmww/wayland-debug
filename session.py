@@ -71,7 +71,7 @@ class Session:
             if not self.connections:
                 self.current_connection_id = connection_id
             else:
-                self.out.show(color('1;32', 'New connection named "' + connection_id + '"'))
+                self.out.show(color('1;32', 'New connection named ' + repr(connection_id)))
             self.connections[connection_id] = wl.Connection()
             self.connection_list.append(self.connections[connection_id])
         self.connections[connection_id].message(message)
@@ -81,6 +81,13 @@ class Session:
             if self.stop_matcher.matches(message):
                 self.out.show(color('1;27', '    Stopped at ') + str(message).strip())
                 self.is_stopped = True
+
+    def close_connection(self, connection_id):
+        if connection_id in self.connections:
+            del self.connections[connection_id]
+            self.out.show(color('1;31', 'Connection ' + repr(connection_id) + ' closed'))
+        else:
+            self.out.warn('Called close_connection(' + repr(connection_id) + ') with connection_id not already known')
 
     def show_messages(self, matcher, cap=None):
         self.out.show('Messages that match ' + str(matcher) + ':')
