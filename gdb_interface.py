@@ -90,6 +90,24 @@ class WlConnectionDestroyBreakpoint(gdb.Breakpoint):
     def stop(self):
         connection_id = str(gdb.selected_frame().read_var('connection'))
         self.session.close_connection(connection_id)
+        return False
+
+class WlConnectionCreateBreakpoint(gdb.Breakpoint):
+    def __init__(self, session):
+        super().__init__('wl_connection_create')
+        self.session = session
+    def stop(self):
+        self.FinishBreakpoint(self.session)
+        return False
+
+    class FinishBreakpoint(gdb.FinishBreakpoint):
+        def __init__(self, session):
+            super().__init__(gdb.selected_frame())
+            self.session = session
+        def stop(self):
+            connection_id = str(self.return_value)
+            self.session.open_connection(connection_id)
+            return False
 
 class WlClosureCallBreakpoint(gdb.Breakpoint):
     def __init__(self, session, name, send):
@@ -126,6 +144,7 @@ def main(session):
     gdb.execute('set python print-stack full')
     if not session.out.show_unprocessed:
         gdb.execute('set inferior-tty /dev/null')
+    WlConnectionCreateBreakpoint(session)
     WlConnectionDestroyBreakpoint(session)
     WlClosureCallBreakpoint(session, 'invoke', False)
     WlClosureCallBreakpoint(session, 'dispatch', False)
