@@ -77,7 +77,7 @@ class Session:
         self.is_stopped = False
         if not connection_id in self.connections:
             self.out.warn('connection_id ' + repr(connection_id) + ' never explicitly created')
-            self.open_connection(connection_id)
+            self.open_connection(connection_id, None, message.timestamp)
         connection = self.connections[connection_id]
         connection.message(message)
         if connection == self.current_connection:
@@ -88,6 +88,7 @@ class Session:
                 self.is_stopped = True
 
     def open_connection(self, connection_id, is_server, time):
+        # is_server can be none if the value is unknown
         self.close_connection(connection_id, time)
         if len(self.connection_list) > 26:
             name = str(len(self.connection_list))

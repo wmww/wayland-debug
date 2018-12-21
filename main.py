@@ -13,16 +13,20 @@ example_usage = 'WAYLAND_DEBUG=1 program 2>&1 1>/dev/null | ' + sys.argv[0]
 
 def piped_input_main(session):
     session.out.log('Getting input piped from stdin')
+    conn_id = 'PIPE'
+    session.open_connection(conn_id, None, 0)
     for msg in parse.file(sys.stdin, session.out):
-        session.message('PIPE', msg)
+        session.message(conn_id, msg)
     session.out.log('Done')
 
 def file_input_main(session, file_path):
     session.out.log('Opening ' + file_path)
     input_file = open(file_path)
+    conn_id = 'FILE'
+    session.open_connection(conn_id, None, 0)
     session.out.log('Parsing messages')
     for msg in parse.file(input_file, session.out):
-        session.message('FILE', msg)
+        session.message(conn_id, msg)
         while session.stopped():
             if session.quit():
                 break
