@@ -2,7 +2,7 @@ import sys
 import re
 
 def check_gdb():
-    import importlib
+    import importlib.util
     return importlib.util.find_spec("gdb") is not None
 
 verbose = False
