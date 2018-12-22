@@ -1,11 +1,34 @@
 from util import *
 
 class Connection:
-    def __init__(self):
+    def __init__(self, name, is_server, title, time, output):
+        self.name = name
+        self.is_server = is_server
+        self.title = title
+        self.open_time = time
+        self.open = True
+        self.out = output
         # keys are ids, values are arrays of objects in the order they are created
         self.db = {}
         self.messages = []
         self.display = Object(self, 1, 'wl_display', None, 0)
+
+    def close(self, time):
+        self.open = False
+        self.close_time = time
+
+    def description(self):
+        if self.is_server == True:
+            txt = 'server'
+        elif self.is_server == False:
+            txt = 'client'
+        else:
+            txt = color('1;31', 'unknown type')
+        if self.title:
+            if self.is_server:
+                txt += ' to'
+            txt += ' ' + self.title
+        return txt
 
     def look_up_specific(self, obj_id, obj_generation, type_name = None):
         assert obj_id in self.db, 'Id ' + str(obj_id) + ' of type ' + str(type_name) + ' not in object database'
@@ -29,8 +52,18 @@ class Connection:
         return obj
 
     def message(self, message):
+        if not self.open:
+            self.out.warn('Connection ' + self.name + ' (' + self.description() + ') got message ' + str(message) + ' after it had been closed')
+            self.open = True
         self.messages.append(message)
         message.resolve(self)
+        title_arg = None
+        if message.name == 'set_app_id' and len(message.args) >= 1:
+            title_arg = message.args[0]
+        elif message.name == 'get_layer_surface' and len(message.args) >= 5:
+            title_arg = message.args[4]
+        if isinstance(title_arg, Arg.Primitive) and isinstance(title_arg.value, str):
+            self.title = title_arg.value
 
 class ObjBase:
     def type_str(self):

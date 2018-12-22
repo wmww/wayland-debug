@@ -95,24 +95,15 @@ class Session:
             name = str(len(self.connection_list))
         else:
             name = chr(len(self.connection_list) + ord('A'))
-        connection = wl.Connection()
-        connection.name = name
-        connection.open_time = time
-        connection.is_server = is_server
-        if is_server == None:
-            connection.type = 'Unknown Type'
-        elif is_server:
-            connection.type = 'Server'
-        else:
-            connection.type = 'Client'
+        connection = wl.Connection(name, is_server, None, time, self.out)
         connection.id = connection_id
-        connection.title = None
-        connection.open = True
-        if not self.connections:
+        # Compositors running nested will open up a client connection first,
+        # We should switch to the first server as that's the one we're likely interested in
+        if not self.current_connection or (not self.current_connection.is_server and is_server):
             self.current_connection = connection
-            self.out.show(color('1;32', 'First ' + connection.type.lower() + ' connection ' + name))
+            self.out.show(color('1;32', 'Switching to new ' + connection.description() + ' connection ' + name))
         else:
-            self.out.show(color('1;32', 'New ' + connection.type.lower() + ' connection ' + name))
+            self.out.show(color('1;32', 'New ' + connection.description() + ' connection ' + name))
         self.connections[connection_id] = connection
         self.connection_list.append(connection)
 
@@ -121,9 +112,8 @@ class Session:
             connection = self.connections[connection_id]
             del self.connections[connection_id]
             # Connection will still be in connection list
-            connection.open = False
-            connection.close_time = time
-            self.out.show(color('1;31', 'Closed ' + connection.type.lower() + ' connection ' + connection.name))
+            connection.close(time)
+            self.out.show(color('1;31', 'Closed ' + connection.description() + ' connection ' + connection.name))
 
     def show_messages(self, connection, matcher, cap=None):
         msg = 'Messages that match ' + str(matcher)
@@ -322,13 +312,10 @@ class Session:
             else:
                 clr = '37'
                 line = '    '
-            line += c.name + ': '
+            line += c.name + ' (' + c.description() + '): '
             line = color(clr, line)
-            line += color('36', c.type) + delim
-            if c.title:
-                line += color('1;33', c.title) + delim
             if c.id:
-                line += color('1;33', '"' + (c.id) + '"') + delim
+                line += color('35', '"' + (c.id) + '"') + delim
             if c.open:
                 line += color('1;32', 'open')
             else:
