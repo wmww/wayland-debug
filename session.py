@@ -35,8 +35,8 @@ class Session:
         self.commands = [
             Command('help', '[COMMAND]', self.help_command,
                 'Show this help message, or get help for a specific command'),
-            Command('show', '[MATCHER] [~ COUNT]', self.show_command,
-                'Show messages matching given matcher (or show all messages, if no matcher provided)\n' +
+            Command('list', '[CONN:] [MATCHER] [~ COUNT]', self.list_command,
+                'List messages matching given matcher (or list all messages, if no matcher provided)\n' +
                 'Prepend "CONN:" to show messages from a different connection than the one currently active\n' +
                 'Append "~ COUNT" to show at most the last COUNT messages that match\n' +
                 'See ' + command_format('help matcher') + ' for matcher syntax'),
@@ -266,7 +266,7 @@ class Session:
         else:
             self.out.show('No matcher to parse')
 
-    def show_command(self, arg):
+    def list_command(self, arg):
         cap = None
         connection = self.current_connection
         if arg:
