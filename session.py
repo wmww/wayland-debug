@@ -37,6 +37,7 @@ class Session:
                 'Show this help message, or get help for a specific command'),
             Command('show', '[MATCHER] [~ COUNT]', self.show_command,
                 'Show messages matching given matcher (or show all messages, if no matcher provided)\n' +
+                'Prepend "CONN:" to show messages from a different connection than the one currently active\n' +
                 'Append "~ COUNT" to show at most the last COUNT messages that match\n' +
                 'See ' + command_format('help matcher') + ' for matcher syntax'),
             Command('filter', '[MATCHER]', self.filter_command,
@@ -124,9 +125,16 @@ class Session:
             connection.close_time = time
             self.out.show(color('1;31', 'Closed ' + connection.type.lower() + ' connection ' + connection.name))
 
-    def show_messages(self, matcher, cap=None):
-        self.out.show('Messages that match ' + str(matcher) + ':')
-        matching, matched, didnt_match, not_searched = self._get_matching(matcher, cap)
+    def show_messages(self, connection, matcher, cap=None):
+        msg = 'Messages that match ' + str(matcher)
+        if connection != self.current_connection:
+            msg += ' on connection ' + connection.name
+        msg += ':'
+        self.out.show(msg)
+        if connection == None:
+            self.out.show(' ╰╴ No connection')
+            return
+        matching, matched, didnt_match, not_searched = self._get_matching(connection, matcher, cap)
         if not matching:
             if not self.connections:
                 self.out.show(' ╰╴ No messages yet')
@@ -143,13 +151,13 @@ class Session:
                 (', ' + color(('37'), str(not_searched)) + ' not checked' if not_searched != 0 else '') +
                 ')')
 
-    def _get_matching(self, matcher, cap=None):
+    def _get_matching(self, connection, matcher, cap=None):
         if cap == 0:
             cap = None
         didnt_match = 0
         acc = []
-        if self.current_connection:
-            messages = self.current_connection.messages
+        if connection:
+            messages = connection.messages
         else:
             messages = []
         for message in reversed(messages):
@@ -260,6 +268,7 @@ class Session:
 
     def show_command(self, arg):
         cap = None
+        connection = self.current_connection
         if arg:
             args = arg.split('~')
             if len(args) == 2:
@@ -268,29 +277,43 @@ class Session:
                 except ValueError:
                     self.out.error('Expected number after \'~\', got \'' + args[1] + '\'')
                     return
-            m = self.parse_and_join(args[0], None)
+            arg = args[0]
+            args = arg.split(':')
+            if len(args) == 2:
+                c = self._get_connection(args[0])
+                if c == None:
+                    self.out.error('"' + args[0] + '" does not name a connection')
+                    return
+                connection = c
+                arg = args[1]
+            else:
+                arg = args[0]
+            m = self.parse_and_join(arg, None)
             if not m:
                 return
         else:
             m = matcher.always
-        self.show_messages(m, cap)
+        self.show_messages(connection, m, cap)
+
+    def _get_connection(self, name):
+        name = name.lower()
+        found = None
+        for c in self.connection_list:
+            l = [c.name, c.id, c.title]
+            for i in l:
+                if i and name == i.lower():
+                    return c
+        return None
 
     def connection_command(self, arg):
         if arg:
-            found = None
-            for c in self.connection_list:
-                l = [c.name, c.id, c.title]
-                for i in l:
-                    if i and arg.lower() == i.lower():
-                        found = c
-                if found:
-                    break
-            if found:
-                self.current_connection = found
-                self.out.show('Switched to connection ' + self.current_connection.name)
+            c = self._get_connection(arg)
+            if c:
+                self.current_connection = c
+                self.out.show('Switched to connection ' + color('1;37', self.current_connection.name))
                 return
             else:
-                self.out.error(repr(arg) + ' does not name a connection')
+                self.out.error('"' + arg + '" does not name a connection')
         for c in self.connection_list:
             delim = ', '
             if c == self.current_connection:
