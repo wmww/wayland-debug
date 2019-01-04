@@ -55,6 +55,7 @@ def message(raw):
     timestamp_regex = '\[(\d+\.\d+)\]'
     message_regex = '(\w+)@(\d+)\.(\w+)\((.*)\)$'
     sent = True
+    conn_id = 'PARSED'
     matches = re.findall(timestamp_regex + '  -> ' + message_regex, raw)
     if not matches:
         sent = False
@@ -69,19 +70,22 @@ def message(raw):
     message_name = match[3]
     message_args_str = match[4]
     message_args = argument_list(message_args_str)
-    return wl.Message(abs_timestamp, wl.Object.Unresolved(obj_id, type_name), sent, message_name, message_args)
+    return conn_id, wl.Message(abs_timestamp, wl.Object.Unresolved(obj_id, type_name), sent, message_name, message_args)
 
 def file(input_file, out):
     parse = True
     while True:
-        line = input_file.readline()
+        try:
+            line = input_file.readline()
+        except KeyboardInterrupt:
+            break
         if line == '':
             break
         line = line.strip() # be sure to strip after the empty check
         try:
-            msg = message(line)
+            conn_id, msg = message(line)
             if parse:
-                yield msg
+                yield conn_id, msg
         except RuntimeError as e:
             out.unprocessed(str(e))
         except:

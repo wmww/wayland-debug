@@ -11,31 +11,40 @@ import gdb_runner
 
 example_usage = 'WAYLAND_DEBUG=1 program 2>&1 1>/dev/null | ' + sys.argv[0]
 
+def parse_messages(session, input_file, allow_shell):
+    session.out.log('Parsing messages')
+    known_connections = {}
+    last_time = 0
+    for conn_id, msg in parse.file(input_file, session.out):
+        last_time = msg.timestamp
+        if not conn_id in known_connections:
+            known_connections[conn_id] = True
+            is_server = None
+            if msg.name ==  'get_registry':
+                is_server = not msg.sent
+            session.open_connection(conn_id, is_server, last_time)
+        session.message(conn_id, msg)
+        if allow_shell:
+            while session.stopped():
+                if session.quit():
+                    break
+                cmd = input('wl debug $ ')
+                session.command(cmd)
+            if session.quit():
+                break
+    for conn_id in known_connections.keys():
+        session.close_connection(conn_id, last_time)
+    session.out.log('Done')
+
 def piped_input_main(session):
     session.out.log('Getting input piped from stdin')
-    conn_id = 'PIPE'
-    session.open_connection(conn_id, None, 0)
-    for msg in parse.file(sys.stdin, session.out):
-        session.message(conn_id, msg)
-    session.out.log('Done')
+    parse_messages(session, sys.stdin, False)
 
 def file_input_main(session, file_path):
     session.out.log('Opening ' + file_path)
     input_file = open(file_path)
-    conn_id = 'FILE'
-    session.open_connection(conn_id, None, 0)
-    session.out.log('Parsing messages')
-    for msg in parse.file(input_file, session.out):
-        session.message(conn_id, msg)
-        while session.stopped():
-            if session.quit():
-                break
-            cmd = input('wl debug $ ')
-            session.command(cmd)
-        if session.quit():
-                break
+    parse_messages(session, input_file, True)
     input_file.close()
-    session.out.log('Done')
 
 def main():
     import argparse
