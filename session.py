@@ -171,8 +171,10 @@ class Session:
             assert not arg
             self.out.error('No command specified')
             cmd = 'help'
-        if cmd == 'w': # in case they use GDB style commands when not in GDB
+        if cmd == 'w' or cmd == 'wl': # in case they use GDB style commands when not in GDB
             return self.command(arg)
+        if cmd.startswith('wl'): # in case they use GDB style commands when not in GDB
+            cmd = cmd[2:]
         cmd = self._get_command(cmd)
         if cmd:
             self.out.log('Got ' + cmd.name + ' command' + (' with \'' + arg + '\'' if arg else ''))
