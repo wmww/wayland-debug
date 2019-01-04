@@ -11,6 +11,13 @@ import gdb_runner
 
 example_usage = 'WAYLAND_DEBUG=1 program 2>&1 1>/dev/null | ' + sys.argv[0]
 
+def interactive_shell(session):
+    while session.stopped():
+        if session.quit():
+            break
+        cmd = input('wl debug $ ')
+        session.command(cmd)
+
 def parse_messages(session, input_file, allow_shell):
     session.out.log('Parsing messages')
     known_connections = {}
@@ -24,16 +31,10 @@ def parse_messages(session, input_file, allow_shell):
                 is_server = not msg.sent
             session.open_connection(conn_id, is_server, last_time)
         session.message(conn_id, msg)
-        if allow_shell:
-            while session.stopped():
-                if session.quit():
-                    break
-                cmd = input('wl debug $ ')
-                session.command(cmd)
-            if session.quit():
-                break
     for conn_id in known_connections.keys():
         session.close_connection(conn_id, last_time)
+    if allow_shell:
+        interactive_shell(session)
     session.out.log('Done')
 
 def piped_input_main(session):
