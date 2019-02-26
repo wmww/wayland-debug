@@ -21,12 +21,11 @@ class Command:
         return self.name.startswith(command.lower())
 
 class Session:
-
     def __init__(self, display_matcher, stop_matcher, output):
         assert display_matcher
         assert stop_matcher
-        # The connection that is currently being shown
-        self.current_connection = None
+        self.current_connection = None # The connection that is currently being shown
+        self.connection_explicitly_selected = False # If the current connection was selected by the user
         # A list of connections in the order they were created
         # Each connection has a name (single letter) and id (string containing pointer address, if coming from libwayland)
         self.connection_list = []
@@ -98,8 +97,11 @@ class Session:
         connection = wl.Connection(name, is_server, None, time, self.out)
         connection.id = connection_id
         # Compositors running nested will open up a client connection first,
-        # We should switch to the first server as that's the one we're likely interested in
-        if not self.current_connection or (not self.current_connection.is_server and is_server):
+        # We should switch to the server as that's the one we're likely interested in
+        if (
+            not self.current_connection or
+            (not self.current_connection.is_server and is_server) or
+            not self.connection_explicitly_selected and (is_server or not self.current_connection.is_server)):
             self.current_connection = connection
             self.out.show(color('1;32', 'Switching to new ' + connection.description() + ' connection ' + name))
         else:
