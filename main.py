@@ -121,10 +121,14 @@ def main():
     file_path = args.path
 
     if check_gdb():
-        if file_path:
-            output.warn('Ignoring load file because we\'re inside GDB')
-        import gdb_interface
-        gdb_interface.main(session)
+        try:
+            if file_path:
+                output.warn('Ignoring load file because we\'re inside GDB')
+            import gdb_interface
+            gdb_interface.main(session)
+        except:
+            import traceback
+            traceback.print_exc()
     elif file_path:
         file_input_main(session, file_path)
     else:

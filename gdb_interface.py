@@ -1,8 +1,9 @@
+import subprocess
 import gdb
 import wl_data as wl
 import session as wl_session
 import matcher as wl_matcher
-from gdb_runner import check_libwayland
+import re
 
 # # libwayland client functions
 # wl_proxy_marshal
@@ -154,10 +155,35 @@ class WlSubcommand(gdb.Command):
     def complete(text, word):
         return None
 
+def load_libwayland_symbols(session):
+    # First, we use ldconfig to find libwayland
+    cmd = ['ldconfig', '-p']
+    session.out.log('Running `' + ' '.join(cmd) + '`')
+    sp = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = sp.communicate()
+    stdout = stdout.decode('utf-8') if stdout != None else ''
+    if sp.returncode != 0:
+        raise RuntimeError('`' + ' '.join(cmd) + '` exited with code ' + str(sp.returncode))
+    # pull out libwayland-client and libwayland-server from the output of ldconfig
+    result = re.findall('(libwayland\-(client|server).so) .*=> (/.*)[\n$]', stdout)
+    if len(result) == 0:
+        raise RuntimeError('Output of `' + ' '.join(cmd) + '` did not contain any Wayland libraries')
+    else:
+        session.out.log('Found ' + str(len(result)) + ' Wayland libraries')
+    libwayland_paths = [i[2] for i in result]
+    for path in libwayland_paths:
+        session.out.log('Loading debug symbols from ' + path)
+        gdb.execute('add-symbol-file ' + path)
+
 def main(session):
     gdb.execute('set python print-stack full')
     if not session.out.show_unprocessed:
         gdb.execute('set inferior-tty /dev/null')
+    try:
+        # GDB will automatically load the symbols when needed, but if we do it first we get to detect problems
+        load_libwayland_symbols(session)
+    except RuntimeError as e:
+        session.out.warn('Loading libwayland symbols failed: ' + str(e))
     WlConnectionCreateBreakpoint(session)
     WlConnectionDestroyBreakpoint(session)
     WlClosureCallBreakpoint(session, 'invoke', False)
@@ -170,12 +196,7 @@ def main(session):
     for c in session.commands:
         WlSubcommand(c.name, session)
     session.out.log('Breakpoints: ' + repr(gdb.breakpoints()))
-    try:
-        result = check_libwayland()
-        if result == None:
-            session.out.log('libwayland found with debug symbols')
-        else:
-            session.out.log(result)
-            session.out.error('Installed libwayland lacks debug symbols, GDB mode will not function')
-    except RuntimeError as e:
-        session.out.warn('Checking libwayland failed: ' + str(e))
+    if not gdb.lookup_global_symbol('wl_closure_invoke'):
+        session.out.warn('Debug symbols not detected')
+        session.out.warn('Please obtain libwayland debug symbols in order to use this program in GDB mode')
+        session.out.warn('(depending on your distro install the *-dbgsym package, compile without stripping, etc)')
