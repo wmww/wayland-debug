@@ -92,7 +92,7 @@ def invoke_wl_command(session, cmd):
 
 class WlConnectionDestroyBreakpoint(gdb.Breakpoint):
     def __init__(self, session):
-        super().__init__('wl_connection_destroy')
+        super().__init__('wl_connection_destroy', internal=True)
         self.session = session
     def stop(self):
         connection_id = str(gdb.selected_frame().read_var('connection'))
@@ -101,7 +101,7 @@ class WlConnectionDestroyBreakpoint(gdb.Breakpoint):
 
 class WlConnectionCreateBreakpoint(gdb.Breakpoint):
     def __init__(self, session):
-        super().__init__('wl_connection_create')
+        super().__init__('wl_connection_create', internal=True)
         self.session = session
     def stop(self):
         self.FinishBreakpoint(self.session)
@@ -126,7 +126,7 @@ class WlConnectionCreateBreakpoint(gdb.Breakpoint):
 
 class WlClosureCallBreakpoint(gdb.Breakpoint):
     def __init__(self, session, name, send):
-        super().__init__('wl_closure_' + name)
+        super().__init__('wl_closure_' + name, internal=True)
         self.session = session
         self.send = send
     def stop(self):
@@ -173,7 +173,23 @@ def load_libwayland_symbols(session):
     libwayland_paths = [i[2] for i in result]
     for path in libwayland_paths:
         session.out.log('Loading debug symbols from ' + path)
-        gdb.execute('add-symbol-file ' + path)
+        result = gdb.execute('add-symbol-file ' + path, to_string=True)
+        if result != 'add symbol table from file "' + path + '"\n':
+            session.out.warn('Issue adding libwayland symbol file ' + path + ', output was ' + result)
+
+def check_libwayland_symbols(session):
+    def check_symbol(symbol, lib):
+        if gdb.lookup_global_symbol(symbol) is None:
+            session.out.log(symbol + ' was supposed to be in ' + lib + ', but was not detected')
+            session.out.error(lib + ' debug symbols not detected')
+            return False
+        else:
+            session.out.log(lib + ' debug symbols detected')
+            return True
+    client = check_symbol('wl_proxy_create', 'libwayland-client')
+    server = check_symbol('wl_display_add_global', 'libwayland-server')
+    return client and server
+
 
 def main(session):
     gdb.execute('set python print-stack full')
@@ -196,7 +212,6 @@ def main(session):
     for c in session.commands:
         WlSubcommand(c.name, session)
     session.out.log('Breakpoints: ' + repr(gdb.breakpoints()))
-    if not gdb.lookup_global_symbol('wl_closure_invoke'):
-        session.out.warn('Debug symbols not detected')
-        session.out.warn('Please obtain libwayland debug symbols in order to use this program in GDB mode')
-        session.out.warn('(depending on your distro install the *-dbgsym package, compile without stripping, etc)')
+    if not check_libwayland_symbols(session):
+        session.out.warn('All debug symbols were not found, so Wayland messages may not be detected in GDB mode')
+        session.out.warn('Depending on your distro, please install the *-dbgsym package, compile libwayland without stripping, etc')
