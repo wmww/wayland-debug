@@ -1,4 +1,5 @@
 import subprocess
+import time
 import gdb
 import wl_data as wl
 import session as wl_session
@@ -79,7 +80,8 @@ def process_closure(send):
                     is_new = False
                 args.append(wl.Arg.Object(wl.Object.Unresolved(arg_id, arg_type_name), is_new))
             i += 1
-    message = wl.Message(0, wl.Object.Unresolved(obj_id, obj_type), send, message_name, args)
+    timestamp = time.perf_counter()
+    message = wl.Message(timestamp, wl.Object.Unresolved(obj_id, obj_type), send, message_name, args)
     return (connection_addr, message)
 
 def invoke_wl_command(session, cmd):
