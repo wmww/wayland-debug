@@ -17,6 +17,10 @@ class Connection:
         self.open = False
         self.close_time = time
 
+    def set_title(self, title):
+        assert isinstance(title, str)
+        self.title = title
+
     def description(self):
         if self.is_server == True:
             txt = 'server'
@@ -57,13 +61,15 @@ class Connection:
             self.open = True
         self.messages.append(message)
         message.resolve(self)
-        title_arg = None
-        if message.name == 'set_app_id' and len(message.args) >= 1:
-            title_arg = message.args[0]
-        elif message.name == 'get_layer_surface' and len(message.args) >= 5:
-            title_arg = message.args[4]
-        if isinstance(title_arg, Arg.Primitive) and isinstance(title_arg.value, str):
-            self.title = title_arg.value
+        try:
+            if message.name == 'set_app_id':
+                self.set_title(message.args[0].value.rsplit(',', 1)[-1])
+            elif message.name == 'set_title' and not self.title: # this isn't as good as set_app_id, so don't overwrite
+                self.set_title(message.args[0].value)
+            elif message.name == 'get_layer_surface':
+                self.set_title(message.args[4].value)
+        except Exception as e: # Connection name is a non-critical feature, so don't be mean if something goes wrong
+            self.out.warning('Could not set connection name: ' + str(e))
 
 class ObjBase:
     def type_str(self):
