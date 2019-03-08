@@ -305,6 +305,7 @@ class Session:
             if c:
                 self.current_connection = c
                 self.out.show('Switched to connection ' + color('1;37', self.current_connection.name))
+                self.connection_explicitly_selected = True
                 return
             else:
                 self.out.error('"' + arg + '" does not name a connection')
