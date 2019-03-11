@@ -86,6 +86,11 @@ class ObjBase:
         return ret
     def to_str(self):
         return color('1;36' if self.type else '1;31', self.type_str()) + color('37', '@') + color('1;37', self.id_str())
+    def lifespan(self):
+        if not hasattr(self, 'create_time') or not hasattr(self, 'destroy_time') or self.destroy_time == None:
+            return None
+        else:
+            return self.destroy_time - self.create_time
 
 class Object(ObjBase):
     def __init__(self, connection, obj_id, type_name, parent_obj, create_time):
@@ -125,6 +130,7 @@ class Object(ObjBase):
             self.id = obj_id
             self.generation = None
             self.type = type_name
+            self.create_time = 0
         def resolve(self, connection):
             if self.id > 100000:
                 warning('Ignoreing unreasonably large ID ' + str(self.id) + ' as it is likely to cause an error')
@@ -231,10 +237,10 @@ class Message:
         destroyed = ''
         if self.destroyed_obj:
             destroyed = (
-                color(timestamp_color, ' [') +
+                color(timestamp_color, ' | ') +
                 color('1;31', 'destroyed ') +
                 str(self.destroyed_obj) +
-                color(timestamp_color, ']'))
+                color(timestamp_color, ' after {:0.4f}s'.format(self.destroyed_obj.lifespan())))
         return (
             (' ' + color('37', '→  ') if self.sent else '') +
             str(self.obj) + ' ' +
