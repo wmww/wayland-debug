@@ -61,6 +61,7 @@ class Session:
         self.display_matcher = display_matcher
         self.stop_matcher = stop_matcher
         self.out = output
+        self.last_shown_timestamp = None
 
     def set_stopped(self, val):
         self.is_stopped = val
@@ -82,7 +83,7 @@ class Session:
         connection.message(message)
         if connection == self.current_connection:
             if self.display_matcher.matches(message):
-                message.show(self.out)
+                self._show_message(message)
             if self.stop_matcher.matches(message):
                 self.out.show(color('1;37', '    Stopped at ') + str(message).strip())
                 self.is_stopped = True
@@ -134,14 +135,23 @@ class Session:
                 assert didnt_match == len(self.messages)
                 self.out.show(' ╰╴ None of the ' + color('1;31', str(didnt_match)) + ' messages so far')
         else:
+            self.last_shown_timestamp = None
             for message in matching:
-                message.show(self.out)
+                self._show_message(message)
             self.out.show(
                 '(' +
                 color(('1;32' if matched > 0 else '37'), str(matched)) + ' matched, ' +
                 color(('1;31' if didnt_match > 0 else '37'), str(didnt_match)) + ' didn\'t' +
                 (', ' + color(('37'), str(not_searched)) + ' not checked' if not_searched != 0 else '') +
                 ')')
+            self.last_shown_timestamp = None
+
+    def _show_message(self, message):
+        delta = message.timestamp - self.last_shown_timestamp if self.last_shown_timestamp != None else 0
+        if delta > 3.0:
+            self.out.show(color('37', '    ───┤ {:0.4f}s ├───'.format(delta)))
+        self.last_shown_timestamp = message.timestamp
+        message.show(self.out)
 
     def _get_matching(self, connection, matcher, cap=None):
         if cap == 0:
