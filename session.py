@@ -91,7 +91,7 @@ class Session:
     def open_connection(self, connection_id, is_server, time):
         # is_server can be none if the value is unknown
         self.close_connection(connection_id, time)
-        if len(self.connection_list) > 26:
+        if len(self.connection_list) >= 26:
             name = str(len(self.connection_list))
         else:
             name = chr(len(self.connection_list) + ord('A'))
