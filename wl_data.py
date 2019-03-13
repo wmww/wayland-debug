@@ -140,7 +140,8 @@ class Object(ObjBase):
             return color('1;31', 'unresolved<') + self.to_str() + color('1;31', '>')
 
 class ArgBase:
-    pass
+    def resolve(self, connection, message, index):
+        pass
 
 class Arg:
     error_color = '2;33'
@@ -171,10 +172,10 @@ class Arg:
             if isinstance(self.obj, Object.Unresolved) and self.obj.type == None:
                 self.obj.type = new_type
             assert new_type == self.obj.type, 'Object arg already has type ' + self.obj.type + ', so can not be set to ' + new_type
-        def resolve(self, connection, parent_obj, time):
+        def resolve(self, connection, message, index):
             if isinstance(self.obj, Object.Unresolved):
                 if self.is_new:
-                    Object(connection, self.obj.id, self.obj.type, parent_obj, time)
+                    Object(connection, self.obj.id, self.obj.type, message.obj, message.timestamp)
                 self.obj = self.obj.resolve(connection)
         def __str__(self):
             return (color('1;32', 'new ') if self.is_new else '') + str(self.obj)
@@ -220,9 +221,8 @@ class Message:
         if self.obj == connection.display and self.name == 'delete_id' and len(self.args) > 0:
             self.destroyed_obj = connection.look_up_most_recent(self.args[0].value, None)
             self.destroyed_obj.destroy(self.timestamp)
-        for i in self.args:
-            if isinstance(i, Arg.Object):
-                i.resolve(connection, self.obj, self.timestamp)
+        for i, arg in enumerate(self.args):
+            arg.resolve(connection, self, i)
 
     def used_objects(self):
         result = []
