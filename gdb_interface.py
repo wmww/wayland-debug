@@ -52,20 +52,20 @@ def process_closure(send):
             # Pull out the right union member at the right index
             value = closure_args[i][c]
             if c == 'i' or c == 'u':
-                args.append(wl.Arg.Primitive(int(value)))
+                args.append(wl.Arg.Int(int(value)))
             elif c == 'f':
                 # Math is ripped out of wl_fixed_to_double() in libwayland
                 f = float(gdb.parse_and_eval('(double)(void*)(((1023LL + 44LL) << 52) + (1LL << 51) + ' + str(value) + ') - (3LL << 43)'))
-                args.append(wl.Arg.Primitive(f))
+                args.append(wl.Arg.Float(f))
             elif c == 's':
-                args.append(wl.Arg.Primitive(value.string()))
+                args.append(wl.Arg.String(value.string()))
             elif c == 'a':
                 args.append(wl.Arg.Unknown('array'))
             elif c == 'h':
                 args.append(wl.Arg.Fd(int(value)))
             elif gdb_is_null(value):
                 assert c == 'o'
-                args.append(wl.Arg.Primitive(None))
+                args.append(wl.Arg.Null())
             else:
                 assert c == 'n' or c == 'o'
                 arg_type = message_types[i]

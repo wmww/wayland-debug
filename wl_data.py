@@ -139,30 +139,38 @@ class Object(ObjBase):
         def __str__(self):
             return color('1;31', 'unresolved<') + self.to_str() + color('1;31', '>')
 
-class ArgBase:
-    def resolve(self, connection, message, index):
-        pass
-
 class Arg:
     error_color = '2;33'
 
+    class Base:
+        def resolve(self, connection, message, index):
+            pass
+
     # ints, floats, strings and nulls
-    class Primitive(ArgBase):
+    class Primitive(Base):
         def __init__(self, value):
             self.value = value
-        def __str__(self):
-            if isinstance(self.value, int):
-                return color('1;34', str(self.value))
-            elif isinstance(self.value, float):
-                return color('1;35', str(self.value))
-            elif isinstance(self.value, str):
-                return color('1;33', repr(self.value))
-            elif self.value == None:
-                return color('37', 'null')
-            else:
-                return color(Arg.error_color, type(self.value).__name__ + ': ' + repr(self.value))
 
-    class Object(ArgBase):
+    class Int(Primitive):
+        def __str__(self):
+            assert isinstance(self.value, int)
+            return color('1;34', str(self.value))
+
+    class Float(Primitive):
+        def __str__(self):
+            assert isinstance(self.value, float)
+            return color('1;35', str(self.value))
+
+    class String(Primitive):
+        def __str__(self):
+            assert isinstance(self.value, str)
+            return color('1;33', repr(self.value))
+
+    class Null(Base):
+        def __str__(self):
+            return color('37', 'null')
+
+    class Object(Base):
         def __init__(self, obj, is_new):
             assert isinstance(obj, ObjBase)
             assert isinstance(is_new, bool)
@@ -180,13 +188,13 @@ class Arg:
         def __str__(self):
             return (color('1;32', 'new ') if self.is_new else '') + str(self.obj)
 
-    class Fd(ArgBase):
+    class Fd(Base):
         def __init__(self, value):
             self.value = value
         def __str__(self):
             return color('36', 'fd ' + str(self.value))
 
-    class Unknown(ArgBase):
+    class Unknown(Base):
         def __init__(self, string):
             assert isinstance(string, str)
             self.string = string
@@ -202,7 +210,7 @@ class Message:
         assert isinstance(sent, bool)
         assert isinstance(name, str)
         for arg in args:
-            assert isinstance(arg, ArgBase)
+            assert isinstance(arg, Arg.Base)
         if Message.base_time == None:
             Message.base_time = abs_time
         self.timestamp = abs_time - Message.base_time

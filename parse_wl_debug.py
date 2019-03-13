@@ -7,19 +7,19 @@ from util import *
 def argument(value_str):
     int_matches = re.findall('^-?\d+$', value_str)
     if int_matches:
-        return wl.Arg.Primitive(int(value_str))
+        return wl.Arg.Int(int(value_str))
     float_matches = re.findall('^-?\d+(\.\d+)?([eE][+-]?\d+)?$', value_str)
     if float_matches:
-        return wl.Arg.Primitive(float(value_str))
+        return wl.Arg.Float(float(value_str))
     nil_matches = re.findall('^nil$', value_str)
     if nil_matches:
-        return wl.Arg.Primitive(None)
+        return wl.Arg.Null()
     fd_matches = re.findall('^fd (\d+)$', value_str)
     if fd_matches:
         return wl.Arg.Fd(int(fd_matches[0]))
     str_matches = re.findall('^"(.*)"$', value_str)
     if str_matches:
-        return wl.Arg.Primitive(str_matches[0])
+        return wl.Arg.String(str_matches[0])
     new_id_unknown_matches = re.findall('^new id \[unknown\]@(\d+)$', value_str)
     if new_id_unknown_matches:
         return wl.Arg.Object(wl.Object.Unresolved(int(new_id_unknown_matches[0]), None), True)
