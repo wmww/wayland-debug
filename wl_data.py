@@ -1,4 +1,5 @@
 from util import *
+import protocol_enums as enums
 
 class Connection:
     def __init__(self, name, is_server, title, time, output):
@@ -152,9 +153,16 @@ class Arg:
             self.value = value
 
     class Int(Primitive):
+        def resolve(self, connection, message, index):
+            labels = enums.look_up(message.obj.type, message.name, index, self.value)
+            if labels:
+                self.labels = labels
         def __str__(self):
             assert isinstance(self.value, int)
-            return color('1;34', str(self.value))
+            if hasattr(self, 'labels'):
+                return color('1;34', str(self.value) + ': ' + ' & '.join(self.labels))
+            else:
+                return color('1;34', str(self.value))
 
     class Float(Primitive):
         def __str__(self):
