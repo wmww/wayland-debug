@@ -150,7 +150,7 @@ class Arg:
                 self.name = name
         def __str__(self):
             if hasattr(self, 'name'):
-                return color('37', self.name + ': ') + self.value_to_str()
+                return color('37', self.name + '=') + self.value_to_str()
             else:
                 return self.value_to_str()
 
@@ -168,7 +168,7 @@ class Arg:
         def value_to_str(self):
             assert isinstance(self.value, int)
             if hasattr(self, 'labels'):
-                return color('1;34', str(self.value) + ' (' + ' & '.join(self.labels) + ')')
+                return color('1;34', str(self.value) + ':' + '&'.join(self.labels))
             else:
                 return color('1;34', str(self.value))
 
@@ -300,7 +300,7 @@ class Message:
                 str(self.destroyed_obj) +
                 color(timestamp_color, ' after {:0.4f}s'.format(self.destroyed_obj.lifespan())))
         return (
-            (' ' + color('37', '→  ') if self.sent else '') +
+            (color('37', '→ ') if self.sent else '') +
             str(self.obj) + ' ' +
             color(message_color, self.name + '(') +
             color(message_color, ', ').join([str(i) for i in self.args]) + color(message_color, ')') +
@@ -308,7 +308,7 @@ class Message:
             (color(timestamp_color, ' ↲') if not self.sent else ''))
 
     def show(self, out):
-        out.show(color('37', '{:8.4f}'.format(self.timestamp)) + ' ' + str(self))
+        out.show(color('37', '{:7.4f}'.format(self.timestamp)) + ' ' + str(self))
 
 if __name__ == '__main__':
     print('File meant to be imported, not run')
