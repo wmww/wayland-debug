@@ -145,7 +145,14 @@ class Arg:
 
     class Base:
         def resolve(self, connection, message, index):
-            pass
+            name = protocol.get_arg_name(message.obj.type, message.name, index)
+            if name:
+                self.name = name
+        def __str__(self):
+            if hasattr(self, 'name'):
+                return color('37', self.name + ': ') + self.value_to_str()
+            else:
+                return self.value_to_str()
 
     # ints, floats, strings and nulls
     class Primitive(Base):
@@ -154,28 +161,29 @@ class Arg:
 
     class Int(Primitive):
         def resolve(self, connection, message, index):
+            super().resolve(connection, message, index)
             labels = protocol.look_up_enum(message.obj.type, message.name, index, self.value)
             if labels:
                 self.labels = labels
-        def __str__(self):
+        def value_to_str(self):
             assert isinstance(self.value, int)
             if hasattr(self, 'labels'):
-                return color('1;34', str(self.value) + ': ' + ' & '.join(self.labels))
+                return color('1;34', str(self.value) + ' (' + ' & '.join(self.labels) + ')')
             else:
                 return color('1;34', str(self.value))
 
     class Float(Primitive):
-        def __str__(self):
+        def value_to_str(self):
             assert isinstance(self.value, float)
             return color('1;35', str(self.value))
 
     class String(Primitive):
-        def __str__(self):
+        def value_to_str(self):
             assert isinstance(self.value, str)
             return color('1;33', repr(self.value))
 
     class Null(Base):
-        def __str__(self):
+        def value_to_str(self):
             return color('37', 'null')
 
     class Object(Base):
@@ -189,24 +197,25 @@ class Arg:
                 self.obj.type = new_type
             assert new_type == self.obj.type, 'Object arg already has type ' + self.obj.type + ', so can not be set to ' + new_type
         def resolve(self, connection, message, index):
+            super().resolve(connection, message, index)
             if isinstance(self.obj, Object.Unresolved):
                 if self.is_new:
                     Object(connection, self.obj.id, self.obj.type, message.obj, message.timestamp)
                 self.obj = self.obj.resolve(connection)
-        def __str__(self):
+        def value_to_str(self):
             return (color('1;32', 'new ') if self.is_new else '') + str(self.obj)
 
     class Fd(Base):
         def __init__(self, value):
             self.value = value
-        def __str__(self):
+        def value_to_str(self):
             return color('36', 'fd ' + str(self.value))
 
     class Unknown(Base):
         def __init__(self, string):
             assert isinstance(string, str)
             self.string = string
-        def __str__(self):
+        def value_to_str(self):
             return color(Arg.error_color, 'Unknown: ' + repr(self.string))
 
 class Message:
@@ -253,7 +262,7 @@ class Message:
         destroyed = ''
         if self.destroyed_obj:
             destroyed = (
-                color(timestamp_color, ' :: ') +
+                color(timestamp_color, ' -- ') +
                 color('1;31', 'destroyed ') +
                 str(self.destroyed_obj) +
                 color(timestamp_color, ' after {:0.4f}s'.format(self.destroyed_obj.lifespan())))

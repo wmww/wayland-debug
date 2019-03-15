@@ -143,9 +143,9 @@ def load_all(out):
     for f in files:
         load(f, out)
 
-def look_up_enum(interface_name, message_name, arg_index, arg_value):
+def get_arg(interface_name, message_name, arg_index):
     if (interface_name, message_name) == ('wl_registry', 'bind'):
-        return [] # the protocol doesn't match the detected messages
+        return None # the protocol doesn't match the detected messages
     if not interface_name in interfaces:
         return []
     interface = interfaces[interface_name]
@@ -153,7 +153,18 @@ def look_up_enum(interface_name, message_name, arg_index, arg_value):
         raise RuntimeError(str(message_name) + ' is not a message in ' + interface_name)
     message = interface.messages[message_name]
     arg = list(message.args.values())[arg_index]
-    if arg.enum == None:
+    return arg
+
+def get_arg_name(interface_name, message_name, arg_index):
+    arg = get_arg(interface_name, message_name, arg_index)
+    if arg:
+        return arg.name
+    else:
+        return None
+
+def look_up_enum(interface_name, message_name, arg_index, arg_value):
+    arg = get_arg(interface_name, message_name, arg_index)
+    if not arg or not arg.enum:
         return []
     enum_name_parts = [interface_name] + arg.enum.split('.')
     enum_interface_name = enum_name_parts[-2]
