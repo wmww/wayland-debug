@@ -4,6 +4,7 @@ import xml.etree.ElementTree as ET
 from collections import OrderedDict
 from os import path
 import sys
+import time
 
 class Protocol:
     def __init__(self, name, interfaces):
@@ -111,13 +112,8 @@ def parse_protocol(xmlfile):
     )
 
 interfaces = {}
-has_parsed = {}
 
 def load(xml_file, out):
-    if path.basename(xml_file) in has_parsed:
-        out.log('skipped ' + xml_file + ' as ' + path.basename(xml_file) + ' has already been parsed')
-        return
-    has_parsed[path.basename(xml_file)] = True
     protocol = parse_protocol(xml_file)
     for name, interface in protocol.interfaces.items():
         interfaces[name] = interface
@@ -135,13 +131,23 @@ def discover_xml(p, out):
         return []
 
 def load_all(out):
+    start = time.perf_counter()
     files = (
         discover_xml('/usr/share/wayland', out) +
         discover_xml('/usr/share/wayland-protocols', out) +
         discover_xml(path.join(path.dirname(sys.argv[0]), 'protocol'), out)
     )
-    for f in files:
+    have_seen = {}
+    unique = []
+    for xml_file in files:
+        basename = path.basename(xml_file)
+        if basename not in have_seen:
+            have_seen[basename] = True
+            unique.append(xml_file)
+    for f in unique:
         load(f, out)
+    end = time.perf_counter()
+    out.log('Took ' + str(int((end - start) * 1000)) + 'ms to load ' + str(len(unique)) + ' protocol files')
 
 def get_arg(interface_name, message_name, arg_index):
     if (interface_name, message_name) == ('wl_registry', 'bind'):
