@@ -60,7 +60,9 @@ def process_closure(send):
             elif c == 's':
                 args.append(wl.Arg.String(value.string()))
             elif c == 'a':
-                args.append(wl.Arg.Array(None))
+                print(value)
+                size = int(value['size'])
+                args.append(wl.Arg.Array(size=size))
             elif c == 'h':
                 args.append(wl.Arg.Fd(int(value)))
             else:

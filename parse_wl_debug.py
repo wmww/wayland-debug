@@ -13,7 +13,7 @@ def argument(value_str):
         return wl.Arg.Float(float(value_str))
     nil_matches = re.findall('^nil$', value_str)
     if nil_matches:
-        return wl.Arg.Null(None)
+        return wl.Arg.Null()
     fd_matches = re.findall('^fd (\d+)$', value_str)
     if fd_matches:
         return wl.Arg.Fd(int(fd_matches[0]))
@@ -22,7 +22,7 @@ def argument(value_str):
         return wl.Arg.String(str_matches[0])
     array_matches = (value_str == 'array')
     if array_matches:
-        return wl.Arg.Array(None)
+        return wl.Arg.Array()
     new_id_unknown_matches = re.findall('^new id \[unknown\]@(\d+)$', value_str)
     if new_id_unknown_matches:
         return wl.Arg.Object(wl.Object.Unresolved(int(new_id_unknown_matches[0]), None), True)

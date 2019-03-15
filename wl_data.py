@@ -141,7 +141,7 @@ class Object(ObjBase):
             return color('1;31', 'unresolved<') + self.to_str() + color('1;31', '>')
 
 class Arg:
-    error_color = '2;33'
+    error_color = '1;31'
 
     class Base:
         def resolve(self, connection, message, index):
@@ -183,7 +183,7 @@ class Arg:
             return color('1;33', repr(self.value))
 
     class Null(Base):
-        def __init__(self, type_):
+        def __init__(self, type_=None):
             assert isinstance(type_, str) or type_ == None
             self.type = type_
         def resolve(self, connection, message, index):
@@ -221,25 +221,34 @@ class Arg:
             return color('36', 'fd ' + str(self.value))
 
     class Array(Base):
-        def __init__(self, values):
+        def __init__(self, values=None, size=None):
             if isinstance(values, list):
                 for i in values:
                     assert isinstance(i, Base)
             else:
                 assert values == None
+            assert isinstance(size, int) or size == None
+            if size != None and values == None:
+                values = [Arg.Unknown()] * size
             self.values = values
+            self.size = size
+            if size != None and values != None:
+                assert size == len(values)
         def value_to_str(self):
-            if self.values:
-                return color('35', '[') + color('35', ', ').join(self.values) + color('35', ']')
+            if self.values != None:
+                return color('1;37', '[') + color('1;37', ', ').join([str(v) for v in self.values]) + color('1;37', ']')
             else:
-                return color('35', '[...]')
+                return color('1;37', '[...]')
 
     class Unknown(Base):
-        def __init__(self, string):
-            assert isinstance(string, str)
+        def __init__(self, string=None):
+            assert isinstance(string, str) or string == None
             self.string = string
         def value_to_str(self):
-            return color(Arg.error_color, 'Unknown: ' + repr(self.string))
+            if self.string == None:
+                return color(Arg.error_color, '?')
+            else:
+                return color(Arg.error_color, 'Unknown: ' + repr(self.string))
 
 class Message:
     base_time = None
