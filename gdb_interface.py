@@ -16,6 +16,26 @@ def gdb_is_null(val):
 
 type_codes = {i: True for i in ['i', 'u', 'f', 's', 'o', 'n', 'a', 'h']}
 
+gdb_fast_access_map = {}
+gdb_char_ptr_type = gdb.lookup_type('char').pointer()
+
+def gdb_fast_access(value, field_name):
+    assert value.type.code == gdb.TYPE_CODE_PTR
+    assert value.type.target().name
+    key = (value.type.target().name, field_name)
+    if not key in gdb_fast_access_map:
+        found = False
+        for field in value.type.target().fields():
+            print(field.name)
+            if field.name == field_name:
+                assert field.bitpos % 8 == 0
+                gdb_fast_access_map[key] = (field.bitpos // 8, field.type)
+                found = True
+                break
+        assert found
+    offset, ret_type = gdb_fast_access_map[key]
+    return (value.cast(gdb_char_ptr_type) + offset).cast(ret_type.pointer()).dereference()
+
 def process_closure(send):
     closure = gdb.selected_frame().read_var('closure')
     wl_object = None
@@ -24,9 +44,9 @@ def process_closure(send):
         connection = gdb.selected_frame().read_var('connection')
     except ValueError:
         if int(gdb.selected_frame().read_var('flags')) == 1:
-            proxy = closure['proxy']
-            wl_object = proxy['object']
-            connection = proxy['display']['connection']
+            proxy = gdb_fast_access(closure, 'proxy')
+            wl_object = gdb_fast_access(proxy, 'object')
+            connection = gdb_fast_access(gdb_fast_access(proxy, 'display'), 'connection')
         else:
             target = gdb.selected_frame().read_var('target')
             resource_type = gdb.lookup_type('struct wl_resource').pointer()
