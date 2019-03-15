@@ -228,6 +228,11 @@ class Arg:
             else:
                 assert values == None
             self.values = values
+        def resolve(self, connection, message, index):
+            super().resolve(connection, message, index)
+            if self.values != None:
+                for v in self.values:
+                    v.resolve(connection, message, index)
         def value_to_str(self):
             if self.values != None:
                 return color('1;37', '[') + color('1;37', ', ').join([str(v) for v in self.values]) + color('1;37', ']')

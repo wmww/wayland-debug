@@ -154,6 +154,26 @@ def load_all(out):
     end = time.perf_counter()
     out.log('Took ' + str(int((end - start) * 1000)) + 'ms to load ' + str(len(unique)) + ' protocol files')
 
+    # set enums for arrays by hand, as they are not in the protocol
+    try:
+        interfaces['zxdg_toplevel_v6'].messages['configure'].args['states'].enum = 'state'
+        interfaces['xdg_toplevel'].messages['configure'].args['states'].enum = 'state'
+        interfaces['zwlr_foreign_toplevel_handle_v1'].messages['state'].args['state'].enum = 'state'
+    except KeyError as e:
+        print(list(interfaces))
+        out.warn('Could not set up enums for arrays: ' + str(e))
+    """
+    for i in interfaces.values():
+        for m in i.messages.values():
+            for a in m.args.values():
+                if a.type == 'array':
+                    print(i.name, '.', m.name, '(', a.name, ')')
+                    print('enums:')
+                    for e in i.enums.values():
+                        print('    ', e.name)
+    exit(1)
+    """
+
 def get_arg(interface_name, message_name, arg_index):
     if (interface_name, message_name) == ('wl_registry', 'bind'):
         return None # the protocol doesn't match the detected messages
