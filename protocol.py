@@ -135,7 +135,7 @@ def load_all(out):
     files = (
         discover_xml('/usr/share/wayland', out) +
         discover_xml('/usr/share/wayland-protocols', out) +
-        discover_xml(path.join(path.dirname(sys.argv[0]), 'protocol'), out)
+        discover_xml(path.join(path.dirname(path.realpath(sys.argv[0])), 'protocol'), out)
     )
     have_seen = {}
     unique = []
