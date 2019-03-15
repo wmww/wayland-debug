@@ -60,9 +60,13 @@ def process_closure(send):
             elif c == 's':
                 args.append(wl.Arg.String(value.string()))
             elif c == 'a':
-                print(value)
                 size = int(value['size'])
-                args.append(wl.Arg.Array(size=size))
+                elems = []
+                int_type = gdb.lookup_type('int')
+                for i in range(size // int_type.sizeof):
+                    elem = value['data'].cast(int_type.pointer())[i]
+                    elems.append(wl.Arg.Int(int(elem)))
+                args.append(wl.Arg.Array(elems))
             elif c == 'h':
                 args.append(wl.Arg.Fd(int(value)))
             else:

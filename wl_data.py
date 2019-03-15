@@ -221,19 +221,13 @@ class Arg:
             return color('36', 'fd ' + str(self.value))
 
     class Array(Base):
-        def __init__(self, values=None, size=None):
+        def __init__(self, values=None):
             if isinstance(values, list):
                 for i in values:
-                    assert isinstance(i, Base)
+                    assert isinstance(i, Arg.Base)
             else:
                 assert values == None
-            assert isinstance(size, int) or size == None
-            if size != None and values == None:
-                values = [Arg.Unknown()] * size
             self.values = values
-            self.size = size
-            if size != None and values != None:
-                assert size == len(values)
         def value_to_str(self):
             if self.values != None:
                 return color('1;37', '[') + color('1;37', ', ').join([str(v) for v in self.values]) + color('1;37', ']')
