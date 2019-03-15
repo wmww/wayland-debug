@@ -44,9 +44,12 @@ def piped_input_main(session):
 
 def file_input_main(session, file_path):
     session.out.log('Opening ' + file_path)
-    input_file = open(file_path)
-    parse_messages(session, input_file, True)
-    input_file.close()
+    try:
+        input_file = open(file_path)
+        parse_messages(session, input_file, True)
+        input_file.close()
+    except FileNotFoundError:
+        session.out.error(file_path + ' not found')
 
 def main():
     import argparse
