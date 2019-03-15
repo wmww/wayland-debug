@@ -183,8 +183,10 @@ class Arg:
             return color('1;33', repr(self.value))
 
     class Null(Base):
+        def __init__(self, type_):
+            self.type = type_
         def value_to_str(self):
-            return color('37', 'null')
+            return color('1;37', 'null ' + (self.type if self.type else '??'))
 
     class Object(Base):
         def __init__(self, obj, is_new):

@@ -63,22 +63,23 @@ def process_closure(send):
                 args.append(wl.Arg.Unknown('array'))
             elif c == 'h':
                 args.append(wl.Arg.Fd(int(value)))
-            elif gdb_is_null(value):
-                assert c == 'o'
-                args.append(wl.Arg.Null())
             else:
                 assert c == 'n' or c == 'o'
                 arg_type = message_types[i]
                 arg_type_name = None
                 if not gdb_is_null(arg_type):
                     arg_type_name = arg_type['name'].string()
-                if c == 'n':
-                    arg_id = int(value)
-                    is_new = True
+                if gdb_is_null(value):
+                    assert c == 'o'
+                    args.append(wl.Arg.Null(arg_type_name))
                 else:
-                    arg_id = int(value['id'])
-                    is_new = False
-                args.append(wl.Arg.Object(wl.Object.Unresolved(arg_id, arg_type_name), is_new))
+                    if c == 'n':
+                        arg_id = int(value)
+                        is_new = True
+                    else:
+                        arg_id = int(value['id'])
+                        is_new = False
+                    args.append(wl.Arg.Object(wl.Object.Unresolved(arg_id, arg_type_name), is_new))
             i += 1
     timestamp = time.perf_counter()
     message = wl.Message(timestamp, wl.Object.Unresolved(obj_id, obj_type), send, message_name, args)

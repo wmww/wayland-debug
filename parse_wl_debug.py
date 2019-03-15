@@ -13,7 +13,7 @@ def argument(value_str):
         return wl.Arg.Float(float(value_str))
     nil_matches = re.findall('^nil$', value_str)
     if nil_matches:
-        return wl.Arg.Null()
+        return wl.Arg.Null(None)
     fd_matches = re.findall('^fd (\d+)$', value_str)
     if fd_matches:
         return wl.Arg.Fd(int(fd_matches[0]))
