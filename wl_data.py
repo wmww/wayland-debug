@@ -1,5 +1,5 @@
 from util import *
-import protocol_enums as enums
+import protocol
 
 class Connection:
     def __init__(self, name, is_server, title, time, output):
@@ -154,7 +154,7 @@ class Arg:
 
     class Int(Primitive):
         def resolve(self, connection, message, index):
-            labels = enums.look_up(message.obj.type, message.name, index, self.value)
+            labels = protocol.look_up_enum(message.obj.type, message.name, index, self.value)
             if labels:
                 self.labels = labels
         def __str__(self):
@@ -253,7 +253,7 @@ class Message:
         destroyed = ''
         if self.destroyed_obj:
             destroyed = (
-                color(timestamp_color, ' | ') +
+                color(timestamp_color, ' :: ') +
                 color('1;31', 'destroyed ') +
                 str(self.destroyed_obj) +
                 color(timestamp_color, ' after {:0.4f}s'.format(self.destroyed_obj.lifespan())))

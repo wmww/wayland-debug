@@ -79,7 +79,7 @@ def parse_protocol(xmlfile):
                                             arg.attrib.get('interface', None),
                                             arg.attrib.get('enum', None)
                                         ) for arg in message
-                                        if message.tag == 'arg'
+                                        if arg.tag == 'arg'
                                     ]]
                                 )
                             ) for message in interface
@@ -143,5 +143,34 @@ def load_all(out):
     for f in files:
         load(f, out)
 
-def lookup_enum(interface_name, message_name, arg_index, arg_value):
-    pass
+def look_up_enum(interface_name, message_name, arg_index, arg_value):
+    if (interface_name, message_name) == ('wl_registry', 'bind'):
+        return [] # the protocol doesn't match the detected messages
+    if not interface_name in interfaces:
+        return []
+    interface = interfaces[interface_name]
+    if not message_name in interface.messages:
+        raise RuntimeError(str(message_name) + ' is not a message in ' + interface_name)
+    message = interface.messages[message_name]
+    arg = list(message.args.values())[arg_index]
+    if arg.enum == None:
+        return []
+    enum_name_parts = [interface_name] + arg.enum.split('.')
+    enum_interface_name = enum_name_parts[-2]
+    enum_name = enum_name_parts[-1]
+    enum_interface = interfaces[enum_interface_name]
+    if not enum_name in enum_interface.enums:
+        raise RuntimeError(str(enum_name) + ' is not an enum in ' + enum_interface_name)
+    enum = enum_interface.enums[enum_name]
+    entries = []
+    for entry in enum.entries.values():
+        if enum.bitfield:
+            if entry.value & arg_value:
+                entries.append(entry.name)
+        else:
+            if entry.value == arg_value:
+                entries.append(entry.name)
+    if entries:
+        return entries
+    else:
+        return ['INVALID ENUM VALUE']
