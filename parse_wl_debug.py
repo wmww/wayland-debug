@@ -20,6 +20,9 @@ def argument(value_str):
     str_matches = re.findall('^"(.*)"$', value_str)
     if str_matches:
         return wl.Arg.String(str_matches[0])
+    array_matches = (value_str == 'array')
+    if array_matches:
+        return wl.Arg.Array(None)
     new_id_unknown_matches = re.findall('^new id \[unknown\]@(\d+)$', value_str)
     if new_id_unknown_matches:
         return wl.Arg.Object(wl.Object.Unresolved(int(new_id_unknown_matches[0]), None), True)

@@ -184,6 +184,7 @@ class Arg:
 
     class Null(Base):
         def __init__(self, type_):
+            assert isinstance(type_, str) or type_ == None
             self.type = type_
         def resolve(self, connection, message, index):
             super().resolve(connection, message, index)
@@ -214,9 +215,24 @@ class Arg:
 
     class Fd(Base):
         def __init__(self, value):
+            assert isinstance(value, int)
             self.value = value
         def value_to_str(self):
             return color('36', 'fd ' + str(self.value))
+
+    class Array(Base):
+        def __init__(self, values):
+            if isinstance(values, list):
+                for i in values:
+                    assert isinstance(i, Base)
+            else:
+                assert values == None
+            self.values = values
+        def value_to_str(self):
+            if self.values:
+                return color('35', '[') + color('35', ', ').join(self.values) + color('35', ']')
+            else:
+                return color('35', '[...]')
 
     class Unknown(Base):
         def __init__(self, string):
