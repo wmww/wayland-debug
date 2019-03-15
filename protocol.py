@@ -132,10 +132,15 @@ def discover_xml(p, out):
 
 def load_all(out):
     start = time.perf_counter()
+    shipped_protocols_path = path.join(path.dirname(path.realpath(sys.argv[0])), 'protocol')
+    if not path.isdir(shipped_protocols_path):
+        out.warn(
+            'Could not fined protocols shipped with Wayland Debug at ' + shipped_protocols_path +
+            ', will look for protocols on system and fall back to simpler output when not found')
     files = (
         discover_xml('/usr/share/wayland', out) +
         discover_xml('/usr/share/wayland-protocols', out) +
-        discover_xml(path.join(path.dirname(path.realpath(sys.argv[0])), 'protocol'), out)
+        discover_xml(shipped_protocols_path, out)
     )
     have_seen = {}
     unique = []

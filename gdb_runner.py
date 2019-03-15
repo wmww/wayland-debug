@@ -18,7 +18,7 @@ def main_with_args(my_args, gdb_args):
 
     # All the args before the -d/--gdb need to be sent along to the child instance
     # Since we run the child instance from the GDB command, we need to pack them all in there
-    my_args_str = ', '.join('"' + i.replace('"', '\\"') + '"' for i in [''] + my_args[1:])
+    my_args_str = ', '.join('"' + i.replace('"', '\\"') + '"' for i in my_args)
     # Yes, this is exactly what it looks like. It's is python code, inside python code which runs python code
     call_str = 'python import sys; sys.argv = [' + my_args_str + ']; exec(open("' + my_args[0] + '").read())'
     call_args = ['gdb', '-ex', call_str] + gdb_args
