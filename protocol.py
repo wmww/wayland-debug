@@ -173,6 +173,10 @@ def get_arg_name(interface_name, message_name, arg_index):
     else:
         return None
 
+def look_up_interface(interface_name, message_name, arg_index):
+    arg = get_arg(interface_name, message_name, arg_index)
+    return arg.interface
+
 def look_up_enum(interface_name, message_name, arg_index, arg_value):
     arg = get_arg(interface_name, message_name, arg_index)
     if not arg or not arg.enum:

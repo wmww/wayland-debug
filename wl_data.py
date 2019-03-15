@@ -185,6 +185,11 @@ class Arg:
     class Null(Base):
         def __init__(self, type_):
             self.type = type_
+        def resolve(self, connection, message, index):
+            super().resolve(connection, message, index)
+            if not self.type:
+                self.type = protocol.look_up_interface(message.obj.type, message.name, index)
+
         def value_to_str(self):
             return color('1;37', 'null ' + (self.type if self.type else '??'))
 
