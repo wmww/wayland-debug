@@ -233,6 +233,8 @@ class Arg:
             if self.values != None:
                 for v in self.values:
                     v.resolve(connection, message, index)
+                    if hasattr(v, 'name'):
+                        del v.name # hack to stop names appearing in every array element
         def value_to_str(self):
             if self.values != None:
                 return color('1;37', '[') + color('1;37', ', ').join([str(v) for v in self.values]) + color('1;37', ']')
