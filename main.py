@@ -7,6 +7,7 @@ from util import *
 import matcher
 import session as wl_session
 import parse_wl_debug as parse
+import protocol
 import gdb_runner
 
 example_usage = 'WAYLAND_DEBUG=1 program 2>&1 1>/dev/null | ' + sys.argv[0]
@@ -115,6 +116,8 @@ def main():
             output.log('Break matcher: ' + str(stop_matcher))
         except RuntimeError as e:
             output.error(e)
+
+    protocol.load_all(output)
 
     session = wl_session.Session(filter_matcher, stop_matcher, output)
 
