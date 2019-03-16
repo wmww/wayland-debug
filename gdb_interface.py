@@ -29,12 +29,12 @@ def gdb_fast_access(value, field_name):
             print(field.name)
             if field.name == field_name:
                 assert field.bitpos % 8 == 0
-                gdb_fast_access_map[key] = (field.bitpos // 8, field.type)
+                gdb_fast_access_map[key] = (field.bitpos // 8, field.type.pointer())
                 found = True
                 break
         assert found
-    offset, ret_type = gdb_fast_access_map[key]
-    return (value.cast(gdb_char_ptr_type) + offset).cast(ret_type.pointer()).dereference()
+    offset, ret_type_ptr_ptr = gdb_fast_access_map[key]
+    return (value.cast(gdb_char_ptr_type) + offset).cast(ret_type_ptr_ptr).dereference()
 
 def process_closure(send):
     closure = gdb.selected_frame().read_var('closure')
@@ -46,7 +46,8 @@ def process_closure(send):
         if int(gdb.selected_frame().read_var('flags')) == 1:
             proxy = gdb_fast_access(closure, 'proxy')
             wl_object = gdb_fast_access(proxy, 'object')
-            connection = gdb_fast_access(gdb_fast_access(proxy, 'display'), 'connection')
+            wl_display = gdb_fast_access(proxy, 'display')
+            connection = gdb_fast_access(wl_display, 'connection')
         else:
             target = gdb.selected_frame().read_var('target')
             resource_type = gdb.lookup_type('struct wl_resource').pointer()
@@ -57,13 +58,13 @@ def process_closure(send):
     obj_id = int(closure['sender_id'])
     obj_type = None
     if wl_object:
-        obj_type = wl_object['interface']['name'].string()
-    closure_message = closure['message']
-    message_name = closure_message['name'].string()
+        obj_type = gdb_fast_access(wl_object['interface'], 'name').string()
+    closure_message = gdb_fast_access(closure, 'message')
+    message_name = gdb_fast_access(closure_message, 'name').string()
     # The signiture is that stupid '2uufo?i' thing that has the type info
-    signiture = closure_message['signature'].string()
-    message_types = closure_message['types']
-    closure_args = closure['args']
+    signiture = gdb_fast_access(closure_message, 'signature').string()
+    message_types = gdb_fast_access(closure_message, 'types')
+    closure_args = gdb_fast_access(closure, 'args')
     args = []
     i = 0
     for c in signiture:
