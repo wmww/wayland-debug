@@ -168,7 +168,7 @@ class Arg:
         def value_to_str(self):
             assert isinstance(self.value, int)
             if hasattr(self, 'labels'):
-                return color('1;34', str(self.value) + ':' + '&'.join(self.labels))
+                return color('1;34', str(self.value)) + color('34', ':') + color('34', '&').join([color('1;34', i) for i in self.labels])
             else:
                 return color('1;34', str(self.value))
 
@@ -302,8 +302,8 @@ class Message:
         return (
             (color('37', '→ ') if self.sent else '') +
             str(self.obj) + ' ' +
-            color(message_color, self.name + '(') +
-            color(message_color, ', ').join([str(i) for i in self.args]) + color(message_color, ')') +
+            color(message_color, self.name) + color(timestamp_color, '(') +
+            color(timestamp_color, ', ').join([str(i) for i in self.args]) + color(timestamp_color, ')') +
             destroyed +
             (color(timestamp_color, ' ↲') if not self.sent else ''))
 
