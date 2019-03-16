@@ -7,10 +7,13 @@ import sys
 import time
 
 class Protocol:
-    def __init__(self, name, interfaces):
+    def __init__(self, name, xml_file, interfaces):
         assert isinstance(name, str)
         assert isinstance(interfaces, OrderedDict)
+        for i in interfaces.values():
+            i.parent = self
         self.name = name
+        self.xml_file = xml_file
         self.interfaces = interfaces
 
 class Interface:
@@ -18,6 +21,10 @@ class Interface:
         assert isinstance(name, str)
         assert isinstance(messages, OrderedDict)
         assert isinstance(enums, OrderedDict)
+        for i in messages.values():
+            i.parent = self
+        for i in enums.values():
+            i.parent = self
         self.name = name
         self.messages = messages
         self.enums = enums
@@ -27,6 +34,8 @@ class Message:
         assert isinstance(name, str)
         assert isinstance(is_event, bool)
         assert isinstance(args, OrderedDict)
+        for i in args.values():
+            i.parent = self
         self.name = name
         self.is_event = is_event
         self.args = args
@@ -47,6 +56,8 @@ class Enum:
         assert isinstance(name, str)
         assert isinstance(bitfield, bool)
         assert isinstance(entries, OrderedDict)
+        for i in entries.values():
+            i.parent = self
         self.name = name
         self.bitfield = bitfield
         self.entries = entries
@@ -63,6 +74,7 @@ def parse_protocol(xmlfile):
     assert protocol.tag == 'protocol'
     return Protocol(
         protocol.attrib['name'],
+        xmlfile,
         OrderedDict(
             [(i.name, i) for i in [
                 Interface(
@@ -154,23 +166,49 @@ def load_all(out):
     end = time.perf_counter()
     out.log('Took ' + str(int((end - start) * 1000)) + 'ms to load ' + str(len(unique)) + ' protocol files')
 
-    # set enums for arrays by hand, as they are not in the protocol
+    # Come on protocols, tag your fukin enums
     try:
+        interfaces['wl_data_offer'].messages['set_actions'].args['dnd_actions'].enum = 'wl_data_device_manager.dnd_action'
+        interfaces['wl_data_offer'].messages['set_actions'].args['preferred_action'].enum = 'wl_data_device_manager.dnd_action'
+        interfaces['wl_data_offer'].messages['source_actions'].args['source_actions'].enum = 'wl_data_device_manager.dnd_action'
+        interfaces['wl_data_offer'].messages['action'].args['dnd_action'].enum = 'wl_data_device_manager.dnd_action'
+        interfaces['wl_data_source'].messages['set_actions'].args['dnd_actions'].enum = 'wl_data_device_manager.dnd_action'
+        interfaces['wl_data_source'].messages['action'].args['dnd_action'].enum = 'wl_data_device_manager.dnd_action'
+
         interfaces['zxdg_toplevel_v6'].messages['configure'].args['states'].enum = 'state'
+        interfaces['zxdg_toplevel_v6'].messages['resize'].args['edges'].enum = 'resize_edge'
+        interfaces['zxdg_positioner_v6'].messages['set_constraint_adjustment'].args['constraint_adjustment'].enum = 'constraint_adjustment'
+
         interfaces['xdg_toplevel'].messages['configure'].args['states'].enum = 'state'
+        interfaces['xdg_toplevel'].messages['resize'].args['edges'].enum = 'resize_edge'
+        interfaces['xdg_positioner'].messages['set_constraint_adjustment'].args['constraint_adjustment'].enum = 'constraint_adjustment'
+
         interfaces['zwlr_foreign_toplevel_handle_v1'].messages['state'].args['state'].enum = 'state'
+
+        interfaces['org_kde_kwin_server_decoration_manager'].messages['default_mode'].args['mode'].enum = 'mode'
+        interfaces['org_kde_kwin_server_decoration'].messages['request_mode'].args['mode'].enum = 'mode'
+        interfaces['org_kde_kwin_server_decoration'].messages['mode'].args['mode'].enum = 'mode'
     except KeyError as e:
         print(list(interfaces))
-        out.warn('Could not set up enums for arrays: ' + str(e))
+        out.warn('Could not set up enum for: ' + str(e))
+    # Uncomment this when debugging enum tagging
     """
     for i in interfaces.values():
         for m in i.messages.values():
             for a in m.args.values():
-                if a.type == 'array':
-                    print(i.name, '.', m.name, '(', a.name, ')')
-                    print('enums:')
-                    for e in i.enums.values():
-                        print('    ', e.name)
+                if a.type == 'array' and not a.enum:
+                    print('array without enum:', i.parent.xml_file, '::', i.name, '.', m.name, '(', a.name, ')')
+                if a.enum:
+                    get_enum(i.name, a.enum).used = True
+        for e in i.enums.values():
+            if e.name != 'error' and not hasattr(e, 'used'):
+                print('unused enum:', i.parent.xml_file, '::', i.name, '.', e.name, '(', ', '.join([j.name for j in e.entries.values()]), ')')
+    # check to make sure all the enums are valid
+    for i in interfaces.values():
+        for m in i.messages.values():
+            for index, a in enumerate(m.args.values()):
+                if a.enum:
+                    get_enum(i.name, a.enum)
     exit(1)
     """
 
@@ -197,17 +235,21 @@ def look_up_interface(interface_name, message_name, arg_index):
     arg = get_arg(interface_name, message_name, arg_index)
     return arg.interface
 
-def look_up_enum(interface_name, message_name, arg_index, arg_value):
-    arg = get_arg(interface_name, message_name, arg_index)
-    if not arg or not arg.enum:
-        return []
-    enum_name_parts = [interface_name] + arg.enum.split('.')
+def get_enum(interface_name, enum_path):
+    # enum can be "interface.enum" or just "enum" (in which case the provided interface is used)
+    enum_name_parts = [interface_name] + enum_path.split('.')
     enum_interface_name = enum_name_parts[-2]
     enum_name = enum_name_parts[-1]
     enum_interface = interfaces[enum_interface_name]
     if not enum_name in enum_interface.enums:
         raise RuntimeError(str(enum_name) + ' is not an enum in ' + enum_interface_name)
-    enum = enum_interface.enums[enum_name]
+    return enum_interface.enums[enum_name]
+
+def look_up_enum(interface_name, message_name, arg_index, arg_value):
+    arg = get_arg(interface_name, message_name, arg_index)
+    if not arg or not arg.enum:
+        return []
+    enum = get_enum(interface_name, arg.enum)
     entries = []
     for entry in enum.entries.values():
         if enum.bitfield:
