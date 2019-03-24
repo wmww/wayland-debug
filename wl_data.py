@@ -145,9 +145,12 @@ class Arg:
 
     class Base:
         def resolve(self, connection, message, index):
-            name = protocol.get_arg_name(message.obj.type, message.name, index)
-            if name:
-                self.name = name
+            try:
+                name = protocol.get_arg_name(message.obj.type, message.name, index)
+                if name:
+                    self.name = name
+            except RuntimeError as e:
+                connection.out.warn(e)
         def __str__(self):
             if hasattr(self, 'name'):
                 return color('37', self.name + '=') + self.value_to_str()
@@ -162,9 +165,12 @@ class Arg:
     class Int(Primitive):
         def resolve(self, connection, message, index):
             super().resolve(connection, message, index)
-            labels = protocol.look_up_enum(message.obj.type, message.name, index, self.value)
-            if labels:
-                self.labels = labels
+            try:
+                labels = protocol.look_up_enum(message.obj.type, message.name, index, self.value)
+                if labels:
+                    self.labels = labels
+            except RuntimeError as e:
+                connection.out.warn(e)
         def value_to_str(self):
             assert isinstance(self.value, int)
             if hasattr(self, 'labels'):
@@ -189,7 +195,10 @@ class Arg:
         def resolve(self, connection, message, index):
             super().resolve(connection, message, index)
             if not self.type:
-                self.type = protocol.look_up_interface(message.obj.type, message.name, index)
+                try:
+                    self.type = protocol.look_up_interface(message.obj.type, message.name, index)
+                except RuntimeError as e:
+                    connection.out.warn(e)
 
         def value_to_str(self):
             return color('1;37', 'null ' + (self.type if self.type else '??'))
