@@ -4,55 +4,70 @@
 
 A tool for debugging Wayland protocol messages. It integrates directly with with GDB, or can parse the output of a wayland app/compositor run with `WAYLAND_DEBUG=1`
 
-## Usage
+## Examples
+
+### Using GDB (recomended)
+This will spin up an instance of GDB with your program
+```bash
+./main.py -g program
 ```
-wldbg [-h] [--matcher-help] [-v] [-l PATH] [-s] [-c] [-C] [-f MATCHER] [-b MATCHER] [-g]
+In the resulting GDB prompt, just enter `run` to run the program
 
-  -h, --help            show this help message and exit
+> Note: to use this mode, you need libwayland debug symbols installed. See [libwayland_debug_symbols.md](libwayland_debug_symbols.md)
 
-  --matcher-help        show how to write matchers and exit
+### Piping messages from stdin
+This parses libwayland's default debugging output
+```bash
+WAYLAND_DEBUG=1 program 2>&1 | ./main.py
+```
 
-  -v, --verbose         verbose output, mostly used for debugging this program
+### Loading from a file
+Similar to the last example, but loads libwayland output from a file
+```bash
+WAYLAND_DEBUG=1 program 2>path/to/file.log
+./main.py -l path/to/file.log
+```
 
-  -l PATH, --load PATH  load Wayland events from a file instead of stdin
+## Options
+(for a complete list, run `wayland-debug -h`)
+```
+-h, --help            show this help message and exit
 
-  -s, --supress         supress non-wayland output of the program
+--matcher-help        show how to write matchers and exit
 
-  -c, --color           force color output (default for interactive sessions)
+-l ..., --load ...    load Wayland events from a file instead of stdin
 
-  -C, --no-color        disable color output (default for non-interactive sessions)
+-f ..., --filter ...  only show these objects/messages (see --matcher-help for syntax)
 
-  -f F, --filter F      only show these objects/messages (see --matcher-help for syntax)
+-b ..., --break ...   stop on these objects/messages (see --matcher-help for syntax)
 
-  -b B, --break B       stop on these objects/messages (see --matcher-help for syntax)
-
-  -g, --gdb             run inside gdb, all subsequent arguments are sent to gdb
+-g, --gdb             run as a GDB extension, all subsequent arguments are sent to gdb
 ```
 
 ## Commands
-When you hit a breakpoint while reading from a file or in GDB (in the latter case, it can be a Wayland breakpoint or just a normal GDB one), you can issue a number of commands. If you are in GDB, wayland debug commands must be prefixed with 'wl'. When loading from a file, the wl can be dropped.
+When execution is paused (ie you've hit a breakpoint in GDB), you can issue a number of commands. If you're in GDB, wayland debug commands must be prefixed with 'wl'. When loading from a file, the wl can be dropped.
 ```
- $ help COMMAND               Show this help message, or get help for a specific command
+$ help COMMAND               Show this help message, or get help for a specific command
 
- $ show MATCHER [~COUNT]      Show messages matching given matcher (or show all messages, if no matcher provided)
-                              Append "~ COUNT" to show at most the last COUNT messages that match
-                              See help matcher for matcher syntax
+$ show MATCHER [~COUNT]      Show messages matching given matcher (or show all messages, if no matcher provided)
+                             Append "~ COUNT" to show at most the last COUNT messages that match
+                             See help matcher for matcher syntax
 
- $ filter MATCHER             Show the current output filter matcher, or add a new one
-                              See help matcher for matcher syntax
+$ filter MATCHER             Show the current output filter matcher, or add a new one
+                             See help matcher for matcher syntax
 
- $ breakpoint MATCHER         Show the current breakpoint matcher, or add a new one
-                              Use an inverse matcher (^) to disable existing breakpoints
-                              See help matcher for matcher syntax
+$ breakpoint MATCHER         Show the current breakpoint matcher, or add a new one
+                             Use an inverse matcher (^) to disable existing breakpoints
+                             See help matcher for matcher syntax
 
- $ matcher MATCHER            Parse a matcher, and show it unsimplified
+$ matcher MATCHER            Parse a matcher, and show it unsimplified
 
- $ connection CONNECTION      Show Wayland connections, or switch to another connection
+$ connection CONNECTION      Show Wayland connections, or switch to another connection
 
- $ resume                     Resume processing events
-                              In GDB you can also use the continue gdb command
+$ resume                     Resume processing events
+                             In GDB you can also use the continue gdb command
 
- $ quit                       Quit the program
+$ quit                       Quit the program
 ```
 
 ## Matchers
@@ -80,22 +95,17 @@ Examples of messages:
 
 If the matcher list (or a message list) starts with '^', it matches everything but what's given.
 
-## Examples
-
-### Using GDB (recomended)
-This will spin up an instance of GDB, and run the program inside it. It will show all messages, but break when an XDG thing is configured or when object ID 12 is used
+## More examples
 ```bash
+# Spin up an instance of GDB, and run the program inside it.
+# Show all messages, but break when an XDG thing is configured or when object ID 12 is used
 ./main.py -b 'xdg_*[configure], 12' -g program
-```
+...
+(gdb) run
 
-### Piping messages from stdin
-This will only show pointer, surface commit and surface destroy messages
-```bash
+# Run with piped input only showing pointer, surface.commit and surface.destroy messages
 WAYLAND_DEBUG=1 program 2>&1 1>/dev/null | ./main.py -f 'wl_pointer, wl_surface[commit, destroy]'
-```
 
-### Loading from a file
-This will show everything but callbacks and frame messages. file.log was presumably written from the output of libwayland with `WAYLAND_DEBUG=1`.
-```bash
+# Load a file showing everything but callbacks and frame messages
 ./main.py -l dir/file.log -f '^ wl_callback, *[frame]'
 ```
