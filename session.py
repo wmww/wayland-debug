@@ -148,7 +148,7 @@ class Session:
 
     def _show_message(self, message):
         delta = message.timestamp - self.last_shown_timestamp if self.last_shown_timestamp != None else 0
-        if delta > 3.0:
+        if delta > 1.0:
             self.out.show(color('37', '    ───┤ {:0.4f}s ├───'.format(delta)))
         self.last_shown_timestamp = message.timestamp
         message.show(self.out)
