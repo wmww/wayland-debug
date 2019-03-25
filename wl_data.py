@@ -102,7 +102,15 @@ class Object(ObjBase):
         assert isinstance(create_time, float) or isinstance(create_time, int)
         if obj_id in connection.db:
             last_obj = connection.db[obj_id][-1]
-            assert not last_obj.alive, 'Tried to create object of type ' + type_name + ' with the same id as ' + str(last_obj)
+            if last_obj.alive:
+                if type_name == 'wl_registry' and obj_id == 2:
+                    msg = ('It looks like multiple Wayland connections were made, without a way to distinguish between them. '
+                        + 'Please see https://github.com/wmww/wayland-debug/issues/5 for further details')
+                    connection.out.error(msg)
+                    raise RuntimeError(msg)
+                else:
+                    raise RuntimeError('Tried to create object of type '
+                        + type_name + ' with the same id as ' + str(last_obj))
         else:
             connection.db[obj_id] = []
         self.generation = len(connection.db[obj_id])
