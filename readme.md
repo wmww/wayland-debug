@@ -1,5 +1,7 @@
 # Wayland debug
 
+![Wayland Debug sample output](https://i.imgur.com/CliJAqn.png)
+
 A tool for debugging Wayland protocol messages. It integrates directly with with GDB, or can parse the output of a wayland app/compositor run with `WAYLAND_DEBUG=1`
 
 ## Usage
