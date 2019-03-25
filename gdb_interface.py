@@ -243,5 +243,5 @@ def main(session):
         WlSubcommand(c.name, session)
     session.out.log('Breakpoints: ' + repr(gdb.breakpoints()))
     if not check_libwayland_symbols(session):
-        session.out.warn('All debug symbols were not found, so Wayland messages may not be detected in GDB mode')
-        session.out.warn('Depending on your distro, please install the *-dbgsym package, compile libwayland without stripping, etc')
+        session.out.warn('libwayland debug symbols were not found, so Wayland messages may not be detected in GDB mode')
+        session.out.warn('See https://github.com/wmww/wayland-debug/blob/master/libwayland_debug_symbols.md for more information')
