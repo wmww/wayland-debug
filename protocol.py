@@ -175,6 +175,8 @@ def load_all(out):
         interfaces['wl_data_source'].messages['set_actions'].args['dnd_actions'].enum = 'wl_data_device_manager.dnd_action'
         interfaces['wl_data_source'].messages['action'].args['dnd_action'].enum = 'wl_data_device_manager.dnd_action'
 
+        interfaces['wl_pointer'].messages['button'].args['button'].enum = 'fake_enums.button'
+
         interfaces['zxdg_toplevel_v6'].messages['configure'].args['states'].enum = 'state'
         interfaces['zxdg_toplevel_v6'].messages['resize'].args['edges'].enum = 'resize_edge'
         interfaces['zxdg_positioner_v6'].messages['set_constraint_adjustment'].args['constraint_adjustment'].enum = 'constraint_adjustment'
@@ -188,6 +190,25 @@ def load_all(out):
         interfaces['org_kde_kwin_server_decoration_manager'].messages['default_mode'].args['mode'].enum = 'mode'
         interfaces['org_kde_kwin_server_decoration'].messages['request_mode'].args['mode'].enum = 'mode'
         interfaces['org_kde_kwin_server_decoration'].messages['mode'].args['mode'].enum = 'mode'
+
+        interfaces['fake_enums'] = Interface(
+            'fake_enums',
+            OrderedDict(),
+            OrderedDict([( # from /usr/include/linux/input-event-codes.h
+                'button',
+                Enum(
+                    'button',
+                    False,
+                    OrderedDict([
+                        ('left', Entry('left', 0x110)),
+                        ('right', Entry('right', 0x111)),
+                        ('middle', Entry('middle', 0x112)),
+                    ])
+                )
+            )])
+        )
+
+        interfaces['wl_pointer'].messages['button'].args['button'].enum = 'fake_enums.button'
     except KeyError as e:
         print(list(interfaces))
         out.warn('Could not set up enum for: ' + str(e))
