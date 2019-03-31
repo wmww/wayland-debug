@@ -26,7 +26,6 @@ def gdb_fast_access(value, field_name):
     if not key in gdb_fast_access_map:
         found = False
         for field in value.type.target().fields():
-            print(field.name)
             if field.name == field_name:
                 assert field.bitpos % 8 == 0
                 gdb_fast_access_map[key] = (field.bitpos // 8, field.type.pointer())
