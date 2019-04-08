@@ -281,5 +281,7 @@ def look_up_enum(interface_name, message_name, arg_index, arg_value):
                 entries.append(entry.name)
     if entries:
         return entries
+    elif enum.bitfield:
+        return ['(none)']
     else:
         return ['INVALID ENUM VALUE']
