@@ -36,13 +36,16 @@ class Connection:
         return txt
 
     def look_up_specific(self, obj_id, obj_generation, type_name = None):
-        assert obj_id in self.db, 'Id ' + str(obj_id) + ' of type ' + str(type_name) + ' not in object database'
-        assert obj_generation >= 0 and len(self.db[obj_id]) > obj_generation, (
-            'Invalid generation ' + str(obj_generation) + ' for id ' + str(obj_id))
+        if not obj_id in self.db:
+            msg = 'Id ' + str(obj_id) + ' of type ' + str(type_name) + ' not in object database'
+            if obj_id > 100000:
+                msg += ' (see https://github.com/wmww/wayland-debug/issues/6)'
+            raise RuntimeError(msg)
+        if obj_generation < 0 or len(self.db[obj_id]) <= obj_generation:
+            raise RuntimeError('Invalid generation ' + str(obj_generation) + ' for id ' + str(obj_id))
         obj = self.db[obj_id][obj_generation]
-        if type_name:
-            if obj.type:
-                assert str_matches(type_name, obj.type), str(obj) + ' expected to be of type ' + type_name
+        if type_name and obj.type and not str_matches(type_name, obj.type):
+            raise RuntimeError(str(obj) + ' expected to be of type ' + type_name)
         return obj
 
     def look_up_most_recent(self, obj_id, type_name = None):
@@ -77,11 +80,11 @@ class ObjBase:
         if self.type:
             return self.type
         else:
-            return '???'
+            return color('1;31', '???')
     def id_str(self):
         ret = str(self.id)
         if self.generation == None:
-            ret += '.?'
+            ret += '.' + color('1;31', '?')
         else:
             ret += '.' + str(self.generation)
         return ret
@@ -100,6 +103,10 @@ class Object(ObjBase):
         assert isinstance(type_name, str)
         assert isinstance(parent_obj, Object) or (parent_obj == None and obj_id == 1)
         assert isinstance(create_time, float) or isinstance(create_time, int)
+        if obj_id > 100000:
+            connection.out.warn(
+                (type_name if type_name else 'Object') +
+                ' ID ' + str(obj_id) + ' is probably bigger than it should be (see https://github.com/wmww/wayland-debug/issues/6)')
         if obj_id in connection.db:
             last_obj = connection.db[obj_id][-1]
             if last_obj.alive:
@@ -141,12 +148,13 @@ class Object(ObjBase):
             self.type = type_name
             self.create_time = 0
         def resolve(self, connection):
-            if self.id > 100000:
-                warning('Ignoreing unreasonably large ID ' + str(self.id) + ' as it is likely to cause an error')
+            try:
+                return connection.look_up_most_recent(self.id, self.type)
+            except RuntimeError as e:
+                connection.out.warn(str(e))
                 return self
-            return connection.look_up_most_recent(self.id, self.type)
         def __str__(self):
-            return color('1;31', 'unresolved<') + self.to_str() + color('1;31', '>')
+            return color('1;31', 'unresolved ') + self.to_str()
 
 class Arg:
     error_color = '1;31'
@@ -225,7 +233,10 @@ class Arg:
             super().resolve(connection, message, index)
             if isinstance(self.obj, Object.Unresolved):
                 if self.is_new:
-                    Object(connection, self.obj.id, self.obj.type, message.obj, message.timestamp)
+                    try:
+                        Object(connection, self.obj.id, self.obj.type, message.obj, message.timestamp)
+                    except RuntimeError as e:
+                        connection.out.error(e)
                 self.obj = self.obj.resolve(connection)
         def value_to_str(self):
             return (color('1;32', 'new ') if self.is_new else '') + str(self.obj)
