@@ -6,12 +6,11 @@ import session as wl_session
 import matcher as wl_matcher
 import re
 
-# # libwayland client functions
-# wl_proxy_marshal
-# wl_proxy_destroy
-# wl_proxy_marshal_constructor
-
 def gdb_is_null(val):
+    '''
+    Check if a GDB value is null
+    (there should be a better way, but I don't think there is)
+    '''
     return str(val) == '0x0'
 
 type_codes = {i: True for i in ['i', 'u', 'f', 's', 'o', 'n', 'a', 'h']}
@@ -20,6 +19,11 @@ gdb_fast_access_map = {}
 gdb_char_ptr_type = gdb.lookup_type('char').pointer()
 
 def gdb_fast_access(value, field_name):
+    '''
+    Like normal GDB property access,
+    except caches the poitner offset of fields on types to make future lookups faster
+    (measurably improves performance)
+    '''
     assert value.type.code == gdb.TYPE_CODE_PTR
     assert value.type.target().name
     key = (value.type.target().name, field_name)
@@ -185,6 +189,7 @@ class WlSubcommand(gdb.Command):
         return None
 
 def load_libwayland_symbols(session):
+    '''Checks if libwayland debug symbols are installed'''
     # First, we use ldconfig to find libwayland
     cmd = ['ldconfig', '-p']
     session.out.log('Running `' + ' '.join(cmd) + '`')

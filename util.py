@@ -2,6 +2,7 @@ import sys
 import re
 
 def check_gdb():
+    '''Check if the gdb module is available, and thus if we are inside a running instance of GDB'''
     import importlib.util
     return importlib.util.find_spec("gdb") is not None
 

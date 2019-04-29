@@ -8,7 +8,8 @@ import matcher
 import session as wl_session
 import parse_wl_debug as parse
 import protocol
-import gdb_runner
+import gdb_integration as gdb
+import util
 
 example_usage = 'WAYLAND_DEBUG=1 program 2>&1 1>/dev/null | ' + sys.argv[0]
 
@@ -130,8 +131,7 @@ def main():
         try:
             if file_path:
                 output.warn('Ignoring load file because we\'re inside GDB')
-            import gdb_interface
-            gdb_interface.main(session)
+            gdb.plugin.main(session)
         except:
             import traceback
             traceback.print_exc()
@@ -143,11 +143,19 @@ def main():
         piped_input_main(session)
 
 if __name__ == '__main__':
-    if check_gdb() or (hasattr(sys.stdout, 'isatty') and sys.stdout.isatty()):
+    # If both of these are false, we might be redirecting to a file (or in another non-interactive context)
+    # If we're not being run interactivly, we shouldn't use terminal color codes
+    if util.check_gdb() or (hasattr(sys.stdout, 'isatty') and sys.stdout.isatty()):
         set_color_output(True)
-    # First, we check if we're supposed to run inside GDB, and do that if so
-    if gdb_runner.main():
-        pass
+
+    # If we want to run inside GDB, the normal main does not get called in this instance of the script
+    # Instead GDB is run, an instance of wayland-debug is run inside it and main() is run in that
+    # gdb.runner.parse_args() will check if this needs to happen, and gdb.runner.main() will do it
+    gdb_runner_args = None
+    if not util.check_gdb():
+        gdb_runner_args = gdb.runner.parse_args(sys.argv)
+    if gdb_runner_args:
+        gdb.runner.main(gdb_runner_args)
     else:
         main()
 

@@ -1,0 +1,59 @@
+import subprocess
+import os
+
+import util
+
+class Args:
+    '''The arguments processed by parse_args() that need to be passed to main()'''
+    def __init__(self, wldbg_args, gdb_args):
+        self.wldbg = wldbg_args
+        self.gdb = gdb_args
+
+def main(args):
+    '''Runs GDB, and runs a child instance of this script inside it as a plugin'''
+    assert isinstance(args, Args)
+
+    # Imports will be broken on the new instance, so we need to fix the python import path for the child process
+    env = os.environ.copy()
+    python_path_var = 'PYTHONPATH'
+    prev = ''
+    if python_path_var in env:
+        prev = ':' + env[python_path_var]
+    # Add the directeory the running file is located in to the path
+    env[python_path_var] = os.path.dirname(os.path.realpath(args.wldbg[0])) + prev
+
+    # All the args before the GDB option need to be sent along to the child instance
+    # Since we run the child instance from the GDB command, we need to pack them all in there
+    my_args_str = ', '.join('"' + i.replace('"', '\\"') + '"' for i in args.wldbg)
+    # Yes, this is exactly what it looks like. It's is python code, inside python code which runs python code
+    call_str = 'python import sys; sys.argv = [' + my_args_str + ']; exec(open("' + args.wldbg[0] + '").read())'
+    call_args = ['gdb', '-ex', call_str] + args.gdb
+    print('Running subprocess: ' + repr(call_args))
+    sp = subprocess.Popen(call_args, env=env)
+    while True:
+        try:
+            sp.wait()
+            return
+        except KeyboardInterrupt:
+            pass
+
+def parse_args(args):
+    '''
+    Looks for the special -g and --gdb arguements
+    Returns None if not found
+    Returns an instance of Args if found, which can be passed to main()
+    Returned Args has the arguments before and after the -g split
+    '''
+    # debugging infinitaly nested debuggers isn't fun
+    assert not util.check_gdb()
+    # Look for the -d or --gdb arguments, and split the argument list based on where they are
+    for i in range(len(args)):
+        if args[i] == '-g' or args[i] == '--gdb':
+            return Args(args[:i+1], args[i+1:])
+        elif len(args[i]) > 2 and args[i][0] == '-' and args[i][1] != '-':
+            # look for a g in the list of single char args
+            for c in args[i]:
+                if c == 'g':
+                    # the last batch of args will all go to the child wayland debug, which will simply ignore the 'g'
+                    return Args(args[:i+1], args[i+1:])
+    return None
