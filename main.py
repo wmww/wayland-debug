@@ -6,8 +6,8 @@ import re
 from util import *
 import matcher
 import session as wl_session
-import parse_wl_debug as parse
-import protocol
+import wl.parse_debug as parse
+from wl import protocol
 import gdb_integration as gdb
 import util
 

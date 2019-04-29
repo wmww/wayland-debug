@@ -1,6 +1,6 @@
 import re
 from util import *
-import wl_data as wl
+import wl
 import matcher
 
 help_command_color = '1;37'

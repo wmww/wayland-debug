@@ -1,6 +1,6 @@
 import re
 
-import wl_data as wl
+import wl
 import session
 from util import *
 

@@ -1,7 +1,7 @@
 import subprocess
 import time
 import gdb
-import wl_data as wl
+import wl
 import session as wl_session
 import matcher as wl_matcher
 import re
