@@ -3,6 +3,19 @@ from . import object
 
 class Connection:
     def __init__(self, name, is_server, title, time, output):
+        '''
+        Create a new connection
+        name: unique name of the connection, often A, B, C etc
+        is_server: if we are on the server or client side of the connection
+        title: human-readable descriptive title (can be None, and can be changed latar)
+        time: the timestamp (in seconds) of the first message on the connection
+        output: the Output object the connection will use
+        '''
+        assert isinstance(name, str)
+        assert isinstance(is_server, bool)
+        assert isinstance(title, str) or title == None
+        assert isinstance(time, float) or isinstance(time, int)
+        assert isinstance(output, Output)
         self.name = name
         self.is_server = is_server
         self.title = title
