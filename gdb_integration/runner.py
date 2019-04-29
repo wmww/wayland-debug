@@ -9,8 +9,11 @@ class Args:
         self.wldbg = wldbg_args
         self.gdb = gdb_args
 
-def main(args):
-    '''Runs GDB, and runs a child instance of this script inside it as a plugin'''
+def main(args, quiet=False):
+    '''
+    Runs GDB, and runs a child instance of this script inside it as a plugin
+    Returns GDB's exit status, or -1 for other error
+    '''
     assert isinstance(args, Args)
 
     # Imports will be broken on the new instance, so we need to fix the python import path for the child process
@@ -28,14 +31,16 @@ def main(args):
     # Yes, this is exactly what it looks like. It's is python code, inside python code which runs python code
     call_str = 'python import sys; sys.argv = [' + my_args_str + ']; exec(open("' + args.wldbg[0] + '").read())'
     call_args = ['gdb', '-ex', call_str] + args.gdb
-    print('Running subprocess: ' + repr(call_args))
+    if not quiet:
+        print('Running subprocess: ' + repr(call_args))
     sp = subprocess.Popen(call_args, env=env)
     while True:
         try:
             sp.wait()
-            return
+            return sp.returncode
         except KeyboardInterrupt:
             pass
+    return -1
 
 def parse_args(args):
     '''
