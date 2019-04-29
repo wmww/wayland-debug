@@ -49,11 +49,11 @@ def parse_args(args):
     # Look for the -d or --gdb arguments, and split the argument list based on where they are
     for i in range(len(args)):
         if args[i] == '-g' or args[i] == '--gdb':
-            return Args(args[:i+1], args[i+1:])
+            return Args(args[:i], args[i+1:])
         elif len(args[i]) > 2 and args[i][0] == '-' and args[i][1] != '-':
-            # look for a g in the list of single char args
-            for c in args[i]:
-                if c == 'g':
-                    # the last batch of args will all go to the child wayland debug, which will simply ignore the 'g'
-                    return Args(args[:i+1], args[i+1:])
+            # look for a g at the end of a list of single char args
+            if 'g' in args[i][:-1]:
+                raise RuntimeError(repr(args[i]) + ' invalid, -g option must be last in a list of single-character options')
+            if args[i][-1] == 'g':
+                return Args(args[:i] + [args[i][:-1]], args[i+1:])
     return None

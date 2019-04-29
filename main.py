@@ -68,6 +68,8 @@ def main():
 
     args = parser.parse_args()
 
+    assert not args.gdb, 'GDB argument should have been intercepted by gdb.runner.parse_args()'
+
     out_file = sys.stdout
     err_file = sys.stderr
     if check_gdb():
