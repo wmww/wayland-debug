@@ -48,8 +48,8 @@ class TestRunner(unittest.TestCase):
         self.assertEquals(return_code, 0)
 
     def test_basic_gdb_run_with_wldbg_command(self):
-        # `--ex wll` will run the list wayland-debug command, which will cause gdb to fail if wayland-debug has crashed
-        args = runner.Args(['main.py'], ['--batch-silent', '--ex', 'r', '--ex', 'wll', '--args', 'cat', '/dev/null'])
+        # `--ex wlq` will run the quit wayland-debug command, which will cause gdb to fail if wayland-debug has crashed
+        args = runner.Args(['main.py'], ['--batch-silent', '--ex', 'r', '--ex', 'wlq', '--args', 'cat', '/dev/null'])
         return_code = runner.main(args, quiet=True)
         self.assertEquals(return_code, 0)
 
