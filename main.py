@@ -70,11 +70,13 @@ def main():
 
     assert not args.gdb, 'GDB argument should have been intercepted by gdb.runner.parse_args()'
 
-    out_file = sys.stdout
-    err_file = sys.stderr
+    out_func = lambda msg: print(msg, file=sys.stdout)
+    err_func = lambda msg: print(msg, file=sys.stderr)
     if check_gdb():
-        # Stops the annoying continue prompts in GDB
-        out_file = sys.stderr
+        # They are both print_err, because using stdout causes a prompt to continue
+        # Ther is a print_out function lying around which we may use in the future when we want the continue prompt
+        out_func = gdb.plugin.print_err
+        err_func = gdb.plugin.print_err
 
     if args.no_color:
         set_color_output(False)
@@ -83,7 +85,7 @@ def main():
 
     verbose = bool(args.verbose)
     unprocessed_output = not bool(args.supress)
-    output = Output(verbose, unprocessed_output, out_file, err_file)
+    output = Output(verbose, unprocessed_output, out_func, err_func)
 
     if verbose:
         set_verbose(True)

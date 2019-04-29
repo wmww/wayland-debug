@@ -57,14 +57,14 @@ def str_matches(pattern, txt):
     return len(re.findall(pattern, txt)) == 1
 
 class Output:
-    def __init__(self, verbose, show_unprocessed, show_file, err_file):
+    def __init__(self, verbose, show_unprocessed, show_func, err_func):
         self.verbose = verbose
         self.show_unprocessed = show_unprocessed
-        self.out = show_file
-        self.err = err_file
+        self.out = show_func
+        self.err = err_func
 
     def show(self, *msg):
-        print(' '.join(map(lambda m: str(m), msg)), file=self.out)
+        self.out(' '.join(map(lambda m: str(m), msg)))
 
     # Used when parsing WAYLAND_DEBUG lines and we come across output we can't parse
     def unprocessed(self, *msg):
@@ -73,13 +73,13 @@ class Output:
 
     def log(self, *msg):
         if self.verbose:
-            print(color('37', 'wl log: ') + ' '.join(map(lambda m: str(m), msg)), file=self.out)
+            self.out(color('37', 'wl log: ') + ' '.join(map(lambda m: str(m), msg)))
 
     def warn(self, *msg):
-        print(color('1;33', 'Warning: ') + ' '.join(map(lambda m: str(m), msg)), file=self.err)
+        self.err(color('1;33', 'Warning: ') + ' '.join(map(lambda m: str(m), msg)))
 
     def error(self, *msg):
-        print(color('1;31', 'Error: ') + ' '.join(map(lambda m: str(m), msg)), file=self.err)
+        self.err(color('1;31', 'Error: ') + ' '.join(map(lambda m: str(m), msg)))
 
 if __name__ == '__main__':
     print('File meant to be imported, not run')

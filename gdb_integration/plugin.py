@@ -224,6 +224,11 @@ def check_libwayland_symbols(session):
     server = check_symbol('wl_display_add_global', 'libwayland-server')
     return client and server
 
+def print_out(text):
+    gdb.write(text + '\n', gdb.STDOUT)
+
+def print_err(text):
+    gdb.write(text + '\n', gdb.STDERR)
 
 def main(session):
     gdb.execute('set python print-stack full')
