@@ -3,6 +3,7 @@ from . import object
 from .arg import Arg
 
 class Message:
+    # TODO: figure out a way to remove global time offset
     base_time = None
 
     def __init__(self, abs_time, obj, sent, name, args):
