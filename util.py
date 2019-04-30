@@ -1,5 +1,6 @@
 import sys
 import re
+import output
 
 def check_gdb():
     '''Check if the gdb module is available, and thus if we are inside a running instance of GDB'''
@@ -57,14 +58,18 @@ def str_matches(pattern, txt):
     return len(re.findall(pattern, txt)) == 1
 
 class Output:
-    def __init__(self, verbose, show_unprocessed, show_func, err_func):
+    def __init__(self, verbose, show_unprocessed, show_stream, err_stream):
+        assert isinstance(verbose, bool)
+        assert isinstance(show_unprocessed, bool)
+        assert isinstance(show_stream, output.stream.Base)
+        assert isinstance(err_stream, output.stream.Base)
         self.verbose = verbose
         self.show_unprocessed = show_unprocessed
-        self.out = show_func
-        self.err = err_func
+        self.out = show_stream
+        self.err = err_stream
 
     def show(self, *msg):
-        self.out(' '.join(map(lambda m: str(m), msg)))
+        self.out.write(' '.join(map(lambda m: str(m), msg)))
 
     # Used when parsing WAYLAND_DEBUG lines and we come across output we can't parse
     def unprocessed(self, *msg):
@@ -73,13 +78,13 @@ class Output:
 
     def log(self, *msg):
         if self.verbose:
-            self.out(color('37', 'wl log: ') + ' '.join(map(lambda m: str(m), msg)))
+            self.out.write(color('37', 'wl log: ') + ' '.join(map(lambda m: str(m), msg)))
 
     def warn(self, *msg):
-        self.err(color('1;33', 'Warning: ') + ' '.join(map(lambda m: str(m), msg)))
+        self.err.write(color('1;33', 'Warning: ') + ' '.join(map(lambda m: str(m), msg)))
 
     def error(self, *msg):
-        self.err(color('1;31', 'Error: ') + ' '.join(map(lambda m: str(m), msg)))
+        self.err.write(color('1;31', 'Error: ') + ' '.join(map(lambda m: str(m), msg)))
 
 if __name__ == '__main__':
     print('File meant to be imported, not run')

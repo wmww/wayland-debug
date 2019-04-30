@@ -1,6 +1,7 @@
 import unittest
 from wl import *
 import util
+from output import stream
 
 class TestMessage(unittest.TestCase):
     def setUp(self):
@@ -20,7 +21,7 @@ class TestMessage(unittest.TestCase):
 
 class TestConnection(unittest.TestCase):
     def setUp(self):
-        self.out = util.Output(False, False, lambda m: (), lambda m: ())
+        self.out = util.Output(False, False, stream.String(), stream.String())
         self.c = Connection('A', False, None, 0, self.out)
 
     def test_create_empty_connection(self):

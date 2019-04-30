@@ -5,6 +5,7 @@ import wl
 import session as wl_session
 import matcher as wl_matcher
 import re
+import output
 
 def gdb_is_null(val):
     '''
@@ -224,11 +225,15 @@ def check_libwayland_symbols(session):
     server = check_symbol('wl_display_add_global', 'libwayland-server')
     return client and server
 
-def print_out(text):
-    gdb.write(text + '\n', gdb.STDOUT)
+class Stream(output.stream.Base):
+    def __init__(self, stream):
+        self.stream = stream
+    def override_write(self, string):
+        gdb.write(string + '\n', self.stream)
 
-def print_err(text):
-    gdb.write(text + '\n', gdb.STDERR)
+def output_streams():
+    # Both are stderr, because stdout does the annoying "enter to continue" thing
+    return (Stream(gdb.STDERR), Stream(gdb.STDERR))
 
 def main(session):
     gdb.execute('set python print-stack full')

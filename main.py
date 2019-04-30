@@ -9,6 +9,7 @@ import session as wl_session
 import wl.parse_debug as parse
 from wl import protocol
 import gdb_integration as gdb
+from output import stream
 import util
 
 example_usage = 'WAYLAND_DEBUG=1 program 2>&1 1>/dev/null | ' + sys.argv[0]
@@ -70,13 +71,11 @@ def main():
 
     assert not args.gdb, 'GDB argument should have been intercepted by gdb.runner.parse_args()'
 
-    out_func = lambda msg: print(msg, file=sys.stdout)
-    err_func = lambda msg: print(msg, file=sys.stderr)
     if check_gdb():
-        # They are both print_err, because using stdout causes a prompt to continue
-        # Ther is a print_out function lying around which we may use in the future when we want the continue prompt
-        out_func = gdb.plugin.print_err
-        err_func = gdb.plugin.print_err
+        out_stream, err_stream = gdb.plugin.output_streams()
+    else:
+        out_stream = stream.Std(sys.stdout)
+        err_stream = stream.Std(sys.stderr)
 
     if args.no_color:
         set_color_output(False)
@@ -85,7 +84,7 @@ def main():
 
     verbose = bool(args.verbose)
     unprocessed_output = not bool(args.supress)
-    output = Output(verbose, unprocessed_output, out_func, err_func)
+    output = Output(verbose, unprocessed_output, out_stream, err_stream)
 
     if verbose:
         set_verbose(True)
