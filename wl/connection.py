@@ -1,5 +1,6 @@
 from util import *
 from . import object
+from output import Output
 
 class Connection:
     def __init__(self, name, is_server, title, time, output):

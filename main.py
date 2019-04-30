@@ -10,6 +10,7 @@ import wl.parse_debug as parse
 from wl import protocol
 import gdb_integration as gdb
 from output import stream
+from output import Output
 import util
 
 example_usage = 'WAYLAND_DEBUG=1 program 2>&1 1>/dev/null | ' + sys.argv[0]
