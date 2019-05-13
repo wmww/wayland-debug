@@ -83,7 +83,11 @@ def process_closure(send):
                 f = float(gdb.parse_and_eval('(double)(void*)(((1023LL + 44LL) << 52) + (1LL << 51) + ' + str(value) + ') - (3LL << 43)'))
                 args.append(wl.Arg.Float(f))
             elif c == 's':
-                args.append(wl.Arg.String(value.string()))
+                if gdb_is_null(value):
+                    str_val = '[null string]'
+                else:
+                    str_val = value.string()
+                args.append(wl.Arg.String(str_val))
             elif c == 'a':
                 size = int(value['size'])
                 elems = []
