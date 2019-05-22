@@ -15,7 +15,7 @@ class WlPatterns:
         self.new_id_unknown_re = re.compile('^new id \[unknown\]@(\d+)$')
         self.new_id_re = re.compile('^new id (\w+)@(\d+)$')
         self.obj_re = re.compile('^(\w+)@(\d+)$')
-        self.any_arg_re = re.compile('((?<=,)|^)\s*(([^,"]*("[^"]*")?)+)($|(?=,))')
+        self.any_arg_re = re.compile('((?<=,)|^)\s*("[^"]*"|[^,]+)($|(?=,))')
         timestamp_regex = '\[(\d+\.\d+)\]'
         message_regex = '(\w+)@(\d+)\.(\w+)\((.*)\)$'
         self.out_msg_re = re.compile(timestamp_regex + '  -> ' + message_regex)
@@ -55,10 +55,7 @@ def argument(p, value_str):
     return wl.Arg.Unknown(value_str)
 
 def argument_list(p, args_str):
-    if args_str:
-        return [argument(p, match[1]) for match in p.any_arg_re.findall(args_str)]
-    else:
-        return []
+    return [argument(p, match[1]) for match in p.any_arg_re.findall(args_str)]
 
 def message(raw):
     p = WlPatterns.lazy_get_instance()
