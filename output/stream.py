@@ -1,5 +1,4 @@
 import sys
-from . import token
 
 class Base:
     '''An output stream that supports tokens.'''
