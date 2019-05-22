@@ -73,20 +73,26 @@ class Session:
         return self.should_quit
 
     def message(self, connection_id, message):
-        if message == None:
-            return
-        self.is_stopped = False
-        if not connection_id in self.connections:
-            self.out.warn('connection_id ' + repr(connection_id) + ' never explicitly created')
-            self.open_connection(connection_id, None, message.timestamp)
-        connection = self.connections[connection_id]
-        connection.message(message)
-        if connection == self.current_connection:
-            if self.display_matcher.matches(message):
-                self._show_message(message)
-            if self.stop_matcher.matches(message):
-                self.out.show(color('1;37', '    Stopped at ') + str(message).strip())
-                self.is_stopped = True
+        try:
+            if message == None:
+                return
+            self.is_stopped = False
+            if not connection_id in self.connections:
+                self.out.warn('connection_id ' + repr(connection_id) + ' never explicitly created')
+                self.open_connection(connection_id, None, message.timestamp)
+            connection = self.connections.get(connection_id, None)
+            if connection == None:
+                self.out.warn('connection_id ' + repr(connection_id) + ' never explicitly created')
+                connection = self.open_connection(connection_id, None, message.timestamp)
+            connection.message(message)
+            if connection == self.current_connection:
+                if self.display_matcher.matches(message):
+                    self._show_message(message)
+                if self.stop_matcher.matches(message):
+                    self.out.show(color('1;37', '    Stopped at ') + str(message).strip())
+                    self.is_stopped = True
+        except Exception as e:
+            self.out.warn(e)
 
     def open_connection(self, connection_id, is_server, time):
         # is_server can be none if the value is unknown
@@ -109,6 +115,7 @@ class Session:
             self.out.show(color('1;32', 'New ' + connection.description() + ' connection ' + name))
         self.connections[connection_id] = connection
         self.connection_list.append(connection)
+        return connection
 
     def close_connection(self, connection_id, time):
         if connection_id in self.connections:
