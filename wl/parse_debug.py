@@ -8,13 +8,25 @@ class WlPatterns:
     instance = None
 
     def __init__(self):
-        self.int_re = re.compile('^-?\d+$')
-        self.float_re = re.compile('^-?\d+(\.\d+)?([eE][+-]?\d+)?$')
-        self.fd_re = re.compile('^fd (\d+)$')
-        self.str_re = re.compile('^"(.*)"$')
-        self.new_id_unknown_re = re.compile('^new id \[unknown\]@(\d+)$')
-        self.new_id_re = re.compile('^new id (\w+)@(\d+)$')
-        self.obj_re = re.compile('^(\w+)@(\d+)$')
+        int_re = '(?P<int>-?\d+)'
+        float_re = '(?P<float>-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)'
+        fd_re = '(?:fd (?P<fd>\d+))'
+        str_re = '(?:"(?P<str>.*)")'
+        new_id_re = '(?:new id (?:(?P<new_type>\w+)|(?:\[unknown\]))@(?P<new_id>\d+))'
+        obj_re = '(?P<obj_type>\w+)@(?P<obj_id>\d+)'
+        array_re = '(?P<array>array)'
+        nil_re = '(?P<nil>nil)'
+        all_args_re = (
+            '^(?:' +
+            int_re + '|' +
+            obj_re + '|' +
+            new_id_re + '|' +
+            nil_re + '|' +
+            str_re + '|' +
+            float_re + '|' +
+            array_re + '|' +
+            fd_re + ')$')
+        self.arg_re = re.compile(all_args_re)
         self.any_arg_re = re.compile('((?<=,)|^)\s*("[^"]*"|[^,]+)($|(?=,))')
         timestamp_regex = '\[(\d+\.\d+)\]'
         message_regex = '(\w+)@(\d+)\.(\w+)\((.*)\)$'
@@ -27,31 +39,27 @@ class WlPatterns:
         return WlPatterns.instance
 
 def argument(p, value_str):
-    int_matches = p.int_re.findall(value_str)
-    if int_matches:
-        return wl.Arg.Int(int(value_str))
-    float_matches = p.float_re.findall(value_str)
-    if float_matches:
-        return wl.Arg.Float(float(value_str))
-    if value_str == 'nil':
-        return wl.Arg.Null()
-    fd_matches = p.fd_re.findall(value_str)
-    if fd_matches:
-        return wl.Arg.Fd(int(fd_matches[0]))
-    str_matches = p.str_re.findall(value_str)
-    if str_matches:
-        return wl.Arg.String(str_matches[0])
-    if value_str == 'array':
-        return wl.Arg.Array()
-    new_id_unknown_matches = p.new_id_unknown_re.findall(value_str)
-    if new_id_unknown_matches:
-        return wl.Arg.Object(wl.Object.Unresolved(int(new_id_unknown_matches[0]), None), True)
-    new_id_matches = p.new_id_re.findall(value_str)
-    if new_id_matches:
-        return wl.Arg.Object(wl.Object.Unresolved(int(new_id_matches[0][1]), new_id_matches[0][0]), True)
-    obj_matches = p.obj_re.findall(value_str)
-    if obj_matches:
-        return wl.Arg.Object(wl.Object.Unresolved(int(obj_matches[0][1]), obj_matches[0][0]), False)
+    match = p.arg_re.match(value_str)
+    if match:
+        if match.group('int'):
+            return wl.Arg.Int(int(value_str))
+        elif match.group('obj_id'):
+            return wl.Arg.Object(wl.Object.Unresolved(int(match.group('obj_id')), match.group('obj_type')), False)
+        elif match.group('new_id'):
+            type_name = match.group('new_type')
+            if not type_name:
+                type_name = None
+            return wl.Arg.Object(wl.Object.Unresolved(int(match.group('new_id')), type_name), True)
+        elif match.group('nil'):
+            return wl.Arg.Null()
+        elif match.group('str'):
+            return wl.Arg.String(match.group('str'))
+        elif match.group('float'):
+            return wl.Arg.Float(float(value_str))
+        elif match.group('fd'):
+            return wl.Arg.Fd(int(match.group('fd')))
+        elif match.group('array'):
+            return wl.Arg.Array()
     return wl.Arg.Unknown(value_str)
 
 def argument_list(p, args_str):
