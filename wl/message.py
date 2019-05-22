@@ -26,7 +26,8 @@ class Message:
         if not self.obj.resolved():
             self.obj = self.obj.resolve(connection)
         if self.obj.type == 'wl_registry' and self.name == 'bind':
-            assert isinstance(self.args[3], Arg.Object)
+            if len(self.args) < 4 or not isinstance(self.args[3], Arg.Object):
+                raise RuntimeError(str(self) + ' does not have correct arguments for bind message')
             self.args[3].set_type(self.args[1].value)
         if self.obj == connection.display and self.name == 'delete_id' and len(self.args) > 0:
             self.destroyed_obj = connection.look_up_most_recent(self.args[0].value, None)
