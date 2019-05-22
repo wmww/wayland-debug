@@ -4,38 +4,57 @@ import wl
 import session
 from util import *
 
-def argument(value_str):
-    int_matches = re.findall('^-?\d+$', value_str)
+class WlPatterns:
+    instance = None
+
+    def __init__(self):
+        self.int_re = re.compile('^-?\d+$')
+        self.float_re = re.compile('^-?\d+(\.\d+)?([eE][+-]?\d+)?$')
+        self.fd_re = re.compile('^fd (\d+)$')
+        self.str_re = re.compile('^"(.*)"$')
+        self.new_id_unknown_re = re.compile('^new id \[unknown\]@(\d+)$')
+        self.new_id_re = re.compile('^new id (\w+)@(\d+)$')
+        self.obj_re = re.compile('^(\w+)@(\d+)$')
+        self.any_arg_re = re.compile('((?<=,)|^)(([^,"]*("[^"]*)?)+)($|(?=,))')
+        timestamp_regex = '\[(\d+\.\d+)\]'
+        message_regex = '(\w+)@(\d+)\.(\w+)\((.*)\)$'
+        self.out_msg_re = re.compile(timestamp_regex + '  -> ' + message_regex)
+        self.in_msg_re = re.compile(timestamp_regex + ' ' + message_regex)
+
+    def lazy_get_instance():
+        if not WlPatterns.instance:
+            WlPatterns.instance = WlPatterns()
+        return WlPatterns.instance
+
+def argument(p, value_str):
+    int_matches = p.int_re.findall(value_str)
     if int_matches:
         return wl.Arg.Int(int(value_str))
-    float_matches = re.findall('^-?\d+(\.\d+)?([eE][+-]?\d+)?$', value_str)
+    float_matches = p.float_re.findall(value_str)
     if float_matches:
         return wl.Arg.Float(float(value_str))
-    nil_matches = re.findall('^nil$', value_str)
-    if nil_matches:
+    if value_str == 'nil':
         return wl.Arg.Null()
-    fd_matches = re.findall('^fd (\d+)$', value_str)
+    fd_matches = p.fd_re.findall(value_str)
     if fd_matches:
         return wl.Arg.Fd(int(fd_matches[0]))
-    str_matches = re.findall('^"(.*)"$', value_str)
+    str_matches = p.str_re.findall(value_str)
     if str_matches:
         return wl.Arg.String(str_matches[0])
-    array_matches = (value_str == 'array')
-    if array_matches:
+    if value_str == 'array':
         return wl.Arg.Array()
-    new_id_unknown_matches = re.findall('^new id \[unknown\]@(\d+)$', value_str)
+    new_id_unknown_matches = p.new_id_unknown_re.findall(value_str)
     if new_id_unknown_matches:
         return wl.Arg.Object(wl.Object.Unresolved(int(new_id_unknown_matches[0]), None), True)
-    new_id_matches = re.findall('^new id (\w+)@(\d+)$', value_str)
+    new_id_matches = p.new_id_re.findall(value_str)
     if new_id_matches:
         return wl.Arg.Object(wl.Object.Unresolved(int(new_id_matches[0][1]), new_id_matches[0][0]), True)
-    obj_matches = re.findall('^(\w+)@(\d+)$', value_str)
+    obj_matches = p.obj_re.findall(value_str)
     if obj_matches:
         return wl.Arg.Object(wl.Object.Unresolved(int(obj_matches[0][1]), obj_matches[0][0]), False)
-    else:
-        return wl.Arg.Unknown(value_str)
+    return wl.Arg.Unknown(value_str)
 
-def argument_list(args_str):
+def argument_list(p, args_str):
     args = []
     start = 0
     i = 0
@@ -43,7 +62,7 @@ def argument_list(args_str):
         if i == len(args_str) or args_str[i] == ',':
             arg = args_str[start:i].strip()
             if (arg):
-                args.append(argument(arg))
+                args.append(argument(p, arg))
             start = i + 1
         elif args_str[i] == '"':
             i += 1
@@ -55,14 +74,13 @@ def argument_list(args_str):
     return args
 
 def message(raw):
-    timestamp_regex = '\[(\d+\.\d+)\]'
-    message_regex = '(\w+)@(\d+)\.(\w+)\((.*)\)$'
+    p = WlPatterns.lazy_get_instance()
     sent = True
     conn_id = 'PARSED'
-    matches = re.findall(timestamp_regex + '  -> ' + message_regex, raw)
+    matches = p.out_msg_re.findall(raw)
     if not matches:
         sent = False
-        matches = re.findall(timestamp_regex + ' ' + message_regex, raw)
+        matches = p.in_msg_re.findall(raw)
     if len(matches) != 1:
         raise RuntimeError(raw)
     match = matches[0]
@@ -72,7 +90,7 @@ def message(raw):
     obj_id = int(match[2])
     message_name = match[3]
     message_args_str = match[4]
-    message_args = argument_list(message_args_str)
+    message_args = argument_list(p, message_args_str)
     return conn_id, wl.Message(abs_timestamp, wl.Object.Unresolved(obj_id, type_name), sent, message_name, message_args)
 
 def file(input_file, out):
