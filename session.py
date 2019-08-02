@@ -31,6 +31,7 @@ class Session:
         self.connection_list = []
         # Mapping of open connection ids to connection objects
         self.connections = {}
+        self.connection_name_generator = wl.Connection.NameGenerator()
         self.commands = [
             Command('help', '[COMMAND]', self.help_command,
                 'Show this help message, or get help for a specific command'),
@@ -97,10 +98,7 @@ class Session:
     def open_connection(self, connection_id, is_server, time, thread):
         # is_server can be none if the value is unknown
         self.close_connection(connection_id, time)
-        if len(self.connection_list) >= 26:
-            name = str(len(self.connection_list))
-        else:
-            name = chr(len(self.connection_list) + ord('A'))
+        name = self.connection_name_generator.next()
         connection = wl.Connection(name, is_server, None, time, thread, self.out)
         connection.id = connection_id
         # Compositors running nested will open up a client connection first,
