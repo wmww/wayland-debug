@@ -120,6 +120,18 @@ def process_closure(send):
     message = wl.Message(timestamp, wl.Object.Unresolved(obj_id, obj_type), send, message_name, args)
     return (connection_addr, message)
 
+def check_thread(session):
+    current = gdb.selected_thread().global_num
+    if hasattr(session, 'gdb_thread_global_num'):
+        prev = session.gdb_thread_global_num
+    else:
+        prev = current
+    session.gdb_thread_global_num = current
+    if prev != current:
+        session.out.warn(
+            'Wayland call made on thread ' + str(current) +
+            ' instead of previous thread ' + str(prev))
+
 def invoke_wl_command(session, cmd):
     session.set_stopped(True)
     session.command(cmd)
@@ -170,6 +182,7 @@ class WlClosureCallBreakpoint(gdb.Breakpoint):
     def stop(self):
         connection_id, message = process_closure(self.send)
         self.session.message(connection_id, message)
+        check_thread(self.session)
         return self.session.stopped()
 
 class WlCommand(gdb.Command):
