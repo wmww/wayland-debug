@@ -33,8 +33,8 @@ def parse_messages(session, input_file, allow_shell):
             is_server = None
             if msg.name ==  'get_registry':
                 is_server = not msg.sent
-            session.open_connection(conn_id, is_server, last_time)
-        session.message(conn_id, msg)
+            session.open_connection(conn_id, is_server, last_time, None)
+        session.message(conn_id, None, msg)
     for conn_id in known_connections.keys():
         session.close_connection(conn_id, last_time)
     if allow_shell:

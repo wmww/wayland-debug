@@ -22,7 +22,7 @@ class TestMessage(unittest.TestCase):
 class TestConnection(unittest.TestCase):
     def setUp(self):
         self.out = Output(False, False, stream.String(), stream.String())
-        self.c = Connection('A', False, None, 0, self.out)
+        self.c = Connection('A', False, None, 0, None, self.out)
 
     def test_create_empty_connection(self):
         pass
