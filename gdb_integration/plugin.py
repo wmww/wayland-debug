@@ -7,6 +7,9 @@ import matcher as wl_matcher
 import re
 import output
 
+def time_now():
+    return time.perf_counter()
+
 def gdb_is_null(val):
     '''
     Check if a GDB value is null
@@ -116,8 +119,7 @@ def process_closure(send):
                         is_new = False
                     args.append(wl.Arg.Object(wl.Object.Unresolved(arg_id, arg_type_name), is_new))
             i += 1
-    timestamp = time.perf_counter()
-    message = wl.Message(timestamp, wl.Object.Unresolved(obj_id, obj_type), send, message_name, args)
+    message = wl.Message(time_now(), wl.Object.Unresolved(obj_id, obj_type), send, message_name, args)
     return (connection_addr, message)
 
 def invoke_wl_command(session, cmd):
@@ -160,7 +162,7 @@ class WlConnectionCreateBreakpoint(gdb.Breakpoint):
                 self.session.out.warn('Function ' + calling_function + '() called wl_connection_create()')
                 is_server = None
             thread = gdb.selected_thread().global_num
-            self.session.open_connection(connection_id, is_server, 0, thread)
+            self.session.open_connection(connection_id, is_server, time_now(), thread)
             return False
 
 class WlClosureCallBreakpoint(gdb.Breakpoint):
