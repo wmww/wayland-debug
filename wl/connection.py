@@ -114,6 +114,7 @@ class Connection:
                 'Got message ' + str(message) +
                 ' on thread ' + str(thread) +
                 ' instead of connection\'s main thread ' + str(self.thread))
+            # raise RuntimeError('Thread error')
         self.messages.append(message)
         message.resolve(self)
         try:
