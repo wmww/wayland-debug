@@ -26,3 +26,11 @@ class String(Base):
         self.buffer = ''
     def override_write(self, string):
         self.buffer += string + '\n'
+
+class Null(Base):
+    def override_write(self, string):
+        pass
+
+class ErrorRaising(Base):
+    def override_write(self, string):
+        raise RuntimeError(string)

@@ -20,3 +20,13 @@ class TestStream(unittest.TestCase):
         self.assertEquals(f.read(), 'abc\nxyz\n')
         f.close()
         os.remove(file_name)
+
+    def test_null_stream(self):
+        s = stream.Null()
+        s.write('abc')
+        # It's difficult to test that nothing whatsoever happened
+
+    def test_error_raising_stream_raises(self):
+        s = stream.ErrorRaising()
+        with self.assertRaises(RuntimeError):
+            s.write('abc')

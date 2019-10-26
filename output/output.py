@@ -2,6 +2,7 @@ from util import color
 from . import stream
 
 class Output:
+    '''An object that manages text output to the user'''
     def __init__(self, verbose, show_unprocessed, show_stream, err_stream):
         assert isinstance(verbose, bool)
         assert isinstance(show_unprocessed, bool)
@@ -30,3 +31,13 @@ class Output:
     def error(self, *msg):
         self.err.write(color('1;31', 'Error: ') + ' '.join(map(lambda m: str(m), msg)))
 
+class Null(Output):
+    '''Null output that does nothging'''
+    def __init__(self):
+        null_stream = stream.Null()
+        super().__init__(False, False, null_stream, null_stream)
+
+class Strict(Output):
+    '''Like Null, except raises on errors or warnings (useful for tests)'''
+    def __init__(self):
+        super().__init__(False, False, stream.Null(), stream.ErrorRaising())
