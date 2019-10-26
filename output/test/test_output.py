@@ -1,6 +1,6 @@
 import unittest
 import os
-from output import Output
+from output import Output, Null, Strict
 from output import stream
 
 class TestOutput(unittest.TestCase):
@@ -58,3 +58,26 @@ class TestOutput(unittest.TestCase):
         o.unprocessed('abc')
         self.assertEquals(self.out.buffer, '')
         self.assertEquals(self.err.buffer, '')
+
+    def test_null_output(self):
+        o = Null()
+        o.show('abc')
+        o.warn('abc')
+        o.error('abc')
+        o.log('abc')
+        o.unprocessed('abc')
+        # It's difficult to test that nothing whatsoever happened
+
+    def test_strict_output_does_nothing_for_normal_output(self):
+        o = Strict()
+        o.show('abc')
+        o.log('abc')
+        o.unprocessed('abc')
+        # It's difficult to test that nothing whatsoever happened
+
+    def test_strict_output_raises_on_error(self):
+        o = Strict()
+        with self.assertRaises(RuntimeError):
+            o.warn('abc')
+        with self.assertRaises(RuntimeError):
+            o.error('xyz')
