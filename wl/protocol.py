@@ -147,9 +147,12 @@ def discover_xml(p, out):
     else:
         return []
 
+def protocols_path():
+    return path.join(util.project_root(), 'wl', 'protocol')
+
 def load_all(out):
     start = time.perf_counter()
-    shipped_protocols_path = path.join(util.project_root(), 'wl', 'protocol')
+    shipped_protocols_path = protocols_path()
     if not path.isdir(shipped_protocols_path):
         out.warn(
             'Could not fined protocols shipped with Wayland Debug at ' + shipped_protocols_path +
