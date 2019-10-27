@@ -161,8 +161,10 @@ class WlConnectionCreateBreakpoint(gdb.Breakpoint):
             else:
                 self.session.out.warn('Function ' + calling_function + '() called wl_connection_create()')
                 is_server = None
-            thread = gdb.selected_thread().global_num
-            self.session.open_connection(connection_id, is_server, time_now(), thread)
+            if not hasattr(self.session, 'gdb_threads'):
+                self.session.gdb_threads = {}
+            self.session.gdb_threads[connection_id] = gdb.selected_thread().global_num
+            self.session.open_connection(connection_id, is_server, time_now())
             return False
 
 class WlClosureCallBreakpoint(gdb.Breakpoint):
@@ -173,7 +175,12 @@ class WlClosureCallBreakpoint(gdb.Breakpoint):
     def stop(self):
         connection_id, message = process_closure(self.send)
         thread = gdb.selected_thread().global_num
-        self.session.message(connection_id, thread, message)
+        if self.session.gdb_threads[connection_id] != thread:
+            self.out.warn(
+                'Got message ' + str(message) +
+                ' on thread ' + str(thread) +
+                ' instead of connection\'s main thread ' + str(self.session.gdb_threads[connection_id]))
+        self.session.message(connection_id, message)
         return self.session.stopped()
 
 class WlCommand(gdb.Command):

@@ -73,19 +73,19 @@ class Session:
     def quit(self):
         return self.should_quit
 
-    def message(self, connection_id, thread, message):
+    def message(self, connection_id, message):
         try:
             if message == None:
                 return
             self.is_stopped = False
             if not connection_id in self.connections:
                 self.out.warn('connection_id ' + repr(connection_id) + ' never explicitly created')
-                self.open_connection(connection_id, None, message.timestamp, thread)
+                self.open_connection(connection_id, None, message.timestamp)
             connection = self.connections.get(connection_id, None)
             if connection == None:
                 self.out.warn('connection_id ' + repr(connection_id) + ' never explicitly created')
                 connection = self.open_connection(connection_id, None, message.timestamp)
-            connection.message(thread, message)
+            connection.message(message)
             if connection == self.current_connection:
                 if self.display_matcher.matches(message):
                     self._show_message(message)
@@ -95,11 +95,11 @@ class Session:
         except Exception as e:
             self.out.warn(e)
 
-    def open_connection(self, connection_id, is_server, time, thread):
+    def open_connection(self, connection_id, is_server, time):
         # is_server can be none if the value is unknown
         self.close_connection(connection_id, time)
         name = self.connection_name_generator.next()
-        connection = wl.Connection(name, is_server, None, time, thread, self.out)
+        connection = wl.Connection(name, is_server, None, time, self.out)
         connection.id = connection_id
         # Compositors running nested will open up a client connection first,
         # We should switch to the server as that's the one we're likely interested in
