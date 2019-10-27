@@ -1,5 +1,6 @@
 import sys
 import re
+import os
 
 def check_gdb():
     '''Check if the gdb module is available, and thus if we are inside a running instance of GDB'''
@@ -55,6 +56,13 @@ def str_matches(pattern, txt):
     pattern = pattern.replace('\*', '.*')
     pattern = '^' + pattern + '$'
     return len(re.findall(pattern, txt)) == 1
+
+cached_project_root = None
+def project_root():
+    global cached_project_root
+    if not cached_project_root:
+        cached_project_root = os.path.dirname(os.path.realpath(__file__))
+    return cached_project_root
 
 if __name__ == '__main__':
     print('File meant to be imported, not run')
