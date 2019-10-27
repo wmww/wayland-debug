@@ -1,6 +1,5 @@
-#!/usr/bin/python3
-
 import xml.etree.ElementTree as ET
+import util
 from collections import OrderedDict
 from os import path
 import sys
@@ -144,7 +143,7 @@ def discover_xml(p, out):
 
 def load_all(out):
     start = time.perf_counter()
-    shipped_protocols_path = path.join(path.dirname(path.realpath(sys.argv[0])), 'protocol')
+    shipped_protocols_path = path.join(util.project_root(), 'wl', 'protocol')
     if not path.isdir(shipped_protocols_path):
         out.warn(
             'Could not fined protocols shipped with Wayland Debug at ' + shipped_protocols_path +
