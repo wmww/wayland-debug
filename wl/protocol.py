@@ -16,8 +16,10 @@ class Protocol:
         self.interfaces = interfaces
 
 class Interface:
-    def __init__(self, name, messages, enums):
+    def __init__(self, name, version, messages, enums):
         assert isinstance(name, str)
+        assert isinstance(version, int)
+        assert version > 0
         assert isinstance(messages, OrderedDict)
         assert isinstance(enums, OrderedDict)
         for i in messages.values():
@@ -25,6 +27,7 @@ class Interface:
         for i in enums.values():
             i.parent = self
         self.name = name
+        self.version = version
         self.messages = messages
         self.enums = enums
 
@@ -78,6 +81,7 @@ def parse_protocol(xmlfile):
             [(i.name, i) for i in [
                 Interface(
                     interface.attrib['name'],
+                    int(interface.attrib['version']),
                     OrderedDict(
                         [(i.name, i) for i in [
                             Message(
@@ -127,7 +131,9 @@ interfaces = {}
 def load(xml_file, out):
     protocol = parse_protocol(xml_file)
     for name, interface in protocol.interfaces.items():
-        interfaces[name] = interface
+        existing = interfaces.get(name, None)
+        if not existing or existing.version < interface.version:
+            interfaces[name] = interface
     out.log('Loaded ' + str(len(protocol.interfaces)) + ' interfaces from ' + xml_file)
 
 def discover_xml(p, out):
@@ -153,17 +159,10 @@ def load_all(out):
         discover_xml('/usr/share/wayland-protocols', out) +
         discover_xml(shipped_protocols_path, out)
     )
-    have_seen = {}
-    unique = []
     for xml_file in files:
-        basename = path.basename(xml_file)
-        if basename not in have_seen:
-            have_seen[basename] = True
-            unique.append(xml_file)
-    for f in unique:
-        load(f, out)
+        load(xml_file, out)
     end = time.perf_counter()
-    out.log('Took ' + str(int((end - start) * 1000)) + 'ms to load ' + str(len(unique)) + ' protocol files')
+    out.log('Took ' + str(int((end - start) * 1000)) + 'ms to load ' + str(len(files)) + ' protocol files')
 
     # Come on protocols, tag your fukin enums
     try:
@@ -192,6 +191,7 @@ def load_all(out):
 
         interfaces['fake_enums'] = Interface(
             'fake_enums',
+            1,
             OrderedDict(),
             OrderedDict([( # from /usr/include/linux/input-event-codes.h
                 'button',
