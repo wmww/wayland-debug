@@ -8,6 +8,7 @@ class MessageSink:
         is_server: bool/None, if this connection is a server or a client (can be None if value is unknown)
         returns: wl.Connection, the newly created connection
         '''
+        # TODO: make return None
         raise NotImplementedError()
 
     def close_connection(self, time, connection_id):

@@ -13,6 +13,7 @@ class ConnectionManager(MessageSink):
         self.connection_name_generator = wl.Connection.NameGenerator()
 
     def open_connection(self, time, connection_id, is_server):
+        '''Overries method from MessageSink'''
         assert isinstance(time, float)
         assert isinstance(connection_id, str) and connection_id
         assert isinstance(is_server, bool) or is_server == None # can be none if the value is unknown
@@ -26,6 +27,7 @@ class ConnectionManager(MessageSink):
         return connection
 
     def close_connection(self, time, connection_id):
+        '''Overries method from MessageSink'''
         assert isinstance(time, float)
         assert isinstance(connection_id, str)
         connection = self.open_connections.get(connection_id)
@@ -35,6 +37,7 @@ class ConnectionManager(MessageSink):
             connection.close(time)
 
     def message(self, connection_id, message):
+        '''Overries method from MessageSink'''
         assert isinstance(connection_id, str)
         assert isinstance(message, wl.Message)
         connection = self.open_connections.get(connection_id)
