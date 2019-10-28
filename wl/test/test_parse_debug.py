@@ -3,6 +3,9 @@ from wl import *
 from wl import parse_debug as parse
 
 class TestParseMessage(unittest.TestCase):
+    def setUp(self):
+        assert hasattr(Message, 'base_time')
+        Message.base_time = None
 
     def test_parse_empty_raises(self):
         with self.assertRaises(RuntimeError):

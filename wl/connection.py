@@ -117,3 +117,18 @@ class Connection:
         except Exception as e: # Connection name is a non-critical feature, so don't be mean if something goes wrong
             self.out.warning('Could not set connection name: ' + str(e))
 
+class Mock(Connection):
+    def __init__(self):
+        self.display = object.Mock()
+    def close(self, time):
+        pass
+    def set_title(self, title):
+        pass
+    def description(self):
+        return 'mock connection'
+    def look_up_specific(self, obj_id, obj_generation, type_name = None):
+        return object.Mock()
+    def look_up_most_recent(self, obj_id, type_name = None):
+        return object.Mock()
+    def message(self, message):
+        pass

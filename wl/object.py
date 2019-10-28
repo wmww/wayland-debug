@@ -88,3 +88,15 @@ class Object(Base):
         def resolved(self):
             return False
 
+class Mock(Base):
+    def __init__(self):
+        self.id = 1
+        self.generation = None
+        self.type = 'mock'
+        self.create_time = 0.0
+    def resolve(self, connection):
+        return self
+    def __str__(self):
+        return 'mock object'
+    def resolved(self):
+        return False

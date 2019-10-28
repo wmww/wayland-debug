@@ -63,3 +63,6 @@ class Message:
     def show(self, out):
         out.show(color('37', '{:7.4f}'.format(self.timestamp)) + ' ' + str(self))
 
+class Mock(Message):
+    def __init__(self):
+        super().__init__(0.0, object.Mock(), False, 'mock', [])
