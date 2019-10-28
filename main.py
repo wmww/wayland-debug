@@ -5,7 +5,7 @@ import re
 
 from util import *
 import matcher
-import session as wl_session
+from session import Session
 import wl.parse_debug as parse
 from wl import protocol
 import gdb_integration as gdb
@@ -127,7 +127,7 @@ def main():
 
     protocol.load_all(output)
 
-    session = wl_session.Session(filter_matcher, stop_matcher, output)
+    session = Session(filter_matcher, stop_matcher, output)
 
     file_path = args.path
 
