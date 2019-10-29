@@ -1,5 +1,5 @@
 from unittest import TestCase, mock
-from connection import ConnectionManager, MessageSink, ConnectionList, Connection
+from connection import ConnectionManager, ConnectionIDSink, ConnectionList, Connection
 import wl
 import output
 
@@ -12,7 +12,7 @@ class TestConnectionManager(TestCase):
         self.cm = ConnectionManager(output.Strict())
 
     def test_connection_manager_is_a_message_sink(self):
-        self.assertTrue(isinstance(self.cm, MessageSink))
+        self.assertTrue(isinstance(self.cm, ConnectionIDSink))
 
     def test_does_not_allow_empty_connection_id(self):
         with self.assertRaises(AssertionError):

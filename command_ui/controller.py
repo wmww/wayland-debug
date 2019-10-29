@@ -4,7 +4,7 @@ import wl
 import matcher
 from .command_sink import CommandSink
 from .ui_state import UIState
-from connection import MessageSink, Connection, NameGenerator
+from connection import ConnectionIDSink, Connection, NameGenerator
 
 help_command_color = '1;37'
 
@@ -23,7 +23,7 @@ class Command:
     def matches(self, command):
         return self.name.startswith(command.lower())
 
-class Controller(CommandSink, MessageSink, UIState):
+class Controller(CommandSink, ConnectionIDSink, UIState):
     def __init__(self, display_matcher, stop_matcher, output):
         assert display_matcher
         assert stop_matcher
@@ -89,11 +89,11 @@ class Controller(CommandSink, MessageSink, UIState):
             cmd.func(arg)
 
     def toplevel_commands(self):
-        '''Overrides a method in CommandSink'''
+        '''Overrides method in CommandSink'''
         return [command.name for command in self.commands]
 
     def message(self, connection_id, message):
-        '''Overrides a method in MessageSink'''
+        '''Overrides method in ConnectionIDSink'''
         try:
             if message == None:
                 return
@@ -115,7 +115,7 @@ class Controller(CommandSink, MessageSink, UIState):
             self.out.warn(e)
 
     def open_connection(self, time, connection_id, is_server):
-        '''Overrides a method in MessageSink'''
+        '''Overrides method in ConnectionIDSink'''
         # is_server can be none if the value is unknown
         self.close_connection(connection_id, time)
         name = self.connection_name_generator.next()
@@ -136,7 +136,7 @@ class Controller(CommandSink, MessageSink, UIState):
         return connection
 
     def close_connection(self, time, connection_id):
-        '''Overrides a method in MessageSink'''
+        '''Overrides method in ConnectionIDSink'''
         if connection_id in self.connections:
             connection = self.connections[connection_id]
             del self.connections[connection_id]

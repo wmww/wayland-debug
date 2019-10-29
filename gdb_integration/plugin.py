@@ -3,7 +3,7 @@ import gdb
 import wl
 import output
 from command_ui import CommandSink, UIState, PersistentUIState
-from connection import MessageSink
+from connection import ConnectionIDSink
 from output import Output
 import util
 from . import libwayland_symbols
@@ -90,7 +90,7 @@ class Plugin:
     '''A GDB plugin (should only be instantiated when inside GDB)'''
     def __init__(self, output, message_sink, command_sink, ui_state):
         assert isinstance(output, Output)
-        assert isinstance(message_sink, MessageSink)
+        assert isinstance(message_sink, ConnectionIDSink)
         assert isinstance(command_sink, CommandSink)
         assert isinstance(ui_state, UIState)
         self.out = output

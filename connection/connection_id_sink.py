@@ -1,5 +1,5 @@
-class MessageSink:
-    '''Receives messages and connection created/deleted events'''
+class ConnectionIDSink:
+    '''Receives messages and connection created/deleted events based on a unique connection ID'''
 
     def open_connection(self, time, connection_id, is_server):
         '''Open a new client-server connection

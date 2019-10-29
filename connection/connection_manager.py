@@ -1,4 +1,4 @@
-from .message_sink import MessageSink
+from .connection_id_sink import ConnectionIDSink
 from .connection_list import ConnectionList
 from .connection import Connection
 from .name_generator import NameGenerator
@@ -6,7 +6,7 @@ from output import Output
 import wl
 import util
 
-class ConnectionManager(MessageSink, ConnectionList):
+class ConnectionManager(ConnectionIDSink, ConnectionList):
     '''The basic implementation of MessageSink and ConnectionList'''
 
     def __init__(self, output):
@@ -18,7 +18,7 @@ class ConnectionManager(MessageSink, ConnectionList):
         self.listener = util.new_disseminator_of_type(ConnectionList.Listener)
 
     def open_connection(self, time, connection_id, is_server):
-        '''Overries method from MessageSink'''
+        '''Overries method in ConnectionIDSink'''
         assert isinstance(time, float)
         assert isinstance(connection_id, str) and connection_id
         assert isinstance(is_server, bool) or is_server == None # can be none if the value is unknown
@@ -33,7 +33,7 @@ class ConnectionManager(MessageSink, ConnectionList):
         return connection
 
     def close_connection(self, time, connection_id):
-        '''Overries method from MessageSink'''
+        '''Overries method in ConnectionIDSink'''
         assert isinstance(time, float)
         assert isinstance(connection_id, str)
         connection = self.open_connections.get(connection_id)
@@ -44,7 +44,7 @@ class ConnectionManager(MessageSink, ConnectionList):
             self.listener.connection_closed(self, connection)
 
     def message(self, connection_id, message):
-        '''Overries method from MessageSink'''
+        '''Overries method in ConnectionIDSink'''
         assert isinstance(connection_id, str)
         assert isinstance(message, wl.Message)
         connection = self.open_connections.get(connection_id)
@@ -52,11 +52,11 @@ class ConnectionManager(MessageSink, ConnectionList):
         connection.message(message)
 
     def connections(self):
-        '''Overries method from ConnectionList'''
+        '''Overries method in ConnectionList'''
         return tuple(self.connection_list)
 
     def add_connection_list_listener(self, listener, catch_up):
-        '''Overries method from ConnectionList'''
+        '''Overries method in ConnectionList'''
         assert isinstance(catch_up, bool)
         if catch_up:
             for conn in self.connection_list:
