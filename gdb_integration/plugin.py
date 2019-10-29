@@ -126,34 +126,49 @@ class Plugin:
         session.out.log('Breakpoints: ' + repr(gdb.breakpoints()))
 
     def open_connection(self, connection_id, is_server):
-        self.connection_threads[connection_id] = gdb.selected_thread().global_num
-        self.message_sink.open_connection(time_now(), connection_id, is_server)
+        try:
+            self.connection_threads[connection_id] = gdb.selected_thread().global_num
+            self.message_sink.open_connection(time_now(), connection_id, is_server)
+        except Exception as e:
+            self.session.out.error(repr(e) + ' raised closing connection ' + str(connection_id))
 
     def close_connection(self, connection_id):
-        self.message_sink.close_connection(connection_id, time_now())
+        try:
+           self.message_sink.close_connection(connection_id, time_now())
+        except Exception as e:
+            self.session.out.error(repr(e) + ' raised closing connection ' + str(connection_id))
 
     def process_message(self, is_sending):
-        closure = extract.closure()
-        connection_id, object_id, object_type = extract.object(closure)
-        message_name, message_args = extract.message(closure)
-        object = wl.Object.Unresolved(object_id, object_type)
-        message = wl.Message(time_now(), object, is_sending, message_name, message_args)
-        current_thread_num = gdb.selected_thread().global_num
-        connection_thread_num = self.connection_threads.get(connection_id)
-        if connection_thread_num != current_thread_num:
-            self.out.warn(
-                'Got message ' + str(message) +
-                ' on thread ' + str(current_thread_num) +
-                ' instead of connection\'s main thread ' + str(connection_thread_num))
-        self.message_sink.message(connection_id, message)
+        try:
+            closure = extract.closure()
+            connection_id, object_id, object_type = extract.object(closure)
+            message_name, message_args = extract.message(closure)
+            object = wl.Object.Unresolved(object_id, object_type)
+            message = wl.Message(time_now(), object, is_sending, message_name, message_args)
+            current_thread_num = gdb.selected_thread().global_num
+            connection_thread_num = self.connection_threads.get(connection_id)
+            if connection_thread_num != current_thread_num:
+                self.out.warn(
+                    'Got message ' + str(message) +
+                    ' on thread ' + str(current_thread_num) +
+                    ' instead of connection\'s main thread ' + str(connection_thread_num))
+        except Exception as e:
+            self.session.out.error(repr(e) + ' raised extracting message from GDB')
+        try:
+            self.message_sink.message(connection_id, message)
+        except Exception as e:
+            self.session.out.error(repr(e) + ' raised processing message ' + str(message))
 
     def invoke_command(self, command):
-        self.state.pause_requested()
-        self.command_sink.process_command(command)
-        if self.state.should_quit():
-            gdb.execute('quit')
-        elif not self.state.paused():
-            gdb.execute('continue')
+        try:
+            self.state.pause_requested()
+            self.command_sink.process_command(command)
+            if self.state.should_quit():
+                gdb.execute('quit')
+            elif not self.state.paused():
+                gdb.execute('continue')
+        except Exception as e:
+            self.session.out.error(repr(e) + ' raised invoking command `' + command + '`')
 
     def paused(self):
         return self.state.paused()
