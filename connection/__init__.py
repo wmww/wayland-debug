@@ -6,3 +6,4 @@ from .connection_list import ConnectionList
 from .message_sink import MessageSink
 from .connection import Connection
 from .connection import Mock
+from .name_generator import NameGenerator
