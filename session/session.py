@@ -2,6 +2,7 @@ import re
 from util import *
 import wl
 import matcher
+from command_ui import CommandSink
 
 help_command_color = '1;37'
 
@@ -20,7 +21,7 @@ class Command:
     def matches(self, command):
         return self.name.startswith(command.lower())
 
-class Session:
+class Session(CommandSink):
     def __init__(self, display_matcher, stop_matcher, output):
         assert display_matcher
         assert stop_matcher
@@ -63,6 +64,32 @@ class Session:
         self.stop_matcher = stop_matcher
         self.out = output
         self.last_shown_timestamp = None
+
+    def process_command(self, command):
+        '''Overrides a method in CommandSink'''
+        assert isinstance(command, str)
+        command = command.strip()
+        args = re.split('\s', command, 1)
+        if len(args) == 0:
+            return False
+        cmd = no_color(args[0]).strip()
+        arg = None if len(args) < 2 else no_color(args[1]).strip()
+        if cmd == '':
+            assert not arg
+            self.out.error('No command specified')
+            cmd = 'help'
+        if cmd == 'w' or cmd == 'wl': # in case they use GDB style commands when not in GDB
+            return self.command(arg)
+        if cmd.startswith('wl'): # in case they use GDB style commands when not in GDB
+            cmd = cmd[2:]
+        cmd = self._get_command(cmd)
+        if cmd:
+            self.out.log('Got ' + cmd.name + ' command' + (' with \'' + arg + '\'' if arg else ''))
+            cmd.func(arg)
+
+    def toplevel_commands(self):
+        '''Overrides a method in CommandSink'''
+        return [command.name for command in self.commands]
 
     def set_stopped(self, val):
         self.is_stopped = val
@@ -175,27 +202,6 @@ class Session:
             else:
                 didnt_match += 1
         return (reversed(acc), len(acc), didnt_match, len(messages) - len(acc) - didnt_match)
-
-    def command(self, command):
-        assert isinstance(command, str)
-        command = command.strip()
-        args = re.split('\s', command, 1)
-        if len(args) == 0:
-            return False
-        cmd = no_color(args[0]).strip()
-        arg = None if len(args) < 2 else no_color(args[1]).strip()
-        if cmd == '':
-            assert not arg
-            self.out.error('No command specified')
-            cmd = 'help'
-        if cmd == 'w' or cmd == 'wl': # in case they use GDB style commands when not in GDB
-            return self.command(arg)
-        if cmd.startswith('wl'): # in case they use GDB style commands when not in GDB
-            cmd = cmd[2:]
-        cmd = self._get_command(cmd)
-        if cmd:
-            self.out.log('Got ' + cmd.name + ' command' + (' with \'' + arg + '\'' if arg else ''))
-            cmd.func(arg)
 
     def _get_command(self, command):
         found = []
