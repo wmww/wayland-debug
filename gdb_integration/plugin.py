@@ -7,6 +7,8 @@ import matcher as wl_matcher
 import re
 import output
 from command_ui import CommandSink
+from session import Session
+import util
 
 def time_now():
     return time.perf_counter()
@@ -123,36 +125,27 @@ def process_closure(send):
     message = wl.Message(time_now(), wl.Object.Unresolved(obj_id, obj_type), send, message_name, args)
     return (connection_addr, message)
 
-def invoke_wl_command(session, command_sink, cmd):
-    assert isinstance(command_sink, CommandSink)
-    session.set_stopped(True)
-    command_sink.process_command(cmd)
-    if session.quit():
-        gdb.execute('quit')
-    elif not session.stopped():
-        gdb.execute('continue')
-
 class WlConnectionDestroyBreakpoint(gdb.Breakpoint):
-    def __init__(self, session):
+    def __init__(self, plugin):
         super().__init__('wl_connection_destroy', internal=True)
-        self.session = session
+        self.plugin = plugin
     def stop(self):
         connection_id = str(gdb.selected_frame().read_var('connection'))
-        self.session.close_connection(connection_id, 0)
+        self.plugin.close_connection(connection_id)
         return False
 
 class WlConnectionCreateBreakpoint(gdb.Breakpoint):
-    def __init__(self, session):
+    def __init__(self, plugin):
         super().__init__('wl_connection_create', internal=True)
-        self.session = session
+        self.plugin = plugin
     def stop(self):
-        self.FinishBreakpoint(self.session)
+        self.FinishBreakpoint(self.plugin)
         return False
 
     class FinishBreakpoint(gdb.FinishBreakpoint):
-        def __init__(self, session):
+        def __init__(self, plugin):
             super().__init__(gdb.selected_frame(), internal=True)
-            self.session = session
+            self.plugin = plugin
         def stop(self):
             connection_id = str(self.return_value)
             calling_function = str(gdb.selected_frame().function())
@@ -161,52 +154,41 @@ class WlConnectionCreateBreakpoint(gdb.Breakpoint):
             elif calling_function == 'wl_client_create':
                 is_server = True
             else:
-                self.session.out.warn('Function ' + calling_function + '() called wl_connection_create()')
+                util.warning('Function ' + calling_function + '() called wl_connection_create()')
                 is_server = None
-            if not hasattr(self.session, 'gdb_threads'):
-                self.session.gdb_threads = {}
-            self.session.gdb_threads[connection_id] = gdb.selected_thread().global_num
-            self.session.open_connection(connection_id, is_server, time_now())
+            thread_num = gdb.selected_thread().global_num
+            self.plugin.open_connection(thread_num, connection_id, is_server)
             return False
 
 class WlClosureCallBreakpoint(gdb.Breakpoint):
-    def __init__(self, session, name, send):
+    def __init__(self, plugin, name, send):
         super().__init__('wl_closure_' + name, internal=True)
-        self.session = session
+        self.plugin = plugin
         self.send = send
     def stop(self):
         connection_id, message = process_closure(self.send)
-        thread = gdb.selected_thread().global_num
-        if self.session.gdb_threads[connection_id] != thread:
-            self.out.warn(
-                'Got message ' + str(message) +
-                ' on thread ' + str(thread) +
-                ' instead of connection\'s main thread ' + str(self.session.gdb_threads[connection_id]))
-        self.session.message(connection_id, message)
-        return self.session.stopped()
+        thread_num = gdb.selected_thread().global_num
+        self.plugin.process_message(thread_num, connection_id, message)
+        return self.plugin.stopped()
 
 class WlCommand(gdb.Command):
     'Issue a subcommand to Wayland Debug, use \'wl help\' for details'
-    def __init__(self, name, session, command_sink):
-        assert isinstance(command_sink, CommandSink)
-        super().__init__(name, gdb.COMMAND_DATA)
-        self.session = session
-        self.command_sink = command_sink
+    def __init__(self, plugin, prefix):
+        super().__init__(prefix, gdb.COMMAND_DATA)
+        self.plugin = plugin
     def invoke(self, arg, from_tty):
-        invoke_wl_command(self.session, self.command_sink, arg)
+        self.plugin.invoke_command(arg)
     def complete(text, word):
         return None
 
 class WlSubcommand(gdb.Command):
     'A Wayland debug command, use \'wl help\' for detail'
-    def __init__(self, name, session, command_sink):
-        assert isinstance(command_sink, CommandSink)
-        super().__init__('wl' + name, gdb.COMMAND_DATA)
-        self.session = session
-        self.command_sink = command_sink
-        self.cmd = name
+    def __init__(self, plugin, command):
+        super().__init__('wl' + command, gdb.COMMAND_DATA)
+        self.plugin = plugin
+        self.command = command
     def invoke(self, arg, from_tty):
-        invoke_wl_command(self.session, self.command_sink, self.cmd + ' ' + arg)
+        self.plugin.invoke_command(self.command + ' ' + arg)
     def complete(text, word):
         return None
 
@@ -256,28 +238,64 @@ def output_streams():
     # Both are stderr, because stdout does the annoying "enter to continue" thing
     return (Stream(gdb.STDERR), Stream(gdb.STDERR))
 
-def main(session, command_sink):
-    assert isinstance(command_sink, CommandSink)
-    gdb.execute('set python print-stack full')
-    if not session.out.show_unprocessed:
-        gdb.execute('set inferior-tty /dev/null')
-    try:
-        # GDB will automatically load the symbols when needed, but if we do it first we get to detect problems
-        load_libwayland_symbols(session)
-    except RuntimeError as e:
-        session.out.warn('Loading libwayland symbols failed: ' + str(e))
-    WlConnectionCreateBreakpoint(session)
-    WlConnectionDestroyBreakpoint(session)
-    WlClosureCallBreakpoint(session, 'invoke', False)
-    WlClosureCallBreakpoint(session, 'dispatch', False)
-    WlClosureCallBreakpoint(session, 'send', True)
-    WlClosureCallBreakpoint(session, 'queue', True)
-    WlCommand('w', session, command_sink)
-    WlCommand('wl', session, command_sink)
-    WlCommand('wayland', session, command_sink)
-    for command in command_sink.toplevel_commands():
-        WlSubcommand(command, session, command_sink)
-    session.out.log('Breakpoints: ' + repr(gdb.breakpoints()))
-    if not check_libwayland_symbols(session):
-        session.out.warn('libwayland debug symbols were not found, so Wayland messages may not be detected in GDB mode')
-        session.out.warn('See https://github.com/wmww/wayland-debug/blob/master/libwayland_debug_symbols.md for more information')
+class Plugin:
+    '''A GDB plugin (should only be instantiated when inside GDB)'''
+    def __init__(self, session, command_sink):
+        assert isinstance(session, Session)
+        assert isinstance(command_sink, CommandSink)
+        self.session = session
+        self.command_sink = command_sink
+        # maps connection ids to thread numbers
+        self.connection_threads = {}
+        # Show full error messages in the case of a crash
+        gdb.execute('set python print-stack full')
+        if not session.out.show_unprocessed:
+            # Suppress GDB output
+            gdb.execute('set inferior-tty /dev/null')
+        try:
+            # GDB will automatically load the symbols when needed, but if we do it first we get to detect problems
+            load_libwayland_symbols(session)
+        except RuntimeError as e:
+            session.out.warn('Loading libwayland symbols failed: ' + str(e))
+        WlConnectionCreateBreakpoint(self)
+        WlConnectionDestroyBreakpoint(self)
+        WlClosureCallBreakpoint(self, 'invoke', False)
+        WlClosureCallBreakpoint(self, 'dispatch', False)
+        WlClosureCallBreakpoint(self, 'send', True)
+        WlClosureCallBreakpoint(self, 'queue', True)
+        WlCommand(self, 'w')
+        WlCommand(self, 'wl')
+        WlCommand(self, 'wayland')
+        for command in command_sink.toplevel_commands():
+            WlSubcommand(self, command)
+        session.out.log('Breakpoints: ' + repr(gdb.breakpoints()))
+        if not check_libwayland_symbols(session):
+            session.out.warn('libwayland debug symbols were not found, so Wayland messages may not be detected in GDB mode')
+            session.out.warn('See https://github.com/wmww/wayland-debug/blob/master/libwayland_debug_symbols.md for more information')
+
+    def open_connection(self, thread_num, connection_id, is_server):
+        self.connection_threads[connection_id] = thread_num
+        self.session.open_connection(connection_id, is_server, time_now())
+
+    def close_connection(self, connection_id):
+        self.session.close_connection(connection_id, time_now())
+
+    def process_message(self, thread_num, connection_id, message):
+        connection_thread_num = self.connection_threads.get(connection_id)
+        if connection_thread_num != thread_num:
+            self.out.warn(
+                'Got message ' + str(message) +
+                ' on thread ' + str(thread_num) +
+                ' instead of connection\'s main thread ' + str(connection_thread_num))
+        self.session.message(connection_id, message)
+
+    def invoke_command(self, command):
+        self.session.set_stopped(True)
+        self.command_sink.process_command(command)
+        if self.session.quit():
+            gdb.execute('quit')
+        elif not self.session.stopped():
+            gdb.execute('continue')
+
+    def stopped(self):
+        return self.session.stopped()
