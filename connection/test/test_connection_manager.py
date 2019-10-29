@@ -1,5 +1,5 @@
 from unittest import TestCase, mock
-from session import *
+from connection import ConnectionManager, MessageSink, ConnectionList, Connection
 import wl
 import output
 
@@ -39,7 +39,7 @@ class TestConnectionManager(TestCase):
 
     # TODO: remove
     def test_open_connection_returns_connection(self):
-        self.assertIsInstance(self.cm.open_connection(0.0, 'foo', False), wl.Connection)
+        self.assertIsInstance(self.cm.open_connection(0.0, 'foo', False), Connection)
 
     def test_keep_track_of_multiple_sessions(self):
         self.cm.open_connection(0.0, 'foo', True)

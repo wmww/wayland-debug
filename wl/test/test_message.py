@@ -1,5 +1,6 @@
 import unittest
 from wl import *
+import connection
 
 class TestMessage(unittest.TestCase):
     def setUp(self):

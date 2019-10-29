@@ -1,7 +1,6 @@
 import re
 
 import wl
-import session
 from util import *
 
 class WlPatterns:

@@ -2,9 +2,8 @@ import time
 import gdb
 import wl
 import output
-from command_ui import CommandSink
-from command_ui import UIState, PersistentUIState
-from session import MessageSink
+from command_ui import CommandSink, UIState, PersistentUIState
+from connection import MessageSink
 from output import Output
 import util
 from . import libwayland_symbols

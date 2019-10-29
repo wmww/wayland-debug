@@ -1,5 +1,5 @@
 from util import *
-from . import object
+from wl import object
 from output import Output
 
 class Connection:

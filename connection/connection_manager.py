@@ -1,5 +1,6 @@
 from .message_sink import MessageSink
 from .connection_list import ConnectionList
+from .connection import Connection
 from output import Output
 import wl
 import util
@@ -12,7 +13,7 @@ class ConnectionManager(MessageSink, ConnectionList):
         self.out = output
         self.connection_list = [] # List of all connections (open and closed) in the order they were created
         self.open_connections = {} # Maps open connection ids to connection objects
-        self.connection_name_generator = wl.Connection.NameGenerator()
+        self.connection_name_generator = Connection.NameGenerator()
         self.listener = util.new_disseminator_of_type(ConnectionList.Listener)
 
     def open_connection(self, time, connection_id, is_server):
@@ -24,7 +25,7 @@ class ConnectionManager(MessageSink, ConnectionList):
         # assert connection_id not in self.open_connections
         self.close_connection(time, connection_id)
         name = self.connection_name_generator.next()
-        connection = wl.Connection(name, is_server, None, time, self.out)
+        connection = Connection(name, is_server, None, time, self.out)
         self.open_connections[connection_id] = connection
         self.connection_list.append(connection)
         self.listener.connection_opened(self, connection)

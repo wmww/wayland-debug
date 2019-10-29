@@ -1,5 +1,7 @@
 import unittest
 from wl import *
+import connection
+from connection import Connection
 import output
 from output import Output
 

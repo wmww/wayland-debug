@@ -4,7 +4,7 @@ import wl
 import matcher
 from .command_sink import CommandSink
 from .ui_state import UIState
-from session import MessageSink
+from connection import MessageSink, Connection
 
 help_command_color = '1;37'
 
@@ -34,7 +34,7 @@ class Controller(CommandSink, MessageSink, UIState):
         self.connection_list = []
         # Mapping of open connection ids to connection objects
         self.connections = {}
-        self.connection_name_generator = wl.Connection.NameGenerator()
+        self.connection_name_generator = Connection.NameGenerator()
         self.commands = [
             Command('help', '[COMMAND]', self.help_command,
                 'Show this help message, or get help for a specific command'),
