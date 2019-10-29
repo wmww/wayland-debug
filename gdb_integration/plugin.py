@@ -6,6 +6,7 @@ import session as wl_session
 import matcher as wl_matcher
 import re
 import output
+from command_ui import CommandSink
 
 def time_now():
     return time.perf_counter()
@@ -122,9 +123,10 @@ def process_closure(send):
     message = wl.Message(time_now(), wl.Object.Unresolved(obj_id, obj_type), send, message_name, args)
     return (connection_addr, message)
 
-def invoke_wl_command(session, cmd):
+def invoke_wl_command(session, command_sink, cmd):
+    assert isinstance(command_sink, CommandSink)
     session.set_stopped(True)
-    session.command(cmd)
+    command_sink.process_command(cmd)
     if session.quit():
         gdb.execute('quit')
     elif not session.stopped():
@@ -185,22 +187,26 @@ class WlClosureCallBreakpoint(gdb.Breakpoint):
 
 class WlCommand(gdb.Command):
     'Issue a subcommand to Wayland Debug, use \'wl help\' for details'
-    def __init__(self, name, session):
+    def __init__(self, name, session, command_sink):
+        assert isinstance(command_sink, CommandSink)
         super().__init__(name, gdb.COMMAND_DATA)
         self.session = session
+        self.command_sink = command_sink
     def invoke(self, arg, from_tty):
-        invoke_wl_command(self.session, arg)
+        invoke_wl_command(self.session, self.command_sink, arg)
     def complete(text, word):
         return None
 
 class WlSubcommand(gdb.Command):
     'A Wayland debug command, use \'wl help\' for detail'
-    def __init__(self, name, session):
+    def __init__(self, name, session, command_sink):
+        assert isinstance(command_sink, CommandSink)
         super().__init__('wl' + name, gdb.COMMAND_DATA)
         self.session = session
+        self.command_sink = command_sink
         self.cmd = name
     def invoke(self, arg, from_tty):
-        invoke_wl_command(self.session, self.cmd + ' ' + arg)
+        invoke_wl_command(self.session, self.command_sink, self.cmd + ' ' + arg)
     def complete(text, word):
         return None
 
@@ -250,7 +256,8 @@ def output_streams():
     # Both are stderr, because stdout does the annoying "enter to continue" thing
     return (Stream(gdb.STDERR), Stream(gdb.STDERR))
 
-def main(session):
+def main(session, command_sink):
+    assert isinstance(command_sink, CommandSink)
     gdb.execute('set python print-stack full')
     if not session.out.show_unprocessed:
         gdb.execute('set inferior-tty /dev/null')
@@ -265,11 +272,11 @@ def main(session):
     WlClosureCallBreakpoint(session, 'dispatch', False)
     WlClosureCallBreakpoint(session, 'send', True)
     WlClosureCallBreakpoint(session, 'queue', True)
-    WlCommand('w', session)
-    WlCommand('wl', session)
-    WlCommand('wayland', session)
-    for c in session.commands:
-        WlSubcommand(c.name, session)
+    WlCommand('w', session, command_sink)
+    WlCommand('wl', session, command_sink)
+    WlCommand('wayland', session, command_sink)
+    for command in command_sink.toplevel_commands():
+        WlSubcommand(command, session, command_sink)
     session.out.log('Breakpoints: ' + repr(gdb.breakpoints()))
     if not check_libwayland_symbols(session):
         session.out.warn('libwayland debug symbols were not found, so Wayland messages may not be detected in GDB mode')

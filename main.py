@@ -135,7 +135,7 @@ def main():
         try:
             if file_path:
                 output.warn('Ignoring load file because we\'re inside GDB')
-            gdb.plugin.main(session)
+            gdb.plugin.main(session, session)
         except:
             import traceback
             traceback.print_exc()
