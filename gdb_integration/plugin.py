@@ -3,6 +3,7 @@ import gdb
 import wl
 import output
 from command_ui import CommandSink
+from session import MessageSink
 from session import Session
 import util
 from . import libwayland_symbols
@@ -87,10 +88,12 @@ class WlSubcommand(gdb.Command):
 
 class Plugin:
     '''A GDB plugin (should only be instantiated when inside GDB)'''
-    def __init__(self, session, command_sink):
+    def __init__(self, session, message_sink, command_sink):
         assert isinstance(session, Session)
+        assert isinstance(message_sink, MessageSink)
         assert isinstance(command_sink, CommandSink)
         self.session = session
+        self.message_sink = message_sink
         self.command_sink = command_sink
         # maps connection ids to thread numbers
         self.connection_threads = {}
@@ -121,10 +124,10 @@ class Plugin:
 
     def open_connection(self, connection_id, is_server):
         self.connection_threads[connection_id] = gdb.selected_thread().global_num
-        self.session.open_connection(time_now(), connection_id, is_server)
+        self.message_sink.open_connection(time_now(), connection_id, is_server)
 
     def close_connection(self, connection_id):
-        self.session.close_connection(connection_id, time_now())
+        self.message_sink.close_connection(connection_id, time_now())
 
     def process_message(self, is_sending):
         closure = extract.closure()
@@ -139,7 +142,7 @@ class Plugin:
                 'Got message ' + str(message) +
                 ' on thread ' + str(current_thread_num) +
                 ' instead of connection\'s main thread ' + str(connection_thread_num))
-        self.session.message(connection_id, message)
+        self.message_sink.message(connection_id, message)
 
     def invoke_command(self, command):
         self.session.set_stopped(True)
