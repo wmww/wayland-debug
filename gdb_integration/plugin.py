@@ -5,7 +5,7 @@ import output
 from command_ui import CommandSink
 from command_ui import UIState, PersistentUIState
 from session import MessageSink
-from session import Session
+from output import Output
 import util
 from . import libwayland_symbols
 from . import extract
@@ -89,12 +89,12 @@ class WlSubcommand(gdb.Command):
 
 class Plugin:
     '''A GDB plugin (should only be instantiated when inside GDB)'''
-    def __init__(self, session, message_sink, command_sink, ui_state):
-        assert isinstance(session, Session)
+    def __init__(self, output, message_sink, command_sink, ui_state):
+        assert isinstance(output, Output)
         assert isinstance(message_sink, MessageSink)
         assert isinstance(command_sink, CommandSink)
         assert isinstance(ui_state, UIState)
-        self.session = session
+        self.out = output
         self.message_sink = message_sink
         self.command_sink = command_sink
         self.state = PersistentUIState(ui_state)
@@ -102,16 +102,16 @@ class Plugin:
         self.connection_threads = {}
         # Show full error messages in the case of a crash
         gdb.execute('set python print-stack full')
-        if not session.out.show_unprocessed:
+        if not self.out.show_unprocessed:
             # Suppress GDB output
             gdb.execute('set inferior-tty /dev/null')
         try:
             # GDB will automatically load the symbols when needed, but if we do it first we get to detect problems
-            libwayland_symbols.verify(session)
+            libwayland_symbols.verify()
         except RuntimeError as e:
-            session.out.warn('Loading libwayland symbols failed: ' + str(e))
-            session.out.warn('libwayland debug symbols were not found, so Wayland messages may not be detected in GDB mode')
-            session.out.warn('See https://github.com/wmww/wayland-debug/blob/master/libwayland_debug_symbols.md for more information')
+            self.out.warn('Loading libwayland symbols failed: ' + str(e))
+            self.out.warn('libwayland debug symbols were not found, so Wayland messages may not be detected in GDB mode')
+            self.out.warn('See https://github.com/wmww/wayland-debug/blob/master/libwayland_debug_symbols.md for more information')
         WlConnectionCreateBreakpoint(self)
         WlConnectionDestroyBreakpoint(self)
         WlClosureCallBreakpoint(self, 'invoke', False)
@@ -123,20 +123,20 @@ class Plugin:
         WlCommand(self, 'wayland')
         for command in command_sink.toplevel_commands():
             WlSubcommand(self, command)
-        session.out.log('Breakpoints: ' + repr(gdb.breakpoints()))
+        self.out.log('Breakpoints: ' + repr(gdb.breakpoints()))
 
     def open_connection(self, connection_id, is_server):
         try:
             self.connection_threads[connection_id] = gdb.selected_thread().global_num
             self.message_sink.open_connection(time_now(), connection_id, is_server)
         except Exception as e:
-            self.session.out.error(repr(e) + ' raised closing connection ' + str(connection_id))
+            self.out.error(repr(e) + ' raised closing connection ' + str(connection_id))
 
     def close_connection(self, connection_id):
         try:
            self.message_sink.close_connection(connection_id, time_now())
         except Exception as e:
-            self.session.out.error(repr(e) + ' raised closing connection ' + str(connection_id))
+            self.out.error(repr(e) + ' raised closing connection ' + str(connection_id))
 
     def process_message(self, is_sending):
         try:
@@ -153,11 +153,11 @@ class Plugin:
                     ' on thread ' + str(current_thread_num) +
                     ' instead of connection\'s main thread ' + str(connection_thread_num))
         except Exception as e:
-            self.session.out.error(repr(e) + ' raised extracting message from GDB')
+            self.out.error(repr(e) + ' raised extracting message from GDB')
         try:
             self.message_sink.message(connection_id, message)
         except Exception as e:
-            self.session.out.error(repr(e) + ' raised processing message ' + str(message))
+            self.out.error(repr(e) + ' raised processing message ' + str(message))
 
     def invoke_command(self, command):
         try:
@@ -168,7 +168,7 @@ class Plugin:
             elif not self.state.paused():
                 gdb.execute('continue')
         except Exception as e:
-            self.session.out.error(repr(e) + ' raised invoking command `' + command + '`')
+            self.out.error(repr(e) + ' raised invoking command `' + command + '`')
 
     def paused(self):
         return self.state.paused()

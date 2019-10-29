@@ -3,7 +3,7 @@ import re
 import gdb
 import util
 
-def verify(session):
+def verify():
     # First, we use ldconfig to find libwayland
     cmd = ['ldconfig', '-p']
     util.log('Running `' + ' '.join(cmd) + '`')
