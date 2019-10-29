@@ -2,7 +2,7 @@ import re
 from util import *
 import wl
 import matcher
-from command_ui import CommandSink
+from command_ui import CommandSink, UIState
 from . import MessageSink
 
 help_command_color = '1;37'
@@ -22,7 +22,7 @@ class Command:
     def matches(self, command):
         return self.name.startswith(command.lower())
 
-class Session(CommandSink, MessageSink):
+class Session(CommandSink, MessageSink, UIState):
     def __init__(self, display_matcher, stop_matcher, output):
         assert display_matcher
         assert stop_matcher
@@ -59,12 +59,11 @@ class Session(CommandSink, MessageSink):
             Command('quit', None, self.quit_command,
                 'Quit the program'),
         ]
-        self.is_stopped = False
-        self.should_quit = False
         self.display_matcher = display_matcher
         self.stop_matcher = stop_matcher
         self.out = output
         self.last_shown_timestamp = None
+        self.ui_state_listener = new_disseminator_of_type(UIState.Listener)
 
     def process_command(self, command):
         '''Overrides a method in CommandSink'''
@@ -92,21 +91,11 @@ class Session(CommandSink, MessageSink):
         '''Overrides a method in CommandSink'''
         return [command.name for command in self.commands]
 
-    def set_stopped(self, val):
-        self.is_stopped = val
-
-    def stopped(self):
-        return self.is_stopped
-
-    def quit(self):
-        return self.should_quit
-
     def message(self, connection_id, message):
         '''Overrides a method in MessageSink'''
         try:
             if message == None:
                 return
-            self.is_stopped = False
             if not connection_id in self.connections:
                 self.out.warn('connection_id ' + repr(connection_id) + ' never explicitly created')
                 self.open_connection(message.timestamp, connection_id, None)
@@ -120,7 +109,7 @@ class Session(CommandSink, MessageSink):
                     self._show_message(message)
                 if self.stop_matcher.matches(message):
                     self.out.show(color('1;37', '    Stopped at ') + str(message).strip())
-                    self.is_stopped = True
+                    self.ui_state_listener.pause_requested()
         except Exception as e:
             self.out.warn(e)
 
@@ -355,11 +344,19 @@ class Session(CommandSink, MessageSink):
             self.out.show(line)
 
     def resume_command(self, arg):
-        self.is_stopped = False
         self.out.log('Resuming...')
+        self.ui_state_listener.resume_requested()
 
     def quit_command(self, arg):
-        self.should_quit = True
+        self.ui_state_listener.quit_requested()
+
+    def add_ui_state_listener(self, listener):
+        '''Overrides a method in UIState'''
+        self.ui_state_listener.add_listener(listener)
+
+    def remove_ui_state_listener(self, listener):
+        '''Overrides a method in UIState'''
+        self.ui_state_listener.remove_listener(listener)
 
 if __name__ == '__main__':
     print('File meant to be imported, not run')

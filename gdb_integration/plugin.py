@@ -3,6 +3,7 @@ import gdb
 import wl
 import output
 from command_ui import CommandSink
+from command_ui import UIState, PersistentUIState
 from session import MessageSink
 from session import Session
 import util
@@ -63,7 +64,7 @@ class WlClosureCallBreakpoint(gdb.Breakpoint):
         self.is_sending = is_sending
     def stop(self):
         self.plugin.process_message(self.is_sending)
-        return self.plugin.stopped()
+        return self.plugin.paused()
 
 class WlCommand(gdb.Command):
     'Issue a subcommand to Wayland Debug, use \'wl help\' for details'
@@ -88,13 +89,15 @@ class WlSubcommand(gdb.Command):
 
 class Plugin:
     '''A GDB plugin (should only be instantiated when inside GDB)'''
-    def __init__(self, session, message_sink, command_sink):
+    def __init__(self, session, message_sink, command_sink, ui_state):
         assert isinstance(session, Session)
         assert isinstance(message_sink, MessageSink)
         assert isinstance(command_sink, CommandSink)
+        assert isinstance(ui_state, UIState)
         self.session = session
         self.message_sink = message_sink
         self.command_sink = command_sink
+        self.state = PersistentUIState(ui_state)
         # maps connection ids to thread numbers
         self.connection_threads = {}
         # Show full error messages in the case of a crash
@@ -145,12 +148,12 @@ class Plugin:
         self.message_sink.message(connection_id, message)
 
     def invoke_command(self, command):
-        self.session.set_stopped(True)
+        self.state.pause_requested()
         self.command_sink.process_command(command)
-        if self.session.quit():
+        if self.state.should_quit():
             gdb.execute('quit')
-        elif not self.session.stopped():
+        elif not self.state.paused():
             gdb.execute('continue')
 
-    def stopped(self):
-        return self.session.stopped()
+    def paused(self):
+        return self.state.paused()
