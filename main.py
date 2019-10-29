@@ -5,7 +5,7 @@ import re
 
 from util import *
 import matcher
-from session import Session
+import command_ui
 import wl.parse_debug as parse
 from wl import protocol
 import gdb_integration as gdb
@@ -127,7 +127,7 @@ def main():
 
     protocol.load_all(output)
 
-    session = Session(filter_matcher, stop_matcher, output)
+    ui_controller = command_ui.Controller(filter_matcher, stop_matcher, output)
 
     file_path = args.path
 
@@ -135,16 +135,16 @@ def main():
         try:
             if file_path:
                 output.warn('Ignoring load file because we\'re inside GDB')
-            gdb.plugin.Plugin(output, session, session, session)
+            gdb.plugin.Plugin(output, ui_controller, ui_controller, ui_controller)
         except:
             import traceback
             traceback.print_exc()
     elif file_path:
-        file_input_main(session, file_path)
+        file_input_main(ui_controller, file_path)
     else:
         if args.b:
             output.warn('Ignoring stop matcher when stdin is used for messages')
-        piped_input_main(session)
+        piped_input_main(ui_controller)
 
 if __name__ == '__main__':
     # If both of these are false, we might be redirecting to a file (or in another non-interactive context)

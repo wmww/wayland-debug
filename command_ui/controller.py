@@ -2,8 +2,9 @@ import re
 from util import *
 import wl
 import matcher
-from command_ui import CommandSink, UIState
-from . import MessageSink
+from .command_sink import CommandSink
+from .ui_state import UIState
+from session import MessageSink
 
 help_command_color = '1;37'
 
@@ -22,7 +23,7 @@ class Command:
     def matches(self, command):
         return self.name.startswith(command.lower())
 
-class Session(CommandSink, MessageSink, UIState):
+class Controller(CommandSink, MessageSink, UIState):
     def __init__(self, display_matcher, stop_matcher, output):
         assert display_matcher
         assert stop_matcher
@@ -351,11 +352,11 @@ class Session(CommandSink, MessageSink, UIState):
         self.ui_state_listener.quit_requested()
 
     def add_ui_state_listener(self, listener):
-        '''Overrides a method in UIState'''
+        '''Overrides method in UIState'''
         self.ui_state_listener.add_listener(listener)
 
     def remove_ui_state_listener(self, listener):
-        '''Overrides a method in UIState'''
+        '''Overrides method in UIState'''
         self.ui_state_listener.remove_listener(listener)
 
 if __name__ == '__main__':
