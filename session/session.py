@@ -3,6 +3,7 @@ from util import *
 import wl
 import matcher
 from command_ui import CommandSink
+from . import MessageSink
 
 help_command_color = '1;37'
 
@@ -21,7 +22,7 @@ class Command:
     def matches(self, command):
         return self.name.startswith(command.lower())
 
-class Session(CommandSink):
+class Session(CommandSink, MessageSink):
     def __init__(self, display_matcher, stop_matcher, output):
         assert display_matcher
         assert stop_matcher
@@ -101,17 +102,18 @@ class Session(CommandSink):
         return self.should_quit
 
     def message(self, connection_id, message):
+        '''Overrides a method in MessageSink'''
         try:
             if message == None:
                 return
             self.is_stopped = False
             if not connection_id in self.connections:
                 self.out.warn('connection_id ' + repr(connection_id) + ' never explicitly created')
-                self.open_connection(connection_id, None, message.timestamp)
+                self.open_connection(message.timestamp, connection_id, None)
             connection = self.connections.get(connection_id, None)
             if connection == None:
                 self.out.warn('connection_id ' + repr(connection_id) + ' never explicitly created')
-                connection = self.open_connection(connection_id, None, message.timestamp)
+                connection = self.open_connection(message.timestamp, connection_id, None)
             connection.message(message)
             if connection == self.current_connection:
                 if self.display_matcher.matches(message):
@@ -122,7 +124,8 @@ class Session(CommandSink):
         except Exception as e:
             self.out.warn(e)
 
-    def open_connection(self, connection_id, is_server, time):
+    def open_connection(self, time, connection_id, is_server):
+        '''Overrides a method in MessageSink'''
         # is_server can be none if the value is unknown
         self.close_connection(connection_id, time)
         name = self.connection_name_generator.next()
@@ -142,7 +145,8 @@ class Session(CommandSink):
         self.connection_list.append(connection)
         return connection
 
-    def close_connection(self, connection_id, time):
+    def close_connection(self, time, connection_id):
+        '''Overrides a method in MessageSink'''
         if connection_id in self.connections:
             connection = self.connections[connection_id]
             del self.connections[connection_id]

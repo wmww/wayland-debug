@@ -121,7 +121,7 @@ class Plugin:
 
     def open_connection(self, connection_id, is_server):
         self.connection_threads[connection_id] = gdb.selected_thread().global_num
-        self.session.open_connection(connection_id, is_server, time_now())
+        self.session.open_connection(time_now(), connection_id, is_server)
 
     def close_connection(self, connection_id):
         self.session.close_connection(connection_id, time_now())
