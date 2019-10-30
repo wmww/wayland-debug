@@ -1,17 +1,15 @@
 from .connection_id_sink import ConnectionIDSink
 from .connection_list import ConnectionList
 from .connection import Connection
+from .connection_impl import ConnectionImpl
 from .name_generator import NameGenerator
-from output import Output
 import wl
 import util
 
 class ConnectionManager(ConnectionIDSink, ConnectionList):
     '''The basic implementation of MessageSink and ConnectionList'''
 
-    def __init__(self, output):
-        assert isinstance(output, Output)
-        self.out = output
+    def __init__(self):
         self.connection_list = [] # List of all connections (open and closed) in the order they were created
         self.open_connections = {} # Maps open connection ids to connection objects
         self.connection_name_generator = NameGenerator()
@@ -26,7 +24,7 @@ class ConnectionManager(ConnectionIDSink, ConnectionList):
         # assert connection_id not in self.open_connections
         self.close_connection(time, connection_id)
         name = self.connection_name_generator.next()
-        connection = Connection(name, is_server, None, time, self.out)
+        connection = ConnectionImpl(time, name, is_server)
         self.open_connections[connection_id] = connection
         self.connection_list.append(connection)
         self.listener.connection_opened(self, connection)

@@ -4,7 +4,7 @@ import wl
 import matcher
 from .command_sink import CommandSink
 from .ui_state import UIState
-from connection import ConnectionIDSink, Connection, NameGenerator
+from connection import ConnectionIDSink, Connection, ConnectionImpl, NameGenerator
 
 help_command_color = '1;37'
 
@@ -119,7 +119,7 @@ class Controller(CommandSink, ConnectionIDSink, UIState):
         # is_server can be none if the value is unknown
         self.close_connection(connection_id, time)
         name = self.connection_name_generator.next()
-        connection = wl.Connection(name, is_server, None, time, self.out)
+        connection = ConnectionImpl(time, name, is_server)
         connection.id = connection_id
         # Compositors running nested will open up a client connection first,
         # We should switch to the server as that's the one we're likely interested in

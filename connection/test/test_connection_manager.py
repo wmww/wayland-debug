@@ -9,7 +9,7 @@ def mock_listener():
 class TestConnectionManager(TestCase):
 
     def setUp(self):
-        self.cm = ConnectionManager(output.Strict())
+        self.cm = ConnectionManager()
 
     def test_connection_manager_is_a_message_sink(self):
         self.assertTrue(isinstance(self.cm, ConnectionIDSink))
