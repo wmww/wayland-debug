@@ -94,25 +94,22 @@ class Controller(CommandSink, ConnectionIDSink, UIState):
 
     def message(self, connection_id, message):
         '''Overrides method in ConnectionIDSink'''
-        try:
-            if message == None:
-                return
-            if not connection_id in self.connections:
-                self.out.warn('connection_id ' + repr(connection_id) + ' never explicitly created')
-                self.open_connection(message.timestamp, connection_id, None)
-            connection = self.connections.get(connection_id, None)
-            if connection == None:
-                self.out.warn('connection_id ' + repr(connection_id) + ' never explicitly created')
-                connection = self.open_connection(message.timestamp, connection_id, None)
-            connection.message(message)
-            if connection == self.current_connection:
-                if self.display_matcher.matches(message):
-                    self._show_message(message)
-                if self.stop_matcher.matches(message):
-                    self.out.show(color('1;37', '    Stopped at ') + str(message).strip())
-                    self.ui_state_listener.pause_requested()
-        except Exception as e:
-            self.out.warn(e)
+        if message == None:
+            return
+        if not connection_id in self.connections:
+            self.out.warn('connection_id ' + repr(connection_id) + ' never explicitly created')
+            self.open_connection(message.timestamp, connection_id, None)
+        connection = self.connections.get(connection_id, None)
+        if connection == None:
+            self.out.warn('connection_id ' + repr(connection_id) + ' never explicitly created')
+            connection = self.open_connection(message.timestamp, connection_id, None)
+        connection.message(message)
+        if connection == self.current_connection:
+            if self.display_matcher.matches(message):
+                self._show_message(message)
+            if self.stop_matcher.matches(message):
+                self.out.show(color('1;37', '    Stopped at ') + str(message).strip())
+                self.ui_state_listener.pause_requested()
 
     def open_connection(self, time, connection_id, is_server):
         '''Overrides method in ConnectionIDSink'''
@@ -125,12 +122,12 @@ class Controller(CommandSink, ConnectionIDSink, UIState):
         # We should switch to the server as that's the one we're likely interested in
         if (
             not self.current_connection or
-            (not self.current_connection.is_server and is_server) or
-            not self.connection_explicitly_selected and (is_server or not self.current_connection.is_server)):
+            (not self.current_connection.is_server() and is_server) or
+            not self.connection_explicitly_selected and (is_server or not self.current_connection.is_server())):
             self.current_connection = connection
-            self.out.show(color('1;32', 'Switching to new ' + connection.description() + ' connection ' + name))
+            self.out.show(color('1;32', 'Switching to new ' + str(connection) + ' connection ' + name))
         else:
-            self.out.show(color('1;32', 'New ' + connection.description() + ' connection ' + name))
+            self.out.show(color('1;32', 'New ' + str(connection) + ' connection ' + name))
         self.connections[connection_id] = connection
         self.connection_list.append(connection)
         return connection
@@ -142,12 +139,12 @@ class Controller(CommandSink, ConnectionIDSink, UIState):
             del self.connections[connection_id]
             # Connection will still be in connection list
             connection.close(time)
-            self.out.show(color('1;31', 'Closed ' + connection.description() + ' connection ' + connection.name))
+            self.out.show(color('1;31', 'Closed ' + str(connection) + ' connection ' + connection.name()))
 
     def show_messages(self, connection, matcher, cap=None):
         msg = 'Messages that match ' + str(matcher)
         if connection != self.current_connection:
-            msg += ' on connection ' + connection.name
+            msg += ' on connection ' + connection.name()
         msg += ':'
         self.out.show(msg)
         if connection == None:
@@ -158,7 +155,7 @@ class Controller(CommandSink, ConnectionIDSink, UIState):
             if not self.connections:
                 self.out.show(' ╰╴ No messages yet')
             else:
-                assert didnt_match == len(self.messages)
+                assert didnt_match == len(self.messages())
                 self.out.show(' ╰╴ None of the ' + color('1;31', str(didnt_match)) + ' messages so far')
         else:
             self.last_shown_timestamp = None
@@ -185,9 +182,9 @@ class Controller(CommandSink, ConnectionIDSink, UIState):
         didnt_match = 0
         acc = []
         if connection:
-            messages = connection.messages
+            messages = connection.messages()
         else:
-            messages = []
+            messages = ()
         for message in reversed(messages):
             if matcher.matches(message):
                 acc.append(message)
@@ -319,7 +316,7 @@ class Controller(CommandSink, ConnectionIDSink, UIState):
             c = self._get_connection(arg)
             if c:
                 self.current_connection = c
-                self.out.show('Switched to connection ' + color('1;37', self.current_connection.name))
+                self.out.show('Switched to connection ' + color('1;37', self.current_connection.name()))
                 self.connection_explicitly_selected = True
                 return
             else:
@@ -332,7 +329,7 @@ class Controller(CommandSink, ConnectionIDSink, UIState):
             else:
                 clr = '37'
                 line = '    '
-            line += c.name + ' (' + c.description() + '): '
+            line += c.name() + ' (' + str(c) + '): '
             line = color(clr, line)
             if c.id:
                 line += color('35', '"' + (c.id) + '"') + delim
@@ -341,7 +338,7 @@ class Controller(CommandSink, ConnectionIDSink, UIState):
             else:
                 line += color('1;31', 'closed')
             line += delim
-            line += color('1;34', str(len(c.messages))) + ' messages'
+            line += color('1;34', str(len(c.messages()))) + ' messages'
             self.out.show(line)
 
     def resume_command(self, arg):

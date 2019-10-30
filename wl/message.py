@@ -8,7 +8,7 @@ class Message:
     base_time = None
 
     def __init__(self, abs_time, obj, sent, name, args):
-        assert isinstance(abs_time, float) or isinstance(abs_time, int)
+        assert isinstance(abs_time, float)
         assert isinstance(obj, object.Base)
         assert isinstance(sent, bool)
         assert isinstance(name, str)

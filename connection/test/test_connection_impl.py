@@ -1,4 +1,4 @@
-from unittest import TestCase, mock, expectedFailure
+from unittest import TestCase, expectedFailure, mock, skip
 from wl import *
 import connection
 from connection import ConnectionImpl, Connection
@@ -53,6 +53,13 @@ class TestConnectionImpl(TestCase):
         self.assertTrue(self.c.is_open())
         self.c.close(1.0)
         self.assertFalse(self.c.is_open())
+
+    @skip('We need to use the standard logging system for this to work')
+    def test_warning_on_message_after_close(self):
+        self.c.close(0.0)
+        m = message.Mock()
+        self.c.message(m)
+        # TODO: assert that this logs a warning
 
     @expectedFailure
     def test_description_changed_when_closed(self):
@@ -174,8 +181,8 @@ class TestObjectIDImpl(TestCase):
         with self.assertRaises(RuntimeError):
             self.c.create_object(0.0, self.c.wl_display(), 1, 'wl_display')
 
+    @skip('Prints warning to stdout instead of just raising exception')
     def test_can_not_create_2nd_registry(self):
-        self.skipTest('Prints warning to stdout instead of just raising exception')
         self.c.create_object(0.0, self.c.wl_display(), 2, 'wl_registry')
         with self.assertRaises(RuntimeError):
             self.c.create_object(0.0, self.c.wl_display(), 2, 'wl_registry')

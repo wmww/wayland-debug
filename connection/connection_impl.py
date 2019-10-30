@@ -19,16 +19,16 @@ class ConnectionImpl(Connection.Sink, Connection, ObjectDB):
         self.open_time = time
         self.open = True
         # keys are ids, values are arrays of objects in the order they are created
-        self.db = {}
         self.message_list = []
         self.display = wl.Object(0.0, None, 1, 0, 'wl_display')
+        self.db = {1: [self.display]}
 
     def message(self, message):
         '''Overrides method in Connection.Sink'''
         assert isinstance(message, wl.Message)
         if not self.open:
             warning(
-                'Connection ' + self._name + ' (' + self.description() + ')' +
+                'Connection ' + self._name + ' (' + str(self) + ')' +
                 ' got message ' + str(message) + ' after it had been closed')
         self.message_list.append(message)
         message.resolve(self)

@@ -1,18 +1,19 @@
 from util import *
 from . import object
 from . import protocol
+from connection import ObjectDB
 
 class Arg:
     error_color = '1;31'
 
     class Base:
-        def resolve(self, connection, message, index):
+        def resolve(self, db, message, index):
             try:
                 name = protocol.get_arg_name(message.obj.type, message.name, index)
                 if name:
                     self.name = name
             except RuntimeError as e:
-                connection.out.warn(e)
+                warning(e)
         def __str__(self):
             if hasattr(self, 'name'):
                 return color('37', self.name + '=') + self.value_to_str()
@@ -25,14 +26,14 @@ class Arg:
             self.value = value
 
     class Int(Primitive):
-        def resolve(self, connection, message, index):
-            super().resolve(connection, message, index)
+        def resolve(self, db, message, index):
+            super().resolve(db, message, index)
             try:
                 labels = protocol.look_up_enum(message.obj.type, message.name, index, self.value)
                 if labels:
                     self.labels = labels
             except RuntimeError as e:
-                connection.out.warn(e)
+                warning(e)
         def value_to_str(self):
             assert isinstance(self.value, int)
             if hasattr(self, 'labels'):
@@ -54,13 +55,13 @@ class Arg:
         def __init__(self, type_=None):
             assert isinstance(type_, str) or type_ == None
             self.type = type_
-        def resolve(self, connection, message, index):
-            super().resolve(connection, message, index)
+        def resolve(self, db, message, index):
+            super().resolve(db, message, index)
             if not self.type:
                 try:
                     self.type = protocol.look_up_interface(message.obj.type, message.name, index)
                 except RuntimeError as e:
-                    connection.out.warn(e)
+                    warning(e)
 
         def value_to_str(self):
             return color('1;37', 'null ' + (self.type if self.type else '??'))
@@ -75,15 +76,16 @@ class Arg:
             if not self.obj.resolved() and self.obj.type == None:
                 self.obj.type = new_type
             assert new_type == self.obj.type, 'Object arg already has type ' + self.obj.type + ', so can not be set to ' + new_type
-        def resolve(self, connection, message, index):
-            super().resolve(connection, message, index)
+        def resolve(self, db, message, index):
+            assert isinstance(db, ObjectDB)
+            super().resolve(db, message, index)
             if not self.obj.resolved():
                 if self.is_new:
                     try:
-                        object.Object(connection, self.obj.id, self.obj.type, message.obj, message.timestamp)
+                        db.create_object(message.timestamp, message.obj, self.obj.id, self.obj.type)
                     except RuntimeError as e:
-                        connection.out.error(e)
-                self.obj = self.obj.resolve(connection)
+                        warning(e)
+                self.obj = self.obj.resolve(db)
         def value_to_str(self):
             return (color('1;32', 'new ') if self.is_new else '') + str(self.obj)
 
@@ -102,11 +104,11 @@ class Arg:
             else:
                 assert values == None
             self.values = values
-        def resolve(self, connection, message, index):
-            super().resolve(connection, message, index)
+        def resolve(self, db, message, index):
+            super().resolve(db, message, index)
             if self.values != None:
                 for v in self.values:
-                    v.resolve(connection, message, index)
+                    v.resolve(db, message, index)
                     if hasattr(v, 'name'):
                         del v.name # hack to stop names appearing in every array element
         def value_to_str(self):

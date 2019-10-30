@@ -99,6 +99,7 @@ class Plugin:
         self.state = PersistentUIState(ui_state)
         # maps connection ids to thread numbers
         self.connection_threads = {}
+        self.catch = True # catch exceptions instead of letting them kill the plugin
         # Show full error messages in the case of a crash
         gdb.execute('set python print-stack full')
         if not self.out.show_unprocessed:
@@ -129,12 +130,14 @@ class Plugin:
             self.connection_threads[connection_id] = gdb.selected_thread().global_num
             self.message_sink.open_connection(time_now(), connection_id, is_server)
         except Exception as e:
+            if not self.catch: raise
             self.out.error(repr(e) + ' raised closing connection ' + str(connection_id))
 
     def close_connection(self, connection_id):
         try:
            self.message_sink.close_connection(connection_id, time_now())
         except Exception as e:
+            if not self.catch: raise
             self.out.error(repr(e) + ' raised closing connection ' + str(connection_id))
 
     def process_message(self, is_sending):
@@ -152,10 +155,12 @@ class Plugin:
                     ' on thread ' + str(current_thread_num) +
                     ' instead of connection\'s main thread ' + str(connection_thread_num))
         except Exception as e:
+            if not self.catch: raise
             self.out.error(repr(e) + ' raised extracting message from GDB')
         try:
             self.message_sink.message(connection_id, message)
         except Exception as e:
+            if not self.catch: raise
             self.out.error(repr(e) + ' raised processing message ' + str(message))
 
     def invoke_command(self, command):
@@ -167,6 +172,7 @@ class Plugin:
             elif not self.state.paused():
                 gdb.execute('continue')
         except Exception as e:
+            if not self.catch: raise
             self.out.error(repr(e) + ' raised invoking command `' + command + '`')
 
     def paused(self):

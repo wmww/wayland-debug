@@ -9,6 +9,7 @@ class ObjectDB:
         type_name: str, the Wayland type (such as 'wl_pointer')
         Returns: the newly created object
         '''
+        raise NotImplementedError()
 
     def retrieve_object(self, id, generation, type_name):
         '''Get an object
