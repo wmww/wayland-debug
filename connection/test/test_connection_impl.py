@@ -83,7 +83,6 @@ class TestConnectionImpl(TestCase):
         self.c.message(m)
         self.assertEqual(self.c.app_id(), app_id)
 
-    @expectedFailure
     def test_listener_notified_of_app_id_change(self):
         app_id = 'some.app.id'
         m = message.Mock()
@@ -148,7 +147,6 @@ class TestConnectionImpl(TestCase):
         self.assertNotIn(title, str(self.c))
         self.assertIn(last_part, str(self.c))
 
-    @expectedFailure
     def test_listener_notified_of_title_description_change(self):
         title = 'some_app_title'
         m = message.Mock()
@@ -158,27 +156,23 @@ class TestConnectionImpl(TestCase):
         self.c.message(m)
         self.l.connection_str_changed.assert_called_once_with(self.c)
 
-    @expectedFailure
     def test_listener_notified_of_closed_description_change(self):
         self.c.add_connection_listener(self.l)
         self.c.close(1.0)
         self.l.connection_str_changed.assert_called_once_with(self.c)
 
-    @expectedFailure
     def test_listener_not_notified_on_no_description_change(self):
         m = message.Mock()
         self.c.add_connection_listener(self.l)
         self.c.message(m)
         self.l.connection_str_changed.assert_not_called()
 
-    @expectedFailure
     def test_listener_notified_of_message(self):
         self.c.add_connection_listener(self.l)
         m = message.Mock()
         self.c.message(m)
         self.l.connection_got_new_message.assert_called_once_with(self.c, m)
 
-    @expectedFailure
     def test_remove_listener(self):
         self.c.add_connection_listener(self.l)
         self.c.remove_connection_listener(self.l)
@@ -186,7 +180,6 @@ class TestConnectionImpl(TestCase):
         self.c.message(m)
         self.l.connection_got_new_message.assert_not_called()
 
-    @expectedFailure
     def test_listener_notified_of_close(self):
         self.c.add_connection_listener(self.l)
         self.c.close(1.0)

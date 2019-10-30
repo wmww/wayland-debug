@@ -23,6 +23,7 @@ class ConnectionImpl(Connection.Sink, Connection, ObjectDB):
         self.message_list = []
         self.display = wl.Object(0.0, None, 1, 0, 'wl_display')
         self.db = {1: [self.display]}
+        self.listener = new_disseminator_of_type(Connection.Listener)
 
     def message(self, message):
         '''Overrides method in Connection.Sink'''
@@ -33,11 +34,11 @@ class ConnectionImpl(Connection.Sink, Connection, ObjectDB):
                 ' got message ' + str(message) + ' after it had been closed')
         self.message_list.append(message)
         message.resolve(self)
+        self.listener.connection_got_new_message(self, message)
         try:
             if message.name == 'set_app_id':
                 app_id = message.args[0].value
-                assert isinstance(app_id, str) and app_id
-                self._app_id = app_id
+                self._set_app_id(app_id)
                 self._set_title(app_id.rsplit('.', 1)[-1])
             elif message.name == 'set_title' and not self.title: # this isn't as good as set_app_id, so don't overwrite
                 self._set_title(message.args[0].value)
@@ -50,6 +51,8 @@ class ConnectionImpl(Connection.Sink, Connection, ObjectDB):
         '''Overrides method in Connection.Sink'''
         self.open = False
         self.close_time = time
+        self.listener.connection_closed(self)
+        self.listener.connection_str_changed(self)
 
     def name(self):
         '''Overrides method in Connection'''
@@ -92,11 +95,11 @@ class ConnectionImpl(Connection.Sink, Connection, ObjectDB):
 
     def add_connection_listener(self, listener):
         '''Overrides method in Connection'''
-        raise NotImplementedError()
+        self.listener.add_listener(listener)
 
-    def remove_connection_list_listener(self, listener):
+    def remove_connection_listener(self, listener):
         '''Overrides method in Connection'''
-        raise NotImplementedError()
+        self.listener.remove_listener(listener)
 
     def create_object(self, time, parent, obj_id, type_name):
         '''Overrides method in ObjectDB'''
@@ -151,5 +154,11 @@ class ConnectionImpl(Connection.Sink, Connection, ObjectDB):
         return self.display
 
     def _set_title(self, title):
-        assert isinstance(title, str)
+        assert isinstance(title, str) and title
         self.title = title
+        self.listener.connection_str_changed(self)
+
+    def _set_app_id(self, app_id):
+        assert isinstance(app_id, str) and app_id
+        self._app_id = app_id
+        self.listener.connection_app_id_set(self, app_id)
