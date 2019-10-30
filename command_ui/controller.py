@@ -2,9 +2,10 @@ import re
 from util import *
 import wl
 import matcher
+from output import Output
 from .command_sink import CommandSink
 from .ui_state import UIState
-from connection import ConnectionIDSink, Connection, ConnectionImpl, NameGenerator
+from connection import Connection, ConnectionList
 
 help_command_color = '1;37'
 
@@ -31,18 +32,19 @@ def _connection_get_type_str(connection):
     else:
         return 'client'
 
-class Controller(CommandSink, ConnectionIDSink, UIState):
-    def __init__(self, display_matcher, stop_matcher, output):
+class Controller(CommandSink, ConnectionList.Listener, Connection.Listener, UIState):
+    def __init__(self, output, connection_list, display_matcher, stop_matcher):
+        assert isinstance(output, Output)
+        assert isinstance(connection_list, ConnectionList)
         assert display_matcher
         assert stop_matcher
+        self.out = output
+        self.connection_list = connection_list
+        connection_list.add_connection_list_listener(self, True)
+        self.display_matcher = display_matcher
+        self.stop_matcher = stop_matcher
         self.current_connection = None # The connection that is currently being shown
         self.connection_explicitly_selected = False # If the current connection was selected by the user
-        # A list of connections in the order they were created
-        # Each connection has a name (single letter) and id (string containing pointer address, if coming from libwayland)
-        self.connection_list = []
-        # Mapping of open connection ids to connection objects
-        self.connections = {}
-        self.connection_name_generator = NameGenerator()
         self.commands = [
             Command('help', '[COMMAND]', self.help_command,
                 'Show this help message, or get help for a specific command'),
@@ -68,9 +70,6 @@ class Controller(CommandSink, ConnectionIDSink, UIState):
             Command('quit', None, self.quit_command,
                 'Quit the program'),
         ]
-        self.display_matcher = display_matcher
-        self.stop_matcher = stop_matcher
-        self.out = output
         self.last_shown_timestamp = None
         self.ui_state_listener = new_disseminator_of_type(UIState.Listener)
 
@@ -100,32 +99,10 @@ class Controller(CommandSink, ConnectionIDSink, UIState):
         '''Overrides method in CommandSink'''
         return [command.name for command in self.commands]
 
-    def message(self, connection_id, message):
-        '''Overrides method in ConnectionIDSink'''
-        if message == None:
-            return
-        if not connection_id in self.connections:
-            self.out.warn('connection_id ' + repr(connection_id) + ' never explicitly created')
-            self.open_connection(message.timestamp, connection_id, None)
-        connection = self.connections.get(connection_id, None)
-        if connection == None:
-            self.out.warn('connection_id ' + repr(connection_id) + ' never explicitly created')
-            connection = self.open_connection(message.timestamp, connection_id, None)
-        connection.message(message)
-        if connection == self.current_connection:
-            if self.display_matcher.matches(message):
-                self._show_message(message)
-            if self.stop_matcher.matches(message):
-                self.out.show(color('1;37', '    Stopped at ') + str(message).strip())
-                self.ui_state_listener.pause_requested()
-
-    def open_connection(self, time, connection_id, is_server):
-        '''Overrides method in ConnectionIDSink'''
-        # is_server can be none if the value is unknown
-        self.close_connection(connection_id, time)
-        name = self.connection_name_generator.next()
-        connection = ConnectionImpl(time, name, is_server)
-        connection.id = connection_id
+    def connection_opened(self, connection_list, connection):
+        '''Overrides method in ConnectionList.Listener'''
+        assert isinstance(connection, Connection)
+        connection.add_connection_listener(self)
         # Compositors running nested will open up a client connection first,
         # We should switch to the server as that's the one we're likely interested in
         if (
@@ -133,21 +110,45 @@ class Controller(CommandSink, ConnectionIDSink, UIState):
             (not self.current_connection.is_server() and is_server) or
             not self.connection_explicitly_selected and (is_server or not self.current_connection.is_server())):
             self.current_connection = connection
-            self.out.show(color('1;32', 'Switching to new ' + _connection_get_type_str(connection) + ' connection ' + name))
+            self.out.show(color(
+                '1;32',
+                'Switching to new ' + _connection_get_type_str(connection) + ' connection ' + connection.name()))
         else:
-            self.out.show(color('1;32', 'New ' + _connection_get_type_str(connection) + ' connection ' + name))
-        self.connections[connection_id] = connection
-        self.connection_list.append(connection)
-        return connection
+            self.out.show(color(
+                '1;32',
+                'New ' + _connection_get_type_str(connection) + ' connection ' + connection.name()))
 
-    def close_connection(self, time, connection_id):
-        '''Overrides method in ConnectionIDSink'''
-        if connection_id in self.connections:
-            connection = self.connections[connection_id]
-            del self.connections[connection_id]
-            # Connection will still be in connection list
-            connection.close(time)
-            self.out.show(color('1;31', 'Closed ' + _connection_get_type_str(connection) + ' connection ' + connection.name()))
+    def connection_str_changed(self, connection):
+        '''Overrides method in Connection.Listener'''
+        pass
+
+    def connection_app_id_set(self, connection, new_app_id):
+        '''Overrides method in Connection.Listener'''
+        pass
+
+    def connection_got_new_message(self, connection, message):
+        '''Overrides method in Connection.Listener'''
+        assert isinstance(message, wl.Message)
+        if connection == self.current_connection:
+            if self.display_matcher.matches(message):
+                self._show_message(message)
+            if self.stop_matcher.matches(message):
+                self.out.show(color('1;37', '    Stopped at ') + str(message).strip())
+                self.ui_state_listener.pause_requested()
+
+    def connection_closed(self, connection):
+        '''Overrides method in Connection.Listener'''
+        self.out.show(color(
+            '1;31',
+            'Closed ' + _connection_get_type_str(connection) + ' connection ' + connection.name()))
+
+    def add_ui_state_listener(self, listener):
+        '''Overrides method in UIState'''
+        self.ui_state_listener.add_listener(listener)
+
+    def remove_ui_state_listener(self, listener):
+        '''Overrides method in UIState'''
+        self.ui_state_listener.remove_listener(listener)
 
     def show_messages(self, connection, matcher, cap=None):
         msg = 'Messages that match ' + str(matcher)
@@ -160,7 +161,7 @@ class Controller(CommandSink, ConnectionIDSink, UIState):
             return
         matching, matched, didnt_match, not_searched = self._get_matching(connection, matcher, cap)
         if not matching:
-            if not self.connections:
+            if not self.connection_list.connections():
                 self.out.show(' ╰╴ No messages yet')
             else:
                 assert didnt_match == len(self.messages())
@@ -311,42 +312,37 @@ class Controller(CommandSink, ConnectionIDSink, UIState):
 
     def _get_connection(self, name):
         name = name.lower()
-        found = None
-        for c in self.connection_list:
-            l = [c.name, c.id, c.title]
-            for i in l:
-                if i and name == i.lower():
-                    return c
+        for connection in self.connection_list.connections():
+            if name == connection.name().lower():
+                return connection
         return None
 
     def connection_command(self, arg):
         if arg:
-            c = self._get_connection(arg)
+            connection = self._get_connection(arg)
             if c:
-                self.current_connection = c
+                self.current_connection = connection
                 self.out.show('Switched to connection ' + color('1;37', self.current_connection.name()))
                 self.connection_explicitly_selected = True
                 return
             else:
                 self.out.error('"' + arg + '" does not name a connection')
-        for c in self.connection_list:
+        for connection in self.connection_list.connections():
             delim = ', '
-            if c == self.current_connection:
+            if connection == self.current_connection:
                 clr = '1;37'
                 line = ' => '
             else:
                 clr = '37'
                 line = '    '
-            line += str(c) + ': '
+            line += str(connection) + ': '
             line = color(clr, line)
-            if c.id:
-                line += color('35', '"' + (c.id) + '"') + delim
-            if c.open:
+            if connection.is_open():
                 line += color('1;32', 'open')
             else:
                 line += color('1;31', 'closed')
             line += delim
-            line += color('1;34', str(len(c.messages()))) + ' messages'
+            line += color('1;34', str(len(connection.messages()))) + ' messages'
             self.out.show(line)
 
     def resume_command(self, arg):
@@ -355,14 +351,6 @@ class Controller(CommandSink, ConnectionIDSink, UIState):
 
     def quit_command(self, arg):
         self.ui_state_listener.quit_requested()
-
-    def add_ui_state_listener(self, listener):
-        '''Overrides method in UIState'''
-        self.ui_state_listener.add_listener(listener)
-
-    def remove_ui_state_listener(self, listener):
-        '''Overrides method in UIState'''
-        self.ui_state_listener.remove_listener(listener)
 
 if __name__ == '__main__':
     print('File meant to be imported, not run')

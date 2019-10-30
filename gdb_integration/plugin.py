@@ -99,7 +99,7 @@ class Plugin:
         self.state = PersistentUIState(ui_state)
         # maps connection ids to thread numbers
         self.connection_threads = {}
-        self.catch = True # catch exceptions instead of letting them kill the plugin
+        self.catch = False # catch exceptions instead of letting them kill the plugin
         # Show full error messages in the case of a crash
         gdb.execute('set python print-stack full')
         if not self.out.show_unprocessed:

@@ -6,6 +6,7 @@ import re
 from util import *
 import matcher
 import command_ui
+import connection
 import wl.parse_debug as parse
 from wl import protocol
 import gdb_integration as gdb
@@ -127,7 +128,8 @@ def main():
 
     protocol.load_all(output)
 
-    ui_controller = command_ui.Controller(filter_matcher, stop_matcher, output)
+    connection_list = connection.ConnectionManager()
+    ui_controller = command_ui.Controller(output, connection_list, filter_matcher, stop_matcher)
 
     file_path = args.path
 
@@ -135,7 +137,7 @@ def main():
         try:
             if file_path:
                 output.warn('Ignoring load file because we\'re inside GDB')
-            gdb.plugin.Plugin(output, ui_controller, ui_controller, ui_controller)
+            gdb.plugin.Plugin(output, connection_list, ui_controller, ui_controller)
         except:
             import traceback
             traceback.print_exc()

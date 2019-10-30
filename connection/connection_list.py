@@ -2,16 +2,12 @@ class ConnectionList:
     '''Simply a list of wl.Connections that supports adding listeners'''
 
     class Listener:
-        '''Gets notified when connections are opened or closed'''
+        '''Gets notified when connections are opened
+        To be notified when connections are closed, register a connection listener
+        '''
 
         def connection_opened(self, connection_list, connection):
             '''A new connection has been opened
-            connection: wl.Connection
-            '''
-            raise NotImplementedError()
-
-        def connection_closed(self, connection_list, connection):
-            '''A connection has been closed
             connection: wl.Connection
             '''
             raise NotImplementedError()
@@ -25,9 +21,7 @@ class ConnectionList:
     def add_connection_list_listener(self, listener, catch_up):
         '''Add a listener to be notified of opened and closed connections
         listener: ConnectionList.Listener
-        catch_up: bool, if to send opened and closed events to catch the listener up to the current state
-                  open connections will get a single connection_opened()
-                  closed connections will get a connection_opened() followed by a connection_closed()
+        catch_up: bool, if to send connection_opened() events for all open and closed connections
         '''
         raise NotImplementedError()
 

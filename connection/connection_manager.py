@@ -39,7 +39,6 @@ class ConnectionManager(ConnectionIDSink, ConnectionList):
             del self.open_connections[connection_id]
             # Connection will still be in connection list
             connection.close(time)
-            self.listener.connection_closed(self, connection)
 
     def message(self, connection_id, message):
         '''Overries method in ConnectionIDSink'''
@@ -59,8 +58,6 @@ class ConnectionManager(ConnectionIDSink, ConnectionList):
         if catch_up:
             for conn in self.connection_list:
                 listener.connection_opened(self, conn)
-                if not conn.open:
-                    listener.connection_closed(self, conn)
         self.listener.add_listener(listener)
 
     def remove_connection_list_listener(self, listener):

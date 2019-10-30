@@ -104,15 +104,6 @@ class TestConnectionManager(TestCase):
         self.cm.add_connection_list_listener(listener, False)
         self.cm.open_connection(0.0, 'foo', False)
         listener.connection_opened.assert_called_once()
-        listener.connection_closed.assert_not_called()
-
-    def test_connection_list_listener_connection_closed(self):
-        listener = mock_listener()
-        self.cm.add_connection_list_listener(listener, False)
-        self.cm.open_connection(0.0, 'foo', False)
-        self.cm.close_connection(0.0, 'foo')
-        listener.connection_opened.assert_called_once()
-        listener.connection_closed.assert_called_once()
 
     def test_remove_connection_list_listener(self):
         listener = mock_listener()
@@ -120,7 +111,6 @@ class TestConnectionManager(TestCase):
         self.cm.remove_connection_list_listener(listener)
         self.cm.open_connection(0.0, 'foo', False)
         listener.connection_opened.assert_not_called()
-        listener.connection_closed.assert_not_called()
 
     def test_connection_list_listener_dont_catch_up(self):
         self.cm.open_connection(0.0, 'foo', False)
@@ -129,7 +119,6 @@ class TestConnectionManager(TestCase):
         listener = mock_listener()
         self.cm.add_connection_list_listener(listener, False)
         listener.connection_opened.assert_not_called()
-        listener.connection_closed.assert_not_called()
 
     def test_connection_list_listener_catch_up(self):
         self.cm.open_connection(0.0, 'foo', False)
@@ -138,4 +127,3 @@ class TestConnectionManager(TestCase):
         listener = mock_listener()
         self.cm.add_connection_list_listener(listener, True)
         self.assertEqual(len(listener.connection_opened.call_args_list), 2)
-        self.assertEqual(len(listener.connection_closed.call_args_list), 1)
