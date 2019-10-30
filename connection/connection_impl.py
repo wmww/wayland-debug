@@ -1,8 +1,9 @@
 from util import *
 import wl
 from .connection import Connection
+from .object_db import ObjectDB
 
-class ConnectionImpl(Connection.Sink, Connection):
+class ConnectionImpl(Connection.Sink, Connection, ObjectDB):
     def __init__(self, time, name, is_server):
         '''Create a new connection
         time: float, when the connection was created
@@ -20,7 +21,7 @@ class ConnectionImpl(Connection.Sink, Connection):
         # keys are ids, values are arrays of objects in the order they are created
         self.db = {}
         self.message_list = []
-        self.display = wl.Object(self, 1, 'wl_display', None, 0)
+        self.display = wl.Object(0.0, None, 1, 0, 'wl_display')
 
     def message(self, message):
         '''Overrides method in Connection.Sink'''
@@ -80,46 +81,58 @@ class ConnectionImpl(Connection.Sink, Connection):
         '''Overrides method in Connection'''
         raise NotImplementedError()
 
-    def _set_title(self, title):
-        assert isinstance(title, str)
-        self.title = title
+    def create_object(self, time, parent, obj_id, type_name):
+        '''Overrides method in ObjectDB'''
+        assert isinstance(time, float)
+        assert isinstance(parent, wl.Object)
+        assert isinstance(obj_id, int)
+        assert isinstance(type_name, str)
+        if obj_id <= 1:
+            raise RuntimeError('Invalid object ID ' + str(obj_id))
+        if obj_id > 100000:
+            warning(
+                str(type_name) + ' ID ' + str(obj_id) + ' is probably bigger than it should be ' +
+                '(see https://github.com/wmww/wayland-debug/issues/6)')
+        if obj_id in self.db:
+            last_obj = self.db[obj_id][-1]
+            if last_obj.alive:
+                if type_name == 'wl_registry' and obj_id == 2:
+                    msg = ('It looks like multiple Wayland connections were made, without a way to distinguish between them. '
+                        + 'Please see https://github.com/wmww/wayland-debug/issues/5 for further details')
+                    warning(msg) # should be error
+                    raise RuntimeError(msg)
+                else:
+                    raise RuntimeError(
+                        'Tried to create object of type '
+                        + str(type_name) + ' with the same id as ' + str(last_obj))
+        else:
+            self.db[obj_id] = []
+        generation = len(self.db[obj_id])
+        obj = wl.Object(time, parent, obj_id, generation, type_name)
+        self.db[obj_id].append(obj)
+        return obj
 
-    def look_up_specific(self, obj_id, obj_generation, type_name = None):
-        if not obj_id in self.db:
-            msg = 'Id ' + str(obj_id) + ' of type ' + str(type_name) + ' not in object database'
-            if obj_id > 100000:
+    def retrieve_object(self, id, generation, type_name):
+        '''Overrides method in ObjectDB'''
+        try:
+            obj_list = self.db[id]
+        except KeyError as e:
+            msg = 'Id ' + str(id) + ' not in object database'
+            if id > 100000:
                 msg += ' (see https://github.com/wmww/wayland-debug/issues/6)'
-            raise RuntimeError(msg)
-        if obj_generation < 0 or len(self.db[obj_id]) <= obj_generation:
-            raise RuntimeError('Invalid generation ' + str(obj_generation) + ' for id ' + str(obj_id))
-        obj = self.db[obj_id][obj_generation]
+            raise RuntimeError(msg) from e
+        try:
+            obj = obj_list[generation]
+        except IndexError as e:
+            raise RuntimeError('Invalid generation ' + str(generation) + ' for id ' + str(id)) from e
         if type_name and obj.type and not str_matches(type_name, obj.type):
             raise RuntimeError(str(obj) + ' expected to be of type ' + type_name)
         return obj
 
-    def look_up_most_recent(self, obj_id, type_name = None):
-        obj_generation = 0
-        if obj_id in self.db:
-            obj_generation = len(self.db[obj_id]) - 1
-        obj = self.look_up_specific(obj_id, obj_generation, type_name)
-        # This *would* be a useful warning, except somehow callback.done, delete(callback) (though sent in the right
-        # order), arrive to the client in the wrong order. I don't know a better workaround then just turning off the check
-        # if not obj.alive:
-        #    warning(str(obj) + ' used after destroyed')
-        return obj
+    def wl_display(self):
+        '''Overrides method in ObjectDB'''
+        return self.display
 
-class Mock(Connection):
-    def __init__(self):
-        self.display = wl.object.Mock()
-    def close(self, time):
-        pass
-    def set_title(self, title):
-        pass
-    def description(self):
-        return 'mock connection'
-    def look_up_specific(self, obj_id, obj_generation, type_name = None):
-        return wl.object.Mock()
-    def look_up_most_recent(self, obj_id, type_name = None):
-        return wl.object.Mock()
-    def message(self, message):
-        pass
+    def _set_title(self, title):
+        assert isinstance(title, str)
+        self.title = title

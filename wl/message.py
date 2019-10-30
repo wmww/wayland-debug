@@ -1,6 +1,7 @@
 from util import *
 from . import object
 from .arg import Arg
+from connection import ObjectDB
 
 class Message:
     # TODO: figure out a way to remove global time offset
@@ -22,18 +23,19 @@ class Message:
         self.args = args
         self.destroyed_obj = None
 
-    def resolve(self, connection):
+    def resolve(self, db):
+        assert isinstance(db, ObjectDB)
         if not self.obj.resolved():
-            self.obj = self.obj.resolve(connection)
+            self.obj = self.obj.resolve(db)
         if self.obj.type == 'wl_registry' and self.name == 'bind':
             if len(self.args) < 4 or not isinstance(self.args[3], Arg.Object):
                 raise RuntimeError(str(self) + ' does not have correct arguments for bind message')
             self.args[3].set_type(self.args[1].value)
-        if self.obj == connection.display and self.name == 'delete_id' and len(self.args) > 0:
-            self.destroyed_obj = connection.look_up_most_recent(self.args[0].value, None)
+        if self.obj == db.wl_display() and self.name == 'delete_id' and len(self.args) > 0:
+            self.destroyed_obj = db.retrieve_object(self.args[0].value, -1, None)
             self.destroyed_obj.destroy(self.timestamp)
         for i, arg in enumerate(self.args):
-            arg.resolve(connection, self, i)
+            arg.resolve(db, self, i)
 
     def used_objects(self):
         result = []

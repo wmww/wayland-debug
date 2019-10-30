@@ -18,13 +18,6 @@ class TestConnectionImpl(TestCase):
     def test_connection_impl_is_connection_sink(self):
         self.assertIsInstance(self.c, Connection.Sink)
 
-    def test_default_connection_has_display(self):
-        obj = self.c.look_up_most_recent(1)
-        self.assertTrue(obj)
-        self.assertTrue(isinstance(obj, Object))
-        self.assertEquals(obj.type, 'wl_display')
-        self.assertTrue(obj.resolved())
-
     def test_by_default_is_open(self):
         self.assertTrue(self.c.is_open())
 
@@ -162,19 +155,62 @@ class TestConnectionImpl(TestCase):
         self.c.close(1.0)
         self.l.connection_got_new_message.connection_closed(self.c)
 
-class TestMockConnection(TestCase):
+class TestObjectIDImpl(TestCase):
     def setUp(self):
-        self.c = connection.Mock()
+        self.c = ConnectionImpl(0.0, 'BAR', False)
 
-    def test_call_mock_methods(self):
-        self.c = connection.Mock()
-        self.c.close(1.0)
-        self.c.set_title('foo')
-        self.assertIsInstance(self.c.description(), str)
-        self.c.message(message.Mock())
+    def test_can_create_registry(self):
+        self.c.create_object(0.0, self.c.wl_display(), 2, 'wl_registry')
 
-    def test_look_up_specific(self):
-        self.assertIsInstance(self.c.look_up_specific(2, 4), object.Base)
+    def test_create_object_fails_with_no_parent(self):
+        with self.assertRaises(AssertionError):
+            self.c.create_object(0.0, None, 2, 'wl_registry')
 
-    def test_look_up_most_recent(self):
-        self.assertIsInstance(self.c.look_up_most_recent(7), object.Base)
+    def test_create_object_fails_with_no_type(self):
+        with self.assertRaises(AssertionError):
+            self.c.create_object(0.0, self.c.wl_display(), 2, None)
+
+    def test_can_not_create_2nd_display(self):
+        with self.assertRaises(RuntimeError):
+            self.c.create_object(0.0, self.c.wl_display(), 1, 'wl_display')
+
+    def test_can_not_create_2nd_registry(self):
+        self.skipTest('Prints warning to stdout instead of just raising exception')
+        self.c.create_object(0.0, self.c.wl_display(), 2, 'wl_registry')
+        with self.assertRaises(RuntimeError):
+            self.c.create_object(0.0, self.c.wl_display(), 2, 'wl_registry')
+
+    def test_can_not_create_2nd_anything_with_same_id(self):
+        self.c.create_object(0.0, self.c.wl_display(), 3, 'first_thing')
+        with self.assertRaises(RuntimeError):
+            self.c.create_object(0.0, self.c.wl_display(), 3, 'second_thing')
+
+    def test_retrieve_object_raises_on_invalid_id(self):
+        with self.assertRaises(RuntimeError):
+            self.c.retrieve_object(2, -1, None)
+
+    def test_retrieve_object_raises_on_invalid_generation(self):
+        with self.assertRaises(RuntimeError):
+            self.c.retrieve_object(1, 1, None)
+
+    def test_retrieve_object_raises_on_invalid_type(self):
+        with self.assertRaises(RuntimeError):
+            self.c.retrieve_object(1, -1, 'not_wl_display')
+
+    @expectedFailure
+    def test_retrieve_object_with_type(self):
+        self.assertEqual(self.c.retrieve_object(1, -1, 'wl_display'), self.c.wl_display())
+
+    @expectedFailure
+    def test_retrieve_object_with_type_wildcards(self):
+        self.assertEqual(self.c.retrieve_object(1, -1, 'wl*disp*'), self.c.wl_display())
+
+    def test_wl_display(self):
+        self.assertIsInstance(self.c.wl_display(), Object)
+        self.assertEqual(self.c.wl_display().type, 'wl_display')
+        self.assertEqual(self.c.wl_display().id, 1)
+        self.assertEqual(self.c.wl_display().generation, 0)
+
+    @expectedFailure
+    def test_wl_display_in_db(self):
+        self.assertEqual(self.c.retrieve_object(1, -1, None), self.c.wl_display())

@@ -1,8 +1,8 @@
-import unittest
+from unittest import TestCase, mock
 from wl import *
 import connection
 
-class TestMessage(unittest.TestCase):
+class TestMessage(TestCase):
     def setUp(self):
         assert hasattr(Message, 'base_time')
         Message.base_time = None
@@ -18,7 +18,7 @@ class TestMessage(unittest.TestCase):
         self.assertEqual(m0.timestamp, 0.0)
         self.assertEqual(m1.timestamp, 2.0)
 
-class TestMockMessage(unittest.TestCase):
+class TestMockMessage(TestCase):
     def setUp(self):
         self.m = message.Mock()
 
@@ -26,7 +26,8 @@ class TestMockMessage(unittest.TestCase):
         self.assertTrue(str(self.m))
 
     def test_resolve(self):
-        self.m.resolve(connection.Mock())
+        db = mock.Mock(spec=connection.ObjectDB)
+        self.m.resolve(db)
 
     def test_used_objects(self):
         self.assertEqual(self.m.used_objects(), [])
