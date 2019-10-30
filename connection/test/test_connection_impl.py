@@ -21,6 +21,18 @@ class TestConnectionImpl(TestCase):
     def test_by_default_is_open(self):
         self.assertTrue(self.c.is_open())
 
+    def test_can_create_client_connection(self):
+        c = ConnectionImpl(0.0, self.name, False)
+        self.assertEqual(c.is_server(), False)
+
+    def test_can_create_server_connection(self):
+        c = ConnectionImpl(0.0, self.name, True)
+        self.assertEqual(c.is_server(), True)
+
+    def test_can_create_connection_of_unknown_type(self):
+        c = ConnectionImpl(0.0, self.name, None)
+        self.assertEqual(c.is_server(), None)
+
     def test_by_default_has_no_messages(self):
         self.assertEqual(self.c.messages(), ())
 
@@ -30,7 +42,6 @@ class TestConnectionImpl(TestCase):
     def test_str_works(self):
         self.assertTrue(str(self.c))
 
-    @expectedFailure
     def test_str_contains_name(self):
         self.assertIn(self.name, str(self.c))
 
@@ -61,7 +72,27 @@ class TestConnectionImpl(TestCase):
         self.c.message(m)
         # TODO: assert that this logs a warning
 
+    def test_app_id_none_by_defalt(self):
+        self.assertEqual(self.c.app_id(), None)
+
+    def test_detects_app_id(self):
+        app_id = 'some.app.id'
+        m = message.Mock()
+        m.name = 'set_app_id'
+        m.args = [Arg.String(app_id)]
+        self.c.message(m)
+        self.assertEqual(self.c.app_id(), app_id)
+
     @expectedFailure
+    def test_listener_notified_of_app_id_change(self):
+        app_id = 'some.app.id'
+        m = message.Mock()
+        m.name = 'set_app_id'
+        m.args = [Arg.String(app_id)]
+        self.c.add_connection_listener(self.l)
+        self.c.message(m)
+        self.l.connection_app_id_set.assert_called_once_with(self.c, app_id)
+
     def test_description_changed_when_closed(self):
         before = str(self.c)
         self.c.close(1.0)
@@ -93,7 +124,6 @@ class TestConnectionImpl(TestCase):
         self.c.message(m)
         self.assertIn(last_part, str(self.c))
 
-    @expectedFailure
     def test_description_only_includes_last_part_of_app_id(self):
         last_part = 'last_part'
         app_id = 'some.app.id.' + last_part
@@ -204,11 +234,9 @@ class TestObjectIDImpl(TestCase):
         with self.assertRaises(RuntimeError):
             self.c.retrieve_object(1, -1, 'not_wl_display')
 
-    @expectedFailure
     def test_retrieve_object_with_type(self):
         self.assertEqual(self.c.retrieve_object(1, -1, 'wl_display'), self.c.wl_display())
 
-    @expectedFailure
     def test_retrieve_object_with_type_wildcards(self):
         self.assertEqual(self.c.retrieve_object(1, -1, 'wl*disp*'), self.c.wl_display())
 
@@ -218,6 +246,5 @@ class TestObjectIDImpl(TestCase):
         self.assertEqual(self.c.wl_display().id, 1)
         self.assertEqual(self.c.wl_display().generation, 0)
 
-    @expectedFailure
     def test_wl_display_in_db(self):
         self.assertEqual(self.c.retrieve_object(1, -1, None), self.c.wl_display())

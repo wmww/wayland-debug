@@ -21,6 +21,10 @@ class Connection:
             '''Called whenever str(connection) may return different output'''
             raise NotImplementedError()
 
+        def connection_app_id_set(self, connection, new_app_id):
+            '''Called when connection.app_id has been changed'''
+            raise NotImplementedError()
+
         def connection_got_new_message(self, connection, message):
             '''Called when a new wl.Message has been processed'''
             raise NotImplementedError()
@@ -28,6 +32,14 @@ class Connection:
         def connection_closed(self, connection):
             '''Called only once when the connection is closed'''
             raise NotImplementedError()
+
+    def name(self):
+        '''Returns the name the connection was created with'''
+        raise NotImplementedError()
+
+    def is_server(self):
+        '''Returns if this connection is a server or client, or None if unknown'''
+        raise NotImplementedError()
 
     def messages(self):
         '''Returns a tuple of all messages in order they were processed'''
@@ -37,8 +49,8 @@ class Connection:
         '''Returns if this connection is currently open'''
         raise NotImplementedError()
 
-    def name(self):
-        '''Returns the name the connection was created with'''
+    def app_id(self):
+        '''Returns the app's app_id if detected or None'''
         raise NotImplementedError()
 
     def __str__(self):

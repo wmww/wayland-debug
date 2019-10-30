@@ -23,6 +23,14 @@ class Command:
     def matches(self, command):
         return self.name.startswith(command.lower())
 
+def _connection_get_type_str(connection):
+    if connection.is_server() is None:
+        return color('1;31', 'unknown type')
+    elif connection.is_server():
+        return 'server'
+    else:
+        return 'client'
+
 class Controller(CommandSink, ConnectionIDSink, UIState):
     def __init__(self, display_matcher, stop_matcher, output):
         assert display_matcher
@@ -125,9 +133,9 @@ class Controller(CommandSink, ConnectionIDSink, UIState):
             (not self.current_connection.is_server() and is_server) or
             not self.connection_explicitly_selected and (is_server or not self.current_connection.is_server())):
             self.current_connection = connection
-            self.out.show(color('1;32', 'Switching to new ' + str(connection) + ' connection ' + name))
+            self.out.show(color('1;32', 'Switching to new ' + _connection_get_type_str(connection) + ' connection ' + name))
         else:
-            self.out.show(color('1;32', 'New ' + str(connection) + ' connection ' + name))
+            self.out.show(color('1;32', 'New ' + _connection_get_type_str(connection) + ' connection ' + name))
         self.connections[connection_id] = connection
         self.connection_list.append(connection)
         return connection
@@ -139,7 +147,7 @@ class Controller(CommandSink, ConnectionIDSink, UIState):
             del self.connections[connection_id]
             # Connection will still be in connection list
             connection.close(time)
-            self.out.show(color('1;31', 'Closed ' + str(connection) + ' connection ' + connection.name()))
+            self.out.show(color('1;31', 'Closed ' + _connection_get_type_str(connection) + ' connection ' + connection.name()))
 
     def show_messages(self, connection, matcher, cap=None):
         msg = 'Messages that match ' + str(matcher)
@@ -329,7 +337,7 @@ class Controller(CommandSink, ConnectionIDSink, UIState):
             else:
                 clr = '37'
                 line = '    '
-            line += c.name() + ' (' + str(c) + '): '
+            line += str(c) + ': '
             line = color(clr, line)
             if c.id:
                 line += color('35', '"' + (c.id) + '"') + delim

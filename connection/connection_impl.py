@@ -14,8 +14,9 @@ class ConnectionImpl(Connection.Sink, Connection, ObjectDB):
         assert isinstance(name, str)
         assert isinstance(is_server, bool) or is_server is None
         self._name = name
-        self.is_server = is_server
+        self._is_server = is_server
         self.title = None
+        self._app_id = None
         self.open_time = time
         self.open = True
         # keys are ids, values are arrays of objects in the order they are created
@@ -34,7 +35,10 @@ class ConnectionImpl(Connection.Sink, Connection, ObjectDB):
         message.resolve(self)
         try:
             if message.name == 'set_app_id':
-                self._set_title(message.args[0].value.rsplit(',', 1)[-1])
+                app_id = message.args[0].value
+                assert isinstance(app_id, str) and app_id
+                self._app_id = app_id
+                self._set_title(app_id.rsplit('.', 1)[-1])
             elif message.name == 'set_title' and not self.title: # this isn't as good as set_app_id, so don't overwrite
                 self._set_title(message.args[0].value)
             elif message.name == 'get_layer_surface':
@@ -47,6 +51,14 @@ class ConnectionImpl(Connection.Sink, Connection, ObjectDB):
         self.open = False
         self.close_time = time
 
+    def name(self):
+        '''Overrides method in Connection'''
+        return self._name
+
+    def is_server(self):
+        '''Overrides method in Connection'''
+        return self._is_server
+
     def messages(self):
         '''Overrides method in Connection'''
         return tuple(self.message_list)
@@ -55,22 +67,27 @@ class ConnectionImpl(Connection.Sink, Connection, ObjectDB):
         '''Overrides method in Connection'''
         return self.open
 
-    def name(self):
+    def app_id(self):
         '''Overrides method in Connection'''
-        return self._name
+        return self._app_id
 
     def __str__(self):
         '''Overrides method in Connection'''
-        if self.is_server == True:
-            txt = 'server'
-        elif self.is_server == False:
-            txt = 'client'
+        txt = ''
+        txt += color('1;37', self._name) + ' ('
+        if self._is_server == True:
+            txt += 'server'
+        elif self._is_server == False:
+            txt += 'client'
         else:
-            txt = color('1;31', 'unknown type')
+            txt += color('1;31', 'unknown type')
         if self.title:
-            if self.is_server:
+            if self._is_server:
                 txt += ' to'
             txt += ' ' + self.title
+        if not self.open:
+            txt += ', ' + color('1;31', 'closed')
+        txt += ')'
         return txt
 
     def add_connection_listener(self, listener):
