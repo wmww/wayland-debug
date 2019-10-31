@@ -88,13 +88,13 @@ class WlSubcommand(gdb.Command):
 
 class Plugin:
     '''A GDB plugin (should only be instantiated when inside GDB)'''
-    def __init__(self, output, message_sink, command_sink, ui_state):
+    def __init__(self, output, connection_id_sink, command_sink, ui_state):
         assert isinstance(output, Output)
-        assert isinstance(message_sink, ConnectionIDSink)
+        assert isinstance(connection_id_sink, ConnectionIDSink)
         assert isinstance(command_sink, CommandSink)
         assert isinstance(ui_state, UIState)
         self.out = output
-        self.message_sink = message_sink
+        self.connection_id_sink = connection_id_sink
         self.command_sink = command_sink
         self.state = PersistentUIState(ui_state)
         # maps connection ids to thread numbers
@@ -128,14 +128,14 @@ class Plugin:
     def open_connection(self, connection_id, is_server):
         try:
             self.connection_threads[connection_id] = gdb.selected_thread().global_num
-            self.message_sink.open_connection(time_now(), connection_id, is_server)
+            self.connection_id_sink.open_connection(time_now(), connection_id, is_server)
         except Exception as e:
             if not self.catch: raise
             self.out.error(repr(e) + ' raised closing connection ' + str(connection_id))
 
     def close_connection(self, connection_id):
         try:
-           self.message_sink.close_connection(connection_id, time_now())
+           self.connection_id_sink.close_connection(time_now(), connection_id)
         except Exception as e:
             if not self.catch: raise
             self.out.error(repr(e) + ' raised closing connection ' + str(connection_id))
@@ -158,7 +158,7 @@ class Plugin:
             if not self.catch: raise
             self.out.error(repr(e) + ' raised extracting message from GDB')
         try:
-            self.message_sink.message(connection_id, message)
+            self.connection_id_sink.message(connection_id, message)
         except Exception as e:
             if not self.catch: raise
             self.out.error(repr(e) + ' raised processing message ' + str(message))

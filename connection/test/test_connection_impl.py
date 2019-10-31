@@ -185,7 +185,7 @@ class TestConnectionImpl(TestCase):
         self.c.close(1.0)
         self.l.connection_got_new_message.connection_closed(self.c)
 
-class TestObjectIDImpl(TestCase):
+class TestObjectDBImpl(TestCase):
     def setUp(self):
         self.c = ConnectionImpl(0.0, 'BAR', False)
 

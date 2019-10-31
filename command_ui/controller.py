@@ -103,12 +103,16 @@ class Controller(CommandSink, ConnectionList.Listener, Connection.Listener, UISt
         '''Overrides method in ConnectionList.Listener'''
         assert isinstance(connection, Connection)
         connection.add_connection_listener(self)
-        # Compositors running nested will open up a client connection first,
-        # We should switch to the server as that's the one we're likely interested in
-        if (
-            not self.current_connection or
-            (not self.current_connection.is_server() and is_server) or
-            not self.connection_explicitly_selected and (is_server or not self.current_connection.is_server())):
+        if self.current_connection:
+            if self.connection_explicitly_selected:
+                switch_current = False
+            elif self.current_connection.is_server() and not connection.is_server:
+                switch_current = False
+            else:
+                switch_current = True
+        else:
+            switch_current = True
+        if switch_current:
             self.current_connection = connection
             self.out.show(color(
                 '1;32',
