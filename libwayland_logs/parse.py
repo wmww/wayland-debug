@@ -2,6 +2,7 @@ import re
 
 import wl
 from util import *
+from connection import ConnectionIDSink
 
 class WlPatterns:
     instance = None
@@ -104,6 +105,22 @@ def file(input_file, out):
             import traceback
             out.show(traceback.format_exc())
             parse = False
+
+def into_sink(input_file, out, sink):
+    assert isinstance(sink, ConnectionIDSink)
+    known_connections = {}
+    last_time = 0
+    for conn_id, msg in file(input_file, out):
+        last_time = msg.timestamp
+        if not conn_id in known_connections:
+            known_connections[conn_id] = True
+            is_server = None
+            if msg.name ==  'get_registry':
+                is_server = not msg.sent
+            sink.open_connection(last_time, conn_id, is_server)
+        sink.message(conn_id, msg)
+    for conn_id in known_connections.keys():
+        sink.close_connection(last_time, conn_id)
 
 if __name__ == '__main__':
     print('File meant to be imported, not run')

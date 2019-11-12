@@ -7,53 +7,39 @@ from util import *
 import matcher
 import command_ui
 import connection
-import wl.parse_debug as parse
+from libwayland_logs import parse, TerminalUI
 from wl import protocol
 import gdb_integration as gdb
 from output import stream
 from output import Output
+from libwayland_logs import TerminalUI, parse
 import util
 
 example_usage = 'WAYLAND_DEBUG=1 program 2>&1 1>/dev/null | ' + sys.argv[0]
 
-def interactive_shell(session):
-    while session.stopped():
-        if session.quit():
-            break
-        cmd = input('wl debug $ ')
-        session.command(cmd)
+def piped_input_main(output, connection_id_sink):
+    assert isinstance(output, Output)
+    assert isinstance(connection_id_sink, connection.ConnectionIDSink)
+    output.log('Getting input piped from stdin')
+    parse.into_sink(sys.stdin, output, connection_id_sink)
+    output.log('Done')
 
-def parse_messages(session, input_file, allow_shell):
-    session.out.log('Parsing messages')
-    known_connections = {}
-    last_time = 0
-    for conn_id, msg in parse.file(input_file, session.out):
-        last_time = msg.timestamp
-        if not conn_id in known_connections:
-            known_connections[conn_id] = True
-            is_server = None
-            if msg.name ==  'get_registry':
-                is_server = not msg.sent
-            session.open_connection(last_time, conn_id, is_server)
-        session.message(conn_id, msg)
-    for conn_id in known_connections.keys():
-        session.close_connection(conn_id, last_time)
-    if allow_shell:
-        interactive_shell(session)
-    session.out.log('Done')
-
-def piped_input_main(session):
-    session.out.log('Getting input piped from stdin')
-    parse_messages(session, sys.stdin, False)
-
-def file_input_main(session, file_path):
-    session.out.log('Opening ' + file_path)
+def file_input_main(file_path, output, connection_id_sink, command_sink, ui_state):
+    assert isinstance(file_path, str)
+    assert isinstance(output, Output)
+    assert isinstance(connection_id_sink, connection.ConnectionIDSink)
+    assert isinstance(command_sink, command_ui.CommandSink)
+    assert isinstance(ui_state, command_ui.UIState)
+    ui = TerminalUI(command_sink, ui_state)
+    output.log('Opening ' + file_path)
     try:
         input_file = open(file_path)
-        parse_messages(session, input_file, True)
+        parse.into_sink(input_file, output, connection_id_sink)
         input_file.close()
     except FileNotFoundError:
-        session.out.error(file_path + ' not found')
+        output.error(file_path + ' not found')
+    ui.run_until_stopped()
+    output.log('Done')
 
 def main():
     import argparse
@@ -142,11 +128,11 @@ def main():
             import traceback
             traceback.print_exc()
     elif file_path:
-        file_input_main(ui_controller, file_path)
+        file_input_main(file_path, output, connection_list, ui_controller, ui_controller)
     else:
         if args.b:
             output.warn('Ignoring stop matcher when stdin is used for messages')
-        piped_input_main(ui_controller)
+        piped_input_main(output, connection_list)
 
 if __name__ == '__main__':
     # If both of these are false, we might be redirecting to a file (or in another non-interactive context)

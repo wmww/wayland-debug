@@ -1,6 +1,6 @@
 import unittest
 from wl import *
-from wl import parse_debug as parse
+from libwayland_logs import parse
 
 class TestParseMessage(unittest.TestCase):
     def setUp(self):
