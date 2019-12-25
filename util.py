@@ -18,10 +18,12 @@ message_color = None
 
 def set_color_output(val):
     global color_output
+    assert isinstance(val, bool)
     color_output = val
 
 # if string is not None, resets to normal at end
 def color(color, string):
+    string = str(string)
     result = ''
     if string == '':
         return ''
@@ -43,16 +45,19 @@ def log(msg):
     if verbose:
         if check_gdb():
             print(color('1;34', 'wl log: '), end='')
-        print(color('37', msg))
+        print(color('37', str(msg)))
 
 def set_verbose(val):
     global verbose
+    assert isinstance(val, bool)
     verbose = val
 
 def warning(msg):
-    print(color('1;33', 'Warning: ') + msg)
+    print(color('1;33', 'Warning: ') + str(msg))
 
 def str_matches(pattern, txt):
+    assert isinstance(pattern, str)
+    assert isinstance(txt, str)
     pattern = re.escape(pattern)
     pattern = pattern.replace('\*', '.*')
     pattern = '^' + pattern + '$'
