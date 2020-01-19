@@ -4,6 +4,7 @@ import gdb
 import util
 
 def verify():
+    '''Verifies libwayland debug symbols are available on the system'''
     # First, we use ldconfig to find libwayland
     cmd = ['ldconfig', '-p']
     util.log('Running `' + ' '.join(cmd) + '`')

@@ -44,19 +44,19 @@ class TestRunner(unittest.TestCase):
     def test_basic_gdb_run(self):
         # This may pass even if the wayland-debug plugin has crashed (see test_basic_gdb_run_with_wldbg_command)
         args = runner.Args(['main.py'], ['--batch-silent', '--ex', 'r', '--args', 'cat', '/dev/null'])
-        return_code = runner.main(args, quiet=True)
+        return_code = runner.run_gdb(args, quiet=True)
         self.assertEquals(return_code, 0)
 
     def test_basic_gdb_run_with_wl_command(self):
         # `--ex wlq` will run the quit wayland-debug command, which will cause gdb to fail if wayland-debug has crashed
         args = runner.Args(['main.py'], ['--batch-silent', '--ex', 'r', '--ex', 'wlq', '--args', 'cat', '/dev/null'])
-        return_code = runner.main(args, quiet=True)
+        return_code = runner.run_gdb(args, quiet=True)
         self.assertEquals(return_code, 0)
 
     def test_basic_gdb_run_with_wl_subcommand(self):
         # `--ex wl quit` will run the quit wayland-debug command, which will cause gdb to fail if wayland-debug has crashed
         args = runner.Args(['main.py'], ['--batch-silent', '--ex', 'r', '--ex', 'wl quit', '--args', 'cat', '/dev/null'])
-        return_code = runner.main(args, quiet=True)
+        return_code = runner.run_gdb(args, quiet=True)
         self.assertEquals(return_code, 0)
 
     # This works but there are some issues
@@ -65,6 +65,6 @@ class TestRunner(unittest.TestCase):
     '''
     def test_gdb_run_with_weston_term(self):
         args = runner.Args(['main.py'], ['--batch-silent', '--ex', 'r', '--args', 'weston-terminal', '--shell=""'])
-        return_code = runner.main(args)
+        return_code = runner.run_gdb(args)
         self.assertEquals(return_code, 0)
     '''

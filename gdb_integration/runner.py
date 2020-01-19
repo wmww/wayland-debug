@@ -4,12 +4,12 @@ import os
 import util
 
 class Args:
-    '''The arguments processed by parse_args() that need to be passed to main()'''
+    '''The arguments processed by parse_args() that need to be passed to run_gdb()'''
     def __init__(self, wldbg_args, gdb_args):
         self.wldbg = wldbg_args
         self.gdb = gdb_args
 
-def main(args, quiet=False):
+def run_gdb(args, quiet=False):
     '''
     Runs GDB, and runs a child instance of this script inside it as a plugin
     Returns GDB's exit status, or -1 for other error
@@ -46,7 +46,7 @@ def parse_args(args):
     '''
     Looks for the special -g and --gdb arguements
     Returns None if not found
-    Returns an instance of Args if found, which can be passed to main()
+    Returns an instance of Args if found, which can be passed to run_gdb()
     Returned Args has the arguments before and after the -g split
     '''
     # debugging infinitaly nested debuggers isn't fun
