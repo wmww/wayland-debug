@@ -109,3 +109,7 @@ WAYLAND_DEBUG=1 program 2>&1 1>/dev/null | ./main.py -f 'wl_pointer, wl_surface[
 # Load a file showing everything but callbacks and frame messages
 ./main.py -l dir/file.log -f '^ wl_callback, *[frame]'
 ```
+
+## Running the tests
+Simpy run run_tests.py. It will use pytest if available, or discover tests itself otherwise. It is reccomended to install pytest for improved test output.
+
