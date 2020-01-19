@@ -67,7 +67,9 @@ class Object(Base):
         def resolve(self, db):
             assert isinstance(db, ObjectDB)
             try:
-                return db.retrieve_object(self.id, -1, self.type)
+                resolved = db.retrieve_object(self.id, -1, self.type)
+                assert isinstance(resolved, Base)
+                return resolved
             except RuntimeError as e:
                 logger.error('Unable to resolve object ' + str(self) + ': ' + str(e))
                 return self
