@@ -1,4 +1,5 @@
 import time
+import logging
 import gdb
 import wl
 import output
@@ -8,6 +9,8 @@ from output import Output
 import util
 from . import libwayland_symbols
 from . import extract
+
+logger = logging.getLogger(__name__)
 
 def time_now():
     return time.perf_counter()
@@ -51,7 +54,9 @@ class WlConnectionCreateBreakpoint(gdb.Breakpoint):
             elif calling_function == 'wl_client_create':
                 is_server = True
             else:
-                util.warning('Function ' + calling_function + '() called wl_connection_create()')
+                logger.warning(
+                    'Unexpected function ' + calling_function + '() called wl_connection_create(), ' +
+                    'unable to determine if connection is a client or server at this time')
                 is_server = None
             self.plugin.open_connection(connection_id, is_server)
             return False
@@ -123,7 +128,7 @@ class Plugin:
         WlCommand(self, 'wayland')
         for command in command_sink.toplevel_commands():
             WlSubcommand(self, command)
-        self.out.log('Breakpoints: ' + repr(gdb.breakpoints()))
+        logger.info('Breakpoints: ' + repr(gdb.breakpoints()))
 
     def open_connection(self, connection_id, is_server):
         try:

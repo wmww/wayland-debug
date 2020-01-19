@@ -1,7 +1,11 @@
+import logging
+
 from util import *
 from . import object
 from . import protocol
 from connection import ObjectDB
+
+logger = logging.getLogger(__name__)
 
 class Arg:
     error_color = '1;31'
@@ -13,7 +17,7 @@ class Arg:
                 if name:
                     self.name = name
             except RuntimeError as e:
-                warning(e)
+                logger.warning('Unable to resolve argument ' + str(self) + ': ' + str(e))
         def __str__(self):
             if hasattr(self, 'name'):
                 return color('37', self.name + '=') + self.value_to_str()
@@ -33,7 +37,7 @@ class Arg:
                 if labels:
                     self.labels = labels
             except RuntimeError as e:
-                warning(e)
+                logger.warning('Unable to resolve int argument ' + str(self) + ': ' + str(e))
         def value_to_str(self):
             assert isinstance(self.value, int)
             if hasattr(self, 'labels'):
@@ -61,7 +65,7 @@ class Arg:
                 try:
                     self.type = protocol.look_up_interface(message.obj.type, message.name, index)
                 except RuntimeError as e:
-                    warning(e)
+                    logger.warning('Unable to resolve null argument ' + str(self) + ': ' + str(e))
 
         def value_to_str(self):
             return color('1;37', 'null ' + (self.type if self.type else '??'))
@@ -84,7 +88,7 @@ class Arg:
                     try:
                         db.create_object(message.timestamp, message.obj, self.obj.id, self.obj.type)
                     except RuntimeError as e:
-                        warning(e)
+                        logger.warning('Unable to resolve object argument ' + str(self) + ': ' + str(e))
                 self.obj = self.obj.resolve(db)
         def value_to_str(self):
             return (color('1;32', 'new ') if self.is_new else '') + str(self.obj)

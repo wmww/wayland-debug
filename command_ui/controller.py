@@ -1,4 +1,5 @@
 import re
+import logging
 from util import *
 import wl
 import matcher
@@ -8,6 +9,8 @@ from .ui_state import UIState
 from connection import Connection, ConnectionList
 
 help_command_color = '1;37'
+
+logger = logging.getLogger(__name__)
 
 def command_format(cmd):
     if check_gdb():
@@ -92,7 +95,7 @@ class Controller(CommandSink, ConnectionList.Listener, Connection.Listener, UISt
             cmd = cmd[2:]
         cmd = self._get_command(cmd)
         if cmd:
-            self.out.log('Got ' + cmd.name + ' command' + (' with \'' + arg + '\'' if arg else ''))
+            logger.info('Got ' + cmd.name + ' command' + (' with \'' + arg + '\'' if arg else ''))
             cmd.func(arg)
 
     def toplevel_commands(self):
@@ -350,10 +353,11 @@ class Controller(CommandSink, ConnectionList.Listener, Connection.Listener, UISt
             self.out.show(line)
 
     def resume_command(self, arg):
-        self.out.log('Resuming...')
+        logger.info('Resuming…')
         self.ui_state_listener.resume_requested()
 
     def quit_command(self, arg):
+        logger.info('Quiting…')
         self.ui_state_listener.quit_requested()
 
 if __name__ == '__main__':

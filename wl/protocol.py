@@ -1,9 +1,13 @@
 import xml.etree.ElementTree as ET
-import util
 from collections import OrderedDict
+import logging
+
+import util
 from os import path
 import sys
 import time
+
+logger = logging.getLogger(__name__)
 
 class Protocol:
     def __init__(self, name, xml_file, interfaces):
@@ -134,7 +138,7 @@ def load(xml_file, out):
         existing = interfaces.get(name, None)
         if not existing or existing.version < interface.version:
             interfaces[name] = interface
-    out.log('Loaded ' + str(len(protocol.interfaces)) + ' interfaces from ' + xml_file)
+    logger.info('Loaded ' + str(len(protocol.interfaces)) + ' interfaces from ' + xml_file)
 
 def discover_xml(p, out):
     if path.isdir(p):
@@ -165,7 +169,7 @@ def load_all(out):
     for xml_file in files:
         load(xml_file, out)
     end = time.perf_counter()
-    out.log('Took ' + str(int((end - start) * 1000)) + 'ms to load ' + str(len(files)) + ' protocol files')
+    logger.info('Took ' + str(int((end - start) * 1000)) + 'ms to load ' + str(len(files)) + ' protocol files')
 
     # Come on protocols, tag your fukin enums
     try:

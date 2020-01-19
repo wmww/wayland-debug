@@ -2,6 +2,7 @@
 
 import sys
 import re
+import logging
 
 from util import *
 import matcher
@@ -15,14 +16,18 @@ from output import Output
 from libwayland_logs import TerminalUI, parse
 import util
 
+logging.basicConfig()
+
+logger = logging.getLogger(__name__)
+
 example_usage = 'WAYLAND_DEBUG=1 program 2>&1 1>/dev/null | ' + sys.argv[0]
 
 def piped_input_main(output, connection_id_sink):
     assert isinstance(output, Output)
     assert isinstance(connection_id_sink, connection.ConnectionIDSink)
-    output.log('Getting input piped from stdin')
+    logger.info('Getting input piped from stdin')
     parse.into_sink(sys.stdin, output, connection_id_sink)
-    output.log('Done')
+    logger.info('Done with input')
 
 def file_input_main(file_path, output, connection_id_sink, command_sink, ui_state):
     assert isinstance(file_path, str)
@@ -31,7 +36,7 @@ def file_input_main(file_path, output, connection_id_sink, command_sink, ui_stat
     assert isinstance(command_sink, command_ui.CommandSink)
     assert isinstance(ui_state, command_ui.UIState)
     ui = TerminalUI(command_sink, ui_state)
-    output.log('Opening ' + file_path)
+    logger.info('Opening ' + file_path)
     try:
         input_file = open(file_path)
         parse.into_sink(input_file, output, connection_id_sink)
@@ -39,7 +44,7 @@ def file_input_main(file_path, output, connection_id_sink, command_sink, ui_stat
     except FileNotFoundError:
         output.error(file_path + ' not found')
     ui.run_until_stopped()
-    output.log('Done')
+    logger.info('Done with file')
 
 def main():
     import argparse
@@ -76,21 +81,21 @@ def main():
 
     if verbose:
         set_verbose(True)
-        output.log('Verbose output enabled')
+        logger.info('Verbose output enabled')
 
     if args.no_color:
         if args.color:
             output.warn('Ignoring --color, since --no-color was also specified')
-        output.log('Color output disabled')
+        logger.info('Color output disabled')
     elif args.color:
+        # Print message in rainbow colors
         s = ''
-        i = 0
         for i, c in enumerate('Color output enabled'):
             s += color('1;' + str(i % 6 + 31), c)
-        output.log(s)
+        logger.info(s)
 
     if unprocessed_output:
-        output.log('Showing unparsable output')
+        logger.info('Showing unparsable output')
 
     if args.matcher_help:
         matcher.print_help()
@@ -100,7 +105,7 @@ def main():
     if args.f:
         try:
             filter_matcher = matcher.parse(args.f).simplify()
-            output.log('Filter matcher: ' + str(filter_matcher))
+            logger.info('Filter matcher: ' + str(filter_matcher))
         except RuntimeError as e:
             output.error(e)
 
@@ -108,7 +113,7 @@ def main():
     if args.b:
         try:
             stop_matcher = matcher.parse(args.b).simplify()
-            output.log('Break matcher: ' + str(stop_matcher))
+            logger.info('Break matcher: ' + str(stop_matcher))
         except RuntimeError as e:
             output.error(e)
 

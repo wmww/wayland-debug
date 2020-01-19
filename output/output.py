@@ -21,10 +21,6 @@ class Output:
         if self.show_unprocessed:
             self.show(color('37', ' ' * 6 + ' |  ' + ' '.join(map(lambda m: str(m), msg))))
 
-    def log(self, *msg):
-        if self.verbose:
-            self.out.write(color('37', 'wl log: ') + ' '.join(map(lambda m: str(m), msg)))
-
     def warn(self, *msg):
         self.err.write(color('1;33', 'Warning: ') + ' '.join(map(lambda m: str(m), msg)))
 

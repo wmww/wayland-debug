@@ -35,18 +35,6 @@ class TestOutput(unittest.TestCase):
         self.assertIn('abc', self.err.buffer)
         self.assertEquals(self.out.buffer, '')
 
-    def test_log(self):
-        o = Output(True, True, self.out, self.err)
-        o.log('abc')
-        self.assertIn('abc', self.out.buffer)
-        self.assertEquals(self.err.buffer, '')
-
-    def test_no_log_if_not_verbose(self):
-        o = Output(False, True, self.out, self.err)
-        o.log('abc')
-        self.assertEquals(self.out.buffer, '')
-        self.assertEquals(self.err.buffer, '')
-
     def test_unprocessed(self):
         o = Output(True, True, self.out, self.err)
         o.unprocessed('abc')
@@ -64,14 +52,12 @@ class TestOutput(unittest.TestCase):
         o.show('abc')
         o.warn('abc')
         o.error('abc')
-        o.log('abc')
         o.unprocessed('abc')
         # It's difficult to test that nothing whatsoever happened
 
     def test_strict_output_does_nothing_for_normal_output(self):
         o = Strict()
         o.show('abc')
-        o.log('abc')
         o.unprocessed('abc')
         # It's difficult to test that nothing whatsoever happened
 
