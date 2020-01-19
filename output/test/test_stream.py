@@ -7,7 +7,7 @@ class TestStream(unittest.TestCase):
         s = stream.String()
         s.write('abc')
         s.write('xyz')
-        self.assertEquals(s.buffer, 'abc\nxyz\n')
+        self.assertEqual(s.buffer, 'abc\nxyz\n')
 
     def test_stream_std_to_file(self):
         file_name = 'stream_test_tmp_file.txt'
@@ -17,7 +17,7 @@ class TestStream(unittest.TestCase):
         s.write('xyz')
         f.close()
         f = open(file_name)
-        self.assertEquals(f.read(), 'abc\nxyz\n')
+        self.assertEqual(f.read(), 'abc\nxyz\n')
         f.close()
         os.remove(file_name)
 

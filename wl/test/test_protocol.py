@@ -18,7 +18,7 @@ class TestProtocol(unittest.TestCase):
     def test_protocols_are_up_to_data(self):
         readme = open(readme_path()).read()
         matches = re.findall('Last updated .* \[(\d+)\]', readme)
-        self.assertEquals(len(matches), 1)
+        self.assertEqual(len(matches), 1)
         timestamp = int(matches[0])
         now = datetime.now()
         last_update = datetime.fromtimestamp(timestamp)

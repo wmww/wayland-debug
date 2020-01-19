@@ -4,26 +4,26 @@ from connection.name_generator import NameGenerator
 class TestNameGenerator(unittest.TestCase):
     def test_name_generator(self):
         gen = NameGenerator()
-        self.assertEquals(gen.next(), 'A')
-        self.assertEquals(gen.next(), 'B')
-        self.assertEquals(gen.next(), 'C')
+        self.assertEqual(gen.next(), 'A')
+        self.assertEqual(gen.next(), 'B')
+        self.assertEqual(gen.next(), 'C')
 
     def test_name_generator_big(self):
         gen = NameGenerator()
-        self.assertEquals(gen.next(), 'A')
+        self.assertEqual(gen.next(), 'A')
         for i in range(22):
             gen.next()
-        self.assertEquals(gen.next(), 'X')
-        self.assertEquals(gen.next(), 'Y')
-        self.assertEquals(gen.next(), 'Z')
-        self.assertEquals(gen.next(), 'AA')
-        self.assertEquals(gen.next(), 'AB')
+        self.assertEqual(gen.next(), 'X')
+        self.assertEqual(gen.next(), 'Y')
+        self.assertEqual(gen.next(), 'Z')
+        self.assertEqual(gen.next(), 'AA')
+        self.assertEqual(gen.next(), 'AB')
         for i in range(23):
             gen.next()
-        self.assertEquals(gen.next(), 'AZ')
-        self.assertEquals(gen.next(), 'BA')
+        self.assertEqual(gen.next(), 'AZ')
+        self.assertEqual(gen.next(), 'BA')
         for i in range(23 + 26 * 24):
             gen.next()
-        self.assertEquals(gen.next(), 'ZY')
-        self.assertEquals(gen.next(), 'ZZ')
-        self.assertEquals(gen.next(), 'AAA')
+        self.assertEqual(gen.next(), 'ZY')
+        self.assertEqual(gen.next(), 'ZZ')
+        self.assertEqual(gen.next(), 'AAA')
