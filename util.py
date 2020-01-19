@@ -2,6 +2,7 @@ import sys
 import re
 import os
 import types
+import logging
 
 def check_gdb():
     '''Check if the gdb module is available, and thus if we are inside a running instance of GDB'''
@@ -41,19 +42,11 @@ def color(color, string):
 def no_color(string):
     return re.sub('\x1b\[[\d;]*m', '', string)
 
-def log(msg):
-    if verbose:
-        if check_gdb():
-            print(color('1;34', 'wl log: '), end='')
-        print(color('37', str(msg)))
-
 def set_verbose(val):
     global verbose
     assert isinstance(val, bool)
     verbose = val
-
-def warning(msg):
-    print(color('1;33', 'Warning: ') + str(msg))
+    logging.getLogger().setLevel(logging.DEBUG)
 
 def str_matches(pattern, txt):
     assert isinstance(pattern, str)

@@ -1,5 +1,9 @@
+import logging
+
 from util import *
 from connection import ObjectDB
+
+logger = logging.getLogger(__name__)
 
 class Base:
     def type_str(self):
@@ -65,7 +69,7 @@ class Object(Base):
             try:
                 return db.retrieve_object(self.id, -1, self.type)
             except RuntimeError as e:
-                warning(str(e))
+                logger.error('Unable to resolve object ' + str(self) + ': ' + str(e))
                 return self
         def __str__(self):
             return color('1;31', 'unresolved ') + self.to_str()

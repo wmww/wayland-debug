@@ -1,7 +1,11 @@
+import logging
+
 from util import *
 import wl
 from .connection import Connection
 from .object_db import ObjectDB
+
+logger = logging.getLogger(__name__)
 
 class ConnectionImpl(Connection.Sink, Connection, ObjectDB):
     def __init__(self, time, name, is_server):
@@ -29,7 +33,7 @@ class ConnectionImpl(Connection.Sink, Connection, ObjectDB):
         '''Overrides method in Connection.Sink'''
         assert isinstance(message, wl.Message)
         if not self.open:
-            warning(
+            logger.warning(
                 'Connection ' + self._name + ' (' + str(self) + ')' +
                 ' got message ' + str(message) + ' after it had been closed')
         self.message_list.append(message)
@@ -45,7 +49,7 @@ class ConnectionImpl(Connection.Sink, Connection, ObjectDB):
             elif message.name == 'get_layer_surface':
                 self._set_title(message.args[4].value)
         except Exception as e: # Connection name is a non-critical feature, so don't be mean if something goes wrong
-            warning('Could not set connection name: ' + str(e))
+            logger.error('Could not set connection name: ' + str(e))
 
     def close(self, time):
         '''Overrides method in Connection.Sink'''
@@ -110,7 +114,7 @@ class ConnectionImpl(Connection.Sink, Connection, ObjectDB):
         if obj_id <= 1:
             raise RuntimeError('Invalid object ID ' + str(obj_id))
         if obj_id > 100000:
-            warning(
+            logger.warning(
                 str(type_name) + ' ID ' + str(obj_id) + ' is probably bigger than it should be ' +
                 '(see https://github.com/wmww/wayland-debug/issues/6)')
         if obj_id in self.db:
@@ -119,7 +123,7 @@ class ConnectionImpl(Connection.Sink, Connection, ObjectDB):
                 if type_name == 'wl_registry' and obj_id == 2:
                     msg = ('It looks like multiple Wayland connections were made, without a way to distinguish between them. '
                         + 'Please see https://github.com/wmww/wayland-debug/issues/5 for further details')
-                    warning(msg) # should be error
+                    logger.error(msg)
                     raise RuntimeError(msg)
                 else:
                     raise RuntimeError(
