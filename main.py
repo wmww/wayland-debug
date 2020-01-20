@@ -47,17 +47,17 @@ def file_input_main(file_path, output, connection_id_sink, command_sink, ui_stat
     ui.run_until_stopped()
     logger.info('Done with file')
 
-def main(out_stream, err_stream, arguments, input_func):
+def main(out_stream, err_stream, argv, input_func):
     '''
     Parse arguments and run wayland-debug
     out_stream: An instance of stream.Base to use for output
     err_stream: An instance of stream.Base to use for logging and errors
-    arguments: A list of str arguments to the progra (should not include the progrm name as sys.argv does)
+    argv: A list of str arguments (should include the program name like sys.argv)
     input_func: the input builtin, or a mock function that behaves the same
     '''
     assert isinstance(out_stream, stream.Base)
     assert isinstance(err_stream, stream.Base)
-    assert isinstance(arguments, list)
+    assert isinstance(argv, list)
     assert callable(input_func)
 
     # If we want to run inside GDB, the rest of main does not get called in this instance of the script
@@ -81,7 +81,7 @@ def main(out_stream, err_stream, arguments, input_func):
     parser.add_argument('-g', '--gdb', action='store_true', help='run inside gdb, all subsequent arguments are sent to gdb, when inside gdb start commands with \'wl\'')
     # NOTE: -g/--gdb is here only for the help text, it is processed without argparse in gdb_runner.main()
 
-    args = parser.parse_args(args=arguments)
+    args = parser.parse_args(args=argv[1:]) # chop off the first argument (program name)
 
     assert not args.gdb, 'GDB argument should have been intercepted by gdb.runner.parse_args()'
 
@@ -167,4 +167,4 @@ if __name__ == '__main__':
         out_stream = stream.Std(sys.stdout)
         err_stream = stream.Std(sys.stderr)
 
-    main(out_stream, err_stream, sys.argv[1:], input)
+    main(out_stream, err_stream, sys.argv, input)
