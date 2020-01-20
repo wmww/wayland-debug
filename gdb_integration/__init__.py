@@ -1,4 +1,7 @@
 import util
+
+from . import runner
+
 if util.check_gdb():
     from .plugin import Plugin
     from .plugin import output_streams
