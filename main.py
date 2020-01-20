@@ -29,13 +29,14 @@ def piped_input_main(output, connection_id_sink):
     parse.into_sink(sys.stdin, output, connection_id_sink)
     logger.info('Done with input')
 
-def file_input_main(file_path, output, connection_id_sink, command_sink, ui_state):
+def file_input_main(file_path, output, connection_id_sink, command_sink, ui_state, input_func):
     assert isinstance(file_path, str)
     assert isinstance(output, Output)
     assert isinstance(connection_id_sink, connection.ConnectionIDSink)
     assert isinstance(command_sink, command_ui.CommandSink)
     assert isinstance(ui_state, command_ui.UIState)
-    ui = TerminalUI(command_sink, ui_state)
+    assert callable(input_func)
+    ui = TerminalUI(command_sink, ui_state, input_func)
     logger.info('Opening ' + file_path)
     try:
         input_file = open(file_path)
@@ -46,16 +47,18 @@ def file_input_main(file_path, output, connection_id_sink, command_sink, ui_stat
     ui.run_until_stopped()
     logger.info('Done with file')
 
-def main(out_stream, err_stream, arguments):
+def main(out_stream, err_stream, arguments, input_func):
     '''
     Parse arguments and run wayland-debug
     out_stream: An instance of stream.Base to use for output
     err_stream: An instance of stream.Base to use for logging and errors
     arguments: A list of str arguments to the progra (should not include the progrm name as sys.argv does)
+    input_func: the input builtin, or a mock function that behaves the same
     '''
     assert isinstance(out_stream, stream.Base)
     assert isinstance(err_stream, stream.Base)
     assert isinstance(arguments, list)
+    assert callable(input_func)
 
     import argparse
     parser = argparse.ArgumentParser(description='Debug Wayland protocol messages, see https://github.com/wmww/wayland-debug for additional info')
@@ -137,7 +140,7 @@ def main(out_stream, err_stream, arguments):
             import traceback
             traceback.print_exc()
     elif file_path:
-        file_input_main(file_path, output, connection_list, ui_controller, ui_controller)
+        file_input_main(file_path, output, connection_list, ui_controller, ui_controller, input_func)
     else:
         if args.b:
             output.warn('Ignoring stop matcher when stdin is used for messages')
@@ -165,4 +168,4 @@ if __name__ == '__main__':
     if gdb_runner_args:
         gdb.runner.run_gdb(gdb_runner_args)
     else:
-        main(out_stream, err_stream, sys.argv[1:])
+        main(out_stream, err_stream, sys.argv[1:], input)
