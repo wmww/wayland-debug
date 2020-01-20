@@ -4,11 +4,11 @@ import subprocess
 import pytest
 
 import main
-from output import stream
+from core.output import stream
 
 def short_log_file():
-    path = 'sample_logs/short.log'
-    assert os.path.isfile(path)
+    path = 'resources/libwayland_debug_logs/short.log'
+    assert os.path.isfile(path), os.getcwd() + '/' + path + ' is not a file'
     return path
 
 def streams():
@@ -16,7 +16,7 @@ def streams():
 
 def arguments(*args):
     main_path = 'main.py'
-    assert os.path.isfile(main_path)
+    assert os.path.isfile(main_path), os.getcwd() + '/' + main_path + ' is not a file'
     return [main_path, *args]
 
 def bin_exists(name):
