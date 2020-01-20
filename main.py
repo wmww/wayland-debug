@@ -46,9 +46,16 @@ def file_input_main(file_path, output, connection_id_sink, command_sink, ui_stat
     ui.run_until_stopped()
     logger.info('Done with file')
 
-def main(out_stream, err_stream):
+def main(out_stream, err_stream, arguments):
+    '''
+    Parse arguments and run wayland-debug
+    out_stream: An instance of stream.Base to use for output
+    err_stream: An instance of stream.Base to use for logging and errors
+    arguments: A list of str arguments to the progra (should not include the progrm name as sys.argv does)
+    '''
     assert isinstance(out_stream, stream.Base)
     assert isinstance(err_stream, stream.Base)
+    assert isinstance(arguments, list)
 
     import argparse
     parser = argparse.ArgumentParser(description='Debug Wayland protocol messages, see https://github.com/wmww/wayland-debug for additional info')
@@ -63,7 +70,7 @@ def main(out_stream, err_stream):
     parser.add_argument('-g', '--gdb', action='store_true', help='run inside gdb, all subsequent arguments are sent to gdb, when inside gdb start commands with \'wl\'')
     # NOTE: -d/--gdb is here only for the help text, it is processed without argparse in gdb_runner.main()
 
-    args = parser.parse_args()
+    args = parser.parse_args(args=arguments)
 
     assert not args.gdb, 'GDB argument should have been intercepted by gdb.runner.parse_args()'
 
@@ -158,4 +165,4 @@ if __name__ == '__main__':
     if gdb_runner_args:
         gdb.runner.run_gdb(gdb_runner_args)
     else:
-        main(out_stream, err_stream)
+        main(out_stream, err_stream, sys.argv[1:])
