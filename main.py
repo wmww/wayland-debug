@@ -46,7 +46,10 @@ def file_input_main(file_path, output, connection_id_sink, command_sink, ui_stat
     ui.run_until_stopped()
     logger.info('Done with file')
 
-def main():
+def main(out_stream, err_stream):
+    assert isinstance(out_stream, stream.Base)
+    assert isinstance(err_stream, stream.Base)
+
     import argparse
     parser = argparse.ArgumentParser(description='Debug Wayland protocol messages, see https://github.com/wmww/wayland-debug for additional info')
     parser.add_argument('--matcher-help', action='store_true', help='show how to write matchers and exit')
@@ -63,12 +66,6 @@ def main():
     args = parser.parse_args()
 
     assert not args.gdb, 'GDB argument should have been intercepted by gdb.runner.parse_args()'
-
-    if check_gdb():
-        out_stream, err_stream = gdb.plugin.output_streams()
-    else:
-        out_stream = stream.Std(sys.stdout)
-        err_stream = stream.Std(sys.stderr)
 
     if args.no_color:
         set_color_output(False)
@@ -140,10 +137,17 @@ def main():
         piped_input_main(output, connection_list)
 
 if __name__ == '__main__':
-    # If both of these are false, we might be redirecting to a file (or in another non-interactive context)
+    # If isatty() is false, we might be redirecting to a file (or in another non-interactive context)
     # If we're not being run interactivly, we shouldn't use terminal color codes
+    # If inside GDB, isatty() may return false but we stil want colors
     if util.check_gdb() or (hasattr(sys.stdout, 'isatty') and sys.stdout.isatty()):
         set_color_output(True)
+
+    if check_gdb():
+        out_stream, err_stream = gdb.plugin.output_streams()
+    else:
+        out_stream = stream.Std(sys.stdout)
+        err_stream = stream.Std(sys.stderr)
 
     # If we want to run inside GDB, the normal main does not get called in this instance of the script
     # Instead GDB is run, an instance of wayland-debug is run inside it and main() is run in that
@@ -154,5 +158,4 @@ if __name__ == '__main__':
     if gdb_runner_args:
         gdb.runner.run_gdb(gdb_runner_args)
     else:
-        main()
-
+        main(out_stream, err_stream)
