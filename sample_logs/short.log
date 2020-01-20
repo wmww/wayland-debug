@@ -1,0 +1,6 @@
+[492063.955]  -> wl_display@1.get_registry(new id wl_registry@2)
+[492079.794] wl_registry@2.global(4, "wl_compositor", 4)
+[492079.830]  -> wl_registry@2.bind(4, "wl_compositor", 3, new id [unknown]@6)
+[492081.014] wl_registry@2.global(28, "wl_seat", 7)
+[492081.053]  -> wl_registry@2.bind(28, "wl_seat", 5, new id [unknown]@14)
+[492083.023]  -> wl_compositor@6.create_surface(new id wl_surface@15)
