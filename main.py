@@ -4,17 +4,14 @@ import sys
 import re
 import logging
 
-from util import *
-import matcher
-import command_ui
-import connection
-from libwayland_logs import parse, TerminalUI
-from wl import protocol
-import gdb_integration as gdb
-from output import stream
-from output import Output
-from libwayland_logs import TerminalUI, parse
-import util
+import interfaces
+from core import matcher, ConnectionManager
+from core.util import check_gdb, set_color_output
+from core.wl import protocol
+from frontends.tui import Controller, TerminalUI
+from backends.libwayland_debug_output import parse
+from backends import gdb_plugin
+from core.output import stream, Output
 
 logging.basicConfig()
 
@@ -24,7 +21,7 @@ example_usage = 'WAYLAND_DEBUG=1 program 2>&1 1>/dev/null | ' + sys.argv[0]
 
 def piped_input_main(output, connection_id_sink):
     assert isinstance(output, Output)
-    assert isinstance(connection_id_sink, connection.ConnectionIDSink)
+    assert isinstance(connection_id_sink, interfaces.ConnectionIDSink)
     logger.info('Getting input piped from stdin')
     parse.into_sink(sys.stdin, output, connection_id_sink)
     logger.info('Done with input')
@@ -32,9 +29,9 @@ def piped_input_main(output, connection_id_sink):
 def file_input_main(file_path, output, connection_id_sink, command_sink, ui_state, input_func):
     assert isinstance(file_path, str)
     assert isinstance(output, Output)
-    assert isinstance(connection_id_sink, connection.ConnectionIDSink)
-    assert isinstance(command_sink, command_ui.CommandSink)
-    assert isinstance(ui_state, command_ui.UIState)
+    assert isinstance(connection_id_sink, interfaces.ConnectionIDSink)
+    assert isinstance(command_sink, interfaces.CommandSink)
+    assert isinstance(ui_state, interfaces.UIState)
     assert callable(input_func)
     ui = TerminalUI(command_sink, ui_state, input_func)
     logger.info('Opening ' + file_path)
@@ -62,10 +59,10 @@ def main(out_stream, err_stream, argv, input_func):
 
     # If we want to run inside GDB, the rest of main does not get called in this instance of the script
     # Instead GDB is run, an instance of wayland-debug is run inside it and main() is run in that
-    # gdb.runner.parse_args() will check if this needs to happen, and gdb.run_gdb() will do it
-    gdb_runner_args = gdb.runner.parse_args(argv)
+    # gdb_plugin.runner.parse_args() will check if this needs to happen, and gdb_plugin.run_gdb() will do it
+    gdb_runner_args = gdb_plugin.runner.parse_args(argv)
     if gdb_runner_args:
-        gdb.run_gdb(gdb_runner_args)
+        gdb_plugin.run_gdb(gdb_runner_args)
         return
 
     import argparse
@@ -83,7 +80,7 @@ def main(out_stream, err_stream, argv, input_func):
 
     args = parser.parse_args(args=argv[1:]) # chop off the first argument (program name)
 
-    assert not args.gdb, 'GDB argument should have been intercepted by gdb.runner.parse_args()'
+    assert not args.gdb, 'GDB argument should have been intercepted by gdb_plugin.runner.parse_args()'
 
     if args.no_color:
         set_color_output(False)
@@ -134,8 +131,8 @@ def main(out_stream, err_stream, argv, input_func):
 
     protocol.load_all(output)
 
-    connection_list = connection.ConnectionManager()
-    ui_controller = command_ui.Controller(output, connection_list, filter_matcher, stop_matcher)
+    connection_list = ConnectionManager()
+    ui_controller = Controller(output, connection_list, filter_matcher, stop_matcher)
 
     file_path = args.path
 
@@ -143,7 +140,7 @@ def main(out_stream, err_stream, argv, input_func):
         try:
             if file_path:
                 output.warn('Ignoring load file because we\'re inside GDB')
-            gdb.plugin.Plugin(output, connection_list, ui_controller, ui_controller)
+            gdb_plugin.plugin.Plugin(output, connection_list, ui_controller, ui_controller)
         except:
             import traceback
             traceback.print_exc()
@@ -158,11 +155,11 @@ if __name__ == '__main__':
     # If isatty() is false, we might be redirecting to a file (or in another non-interactive context)
     # If we're not being run interactivly, we shouldn't use terminal color codes
     # If inside GDB, isatty() may return false but we stil want colors
-    if util.check_gdb() or (hasattr(sys.stdout, 'isatty') and sys.stdout.isatty()):
+    if check_gdb() or (hasattr(sys.stdout, 'isatty') and sys.stdout.isatty()):
         set_color_output(True)
 
     if check_gdb():
-        out_stream, err_stream = gdb.plugin.output_streams()
+        out_stream, err_stream = gdb_plugin.plugin.output_streams()
     else:
         out_stream = stream.Std(sys.stdout)
         err_stream = stream.Std(sys.stderr)
