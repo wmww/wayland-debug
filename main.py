@@ -106,7 +106,7 @@ def main(out_stream, err_stream, arguments, input_func):
 
     if args.matcher_help:
         matcher.print_help()
-        exit(1)
+        return
 
     filter_matcher = matcher.always
     if args.f:
