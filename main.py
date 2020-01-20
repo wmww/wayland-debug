@@ -162,9 +162,7 @@ if __name__ == '__main__':
     # If we want to run inside GDB, the normal main does not get called in this instance of the script
     # Instead GDB is run, an instance of wayland-debug is run inside it and main() is run in that
     # gdb.runner.parse_args() will check if this needs to happen, and gdb.runner.run_gdb() will do it
-    gdb_runner_args = None
-    if not util.check_gdb():
-        gdb_runner_args = gdb.runner.parse_args(sys.argv)
+    gdb_runner_args = gdb.runner.parse_args(sys.argv)
     if gdb_runner_args:
         gdb.runner.run_gdb(gdb_runner_args)
     else:

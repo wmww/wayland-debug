@@ -49,8 +49,11 @@ def parse_args(args):
     Returns an instance of Args if found, which can be passed to run_gdb()
     Returned Args has the arguments before and after the -g split
     '''
+
     # debugging infinitaly nested debuggers isn't fun
-    assert not util.check_gdb()
+    if util.check_gdb():
+        return None
+
     # Look for the -d or --gdb arguments, and split the argument list based on where they are
     for i in range(len(args)):
         if args[i] == '-g' or args[i] == '--gdb':
@@ -61,4 +64,5 @@ def parse_args(args):
                 raise RuntimeError(repr(args[i]) + ' invalid, -g option must be last in a list of single-character options')
             if args[i][-1] == 'g':
                 return Args(args[:i] + [args[i][:-1]], args[i+1:])
+
     return None
