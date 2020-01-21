@@ -48,7 +48,7 @@ class StrMatcher:
         assert isinstance(name, str)
         return str_matches(self.pattern, name)
     def simplify(self):
-        self.pattern = re.sub('\*+', '*', self.pattern)
+        self.pattern = re.sub(r'\*+', '*', self.pattern)
         if self.pattern == '*':
             return always
         return self
@@ -312,13 +312,13 @@ def _parse_expr(raw, start, end, allow_inverse, sub_parser_func):
 
 def _parse_str(raw, start, end):
     text = raw[start:end]
-    if not re.findall('^[^\(\)\[\]~,@&\.]*$', text):
+    if not re.findall(r'^[^\(\)\[\]~,@&\.]*$', text):
         raise RuntimeError('"' + text + '" is not a valid string')
     return StrMatcher(text)
 
 def _parse_int(raw, start, end):
     s = raw[start:end]
-    if not re.findall('^[\-]?\d+$', s):
+    if not re.findall(r'^[\-]?\d+$', s):
         raise RuntimeError('In "' + raw[:start] + color('1;31', raw[start:end]) + raw[end:] + '", "' + raw[start:end] + raw[end:] + '" should have been an int')
     return EqMatcher(int(raw[start:end]))
 
