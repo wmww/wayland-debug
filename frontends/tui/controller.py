@@ -82,7 +82,7 @@ class Controller(interfaces.CommandSink,
         '''Overrides a method in CommandSink'''
         assert isinstance(command, str)
         command = command.strip()
-        args = re.split('\s', command, 1)
+        args = re.split(r'\s', command, 1)
         if len(args) == 0:
             return False
         cmd = no_color(args[0]).strip()

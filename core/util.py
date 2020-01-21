@@ -40,7 +40,7 @@ def color(color, string):
     return result
 
 def no_color(string):
-    return re.sub('\x1b\[[\d;]*m', '', string)
+    return re.sub(r'\x1b\[[\d;]*m', '', string)
 
 def set_verbose(val):
     global verbose
@@ -52,8 +52,8 @@ def str_matches(pattern, txt):
     assert isinstance(pattern, str)
     assert isinstance(txt, str)
     pattern = re.escape(pattern)
-    pattern = pattern.replace('\*', '.*')
-    pattern = '^' + pattern + '$'
+    pattern = pattern.replace(r'\*', '.*')
+    pattern = r'^' + pattern + r'$'
     return len(re.findall(pattern, txt)) == 1
 
 cached_project_root = None

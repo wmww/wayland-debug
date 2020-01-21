@@ -8,16 +8,16 @@ class WlPatterns:
     instance = None
 
     def __init__(self):
-        int_re = '(?P<int>-?\d+)'
-        float_re = '(?P<float>-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)'
-        fd_re = '(?:fd (?P<fd>\d+))'
-        str_re = '(?:"(?P<str>.*)")'
-        new_id_re = '(?:new id (?:(?P<new_type>\w+)|(?:\[unknown\]))@(?P<new_id>\d+))'
-        obj_re = '(?P<obj_type>\w+)@(?P<obj_id>\d+)'
-        array_re = '(?P<array>array)'
-        nil_re = '(?P<nil>nil)'
+        int_re = r'(?P<int>-?\d+)'
+        float_re = r'(?P<float>-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)'
+        fd_re = r'(?:fd (?P<fd>\d+))'
+        str_re = r'(?:"(?P<str>.*)")'
+        new_id_re = r'(?:new id (?:(?P<new_type>\w+)|(?:\[unknown\]))@(?P<new_id>\d+))'
+        obj_re = r'(?P<obj_type>\w+)@(?P<obj_id>\d+)'
+        array_re = r'(?P<array>array)'
+        nil_re = r'(?P<nil>nil)'
         all_args_re = (
-            '^(?:' +
+            r'^(?:' +
             int_re + '|' +
             obj_re + '|' +
             new_id_re + '|' +
@@ -25,11 +25,11 @@ class WlPatterns:
             str_re + '|' +
             float_re + '|' +
             array_re + '|' +
-            fd_re + ')$')
+            fd_re + r')$')
         self.arg_re = re.compile(all_args_re)
-        self.any_arg_re = re.compile('((?<=,)|^)\s*("[^"]*"|[^,]+)($|(?=,))')
-        timestamp_regex = '\[(\d+\.\d+)\]'
-        message_regex = '(\w+)@(\d+)\.(\w+)\((.*)\)$'
+        self.any_arg_re = re.compile(r'((?<=,)|^)\s*("[^"]*"|[^,]+)($|(?=,))')
+        timestamp_regex = r'\[(\d+\.\d+)\]'
+        message_regex = r'(\w+)@(\d+)\.(\w+)\((.*)\)$'
         self.out_msg_re = re.compile(timestamp_regex + '  -> ' + message_regex)
         self.in_msg_re = re.compile(timestamp_regex + ' ' + message_regex)
 
