@@ -143,6 +143,8 @@ class Plugin:
             self.out.error(repr(e) + ' raised closing connection ' + str(connection_id))
 
     def process_message(self, is_sending):
+        if self.state.paused():
+            self.state.resume_requested()
         try:
             closure = extract.closure()
             connection_id, object_id, object_type = extract.object(closure)
