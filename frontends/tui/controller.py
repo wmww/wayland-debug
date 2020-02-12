@@ -329,7 +329,7 @@ class Controller(interfaces.CommandSink,
     def connection_command(self, arg):
         if arg:
             connection = self._get_connection(arg)
-            if c:
+            if connection:
                 self.current_connection = connection
                 self.out.show('Switched to connection ' + color('1;37', self.current_connection.name()))
                 self.connection_explicitly_selected = True
