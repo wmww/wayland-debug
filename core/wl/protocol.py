@@ -239,16 +239,26 @@ def load_all(out):
     exit(1)
     """
 
+def dump_all():
+    global interfaces
+    interfaces = {}
+
 def get_arg(interface_name, message_name, arg_index):
     if (interface_name, message_name) == ('wl_registry', 'bind'):
         return None # the protocol doesn't match the detected messages
-    if not interface_name in interfaces:
-        return []
-    interface = interfaces[interface_name]
-    if not message_name in interface.messages:
-        raise RuntimeError(str(message_name) + ' is not a message in ' + interface_name)
-    message = interface.messages[message_name]
-    arg = list(message.args.values())[arg_index]
+    interface = interfaces.get(interface_name)
+    if not interface:
+        return None
+    message = interface.messages.get(message_name)
+    if not message:
+        raise RuntimeError(str(message_name) + ' is not a message in ' + str(interface_name))
+    arg_list = list(message.args.values())
+    if arg_index >= len(arg_list):
+        raise RuntimeError(
+            'Tried to access arg ' + str(arg_index) +
+            ' in ' + str(interface_name) + '.' + str(message_name) +
+            ' (which only has ' + str(len(arg_list)) + ' args)')
+    arg = arg_list[arg_index]
     return arg
 
 def get_arg_name(interface_name, message_name, arg_index):
