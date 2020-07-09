@@ -43,8 +43,8 @@
     <!-- Version 2 additions -->
     <request name="conjoin" since="2">
       <description summary="register another fd passer with this one">
-        Tells this fd passer object about another one to send events
-        to for more complicated fd leak tests.
+	Tells this fd passer object about another one to send events
+	to for more complicated fd leak tests.
       </description>
       <arg name="passer" type="object" interface="fd_passer"/>
     </request>
