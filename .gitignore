@@ -1,2 +1,6 @@
 __pycache__
 *.pyc
+test/mock_program/build
+
+# KDevelop project
+*.kdev4
