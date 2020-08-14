@@ -35,16 +35,6 @@ static const struct wl_registry_listener registry_listener = {
     .global_remove = registry_global_remove,
 };
 
-static void _dispatch()
-{
-    while (wl_display_prepare_read(display) != 0)
-    {
-        wl_display_dispatch_pending(display);
-    }
-
-    wl_display_flush(display);
-}
-
 void mock_client_init()
 {
     display = wl_display_connect(socket_name());
@@ -56,19 +46,11 @@ void mock_client_init()
 
     registry = wl_display_get_registry(display);
     wl_registry_add_listener(registry, &registry_listener, NULL);
-
-    _dispatch();
 }
 
-int mock_client_get_display_fd()
+struct wl_display* mock_client_get_display()
 {
-    return wl_display_get_fd(display);
-}
-
-void mock_client_dispatch()
-{
-    wl_display_read_events(display);
-    _dispatch();
+    return display;
 }
 
 void mock_client_deinit()
