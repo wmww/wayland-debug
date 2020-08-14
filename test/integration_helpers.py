@@ -39,3 +39,15 @@ def run(args, error_on_input=False):
     main.main(out, err, args, input_func)
     assert err.buffer == '', err.buffer
     return out.buffer
+
+mock_program_path = 'test/mock_program'
+
+def build_mock_program():
+    assert bin_exists('meson') and bin_exists('ninja'), 'meson and ninja needed to build mock program'
+    build_dir = os.path.join(mock_program_path, 'build')
+    if not os.path.isdir(build_dir):
+        subprocess.run(['meson', 'build'], cwd = mock_program_path).check_returncode()
+    subprocess.run(['ninja', '-C', build_dir]).check_returncode()
+    bin_path = os.path.join(build_dir, 'mock_program')
+    assert os.path.isfile(bin_path)
+    return bin_path

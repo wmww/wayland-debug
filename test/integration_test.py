@@ -3,7 +3,7 @@ import unittest
 
 from integration_helpers import *
 
-class IntegrationTests(unittest.TestCase):
+class PartialIntegrationTests(unittest.TestCase):
     def test_bin_exists_works(self):
         self.assertTrue(bin_exists('ls'))
         self.assertFalse(bin_exists('doesnotexist'))
@@ -27,15 +27,16 @@ class IntegrationTests(unittest.TestCase):
         self.assertIn('get_registry', result)
         self.assertNotIn('create_surface', result)
 
-    @pytest.mark.skipif(not bin_exists('weston-info'), reason='weston-info not installed')
-    def test_gdb_plugin_without_running(self):
-        run(['-g', 'weston-info', '-ex', 'q'], error_on_input=True)
+class MockProgramTests(unittest.TestCase):
+    def setUp(self):
+        self.prog = build_mock_program()
 
-    @pytest.mark.skipif(not bin_exists('weston-info'), reason='weston-info not installed')
-    @pytest.mark.skipif(not wayland_socket_exists(), reason='no Wayland compositor running')
+    def test_gdb_plugin_starts(self):
+        run(['-g', self.prog, '-ex', 'q'], error_on_input=True)
+
     def test_gdb_plugin_runs(self):
         '''
         These tests look nice, but they don't seem to detect any errors inside GDB
         Luckily we also have test_runner.py which does
         '''
-        run(['-g', 'weston-info', '--ex', 'r'], error_on_input=True)
+        run(['-g', self.prog, '--ex', 'r'], error_on_input=True)
