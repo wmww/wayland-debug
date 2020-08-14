@@ -3,13 +3,11 @@
 
 const char* socket_name();
 void mock_server_init();
-struct wl_event_loop* mock_server_get_event_loop();
-void mock_server_run();
+struct wl_display* mock_server_get_display();
 void mock_server_deinit();
 
 void mock_client_init();
-int mock_client_get_display_fd();
-void mock_client_dispatch();
+struct wl_display* mock_client_get_display();
 void mock_client_deinit();
 
 #endif // MOCK_PROGRAM_H

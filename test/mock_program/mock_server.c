@@ -45,20 +45,12 @@ void mock_server_init()
     wl_global_create(display, &wl_compositor_interface, 4, NULL, wl_compositor_bind);
 }
 
-struct wl_event_loop* mock_server_get_event_loop()
+struct wl_display* mock_server_get_display()
 {
-    return wl_display_get_event_loop(display);
-}
-
-void mock_server_run()
-{
-    printf("Running server\n");
-    wl_display_run(display);
-    printf("Server done\n");
+    return display;
 }
 
 void mock_server_deinit()
 {
-    printf("Closing server\n");
     wl_display_destroy(display);
 }
