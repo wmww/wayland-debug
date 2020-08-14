@@ -43,3 +43,8 @@ int main(int argc, const char** argv)
     mock_client_deinit();
     mock_server_deinit();
 }
+
+void mock_program_terminate()
+{
+    wl_display_terminate(mock_server_get_display());
+}

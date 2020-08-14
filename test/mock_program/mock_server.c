@@ -40,8 +40,6 @@ void mock_server_init()
     display = wl_display_create();
     wl_display_add_socket(display, socket_name());
 
-    printf("Server created on display %s\n", socket_name());
-
     wl_global_create(display, &wl_compositor_interface, 4, NULL, wl_compositor_bind);
 }
 

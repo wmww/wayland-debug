@@ -10,4 +10,6 @@ void mock_client_init();
 struct wl_display* mock_client_get_display();
 void mock_client_deinit();
 
+void mock_program_terminate();
+
 #endif // MOCK_PROGRAM_H

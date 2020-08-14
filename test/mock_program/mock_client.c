@@ -20,6 +20,7 @@ static void registry_global(
     if (strcmp(wl_compositor_interface.name, name) == 0)
     {
         compositor = wl_registry_bind(registry, id, &wl_compositor_interface, version);
+        mock_program_terminate();
     }
 }
 
