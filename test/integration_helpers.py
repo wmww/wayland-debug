@@ -25,7 +25,7 @@ def wayland_socket_exists():
 def _raising_input_func(msg):
     raise RuntimeError('Input should not be requested')
 
-def run(args, error_on_input=False):
+def run_main(args, error_on_input=False):
     assert isinstance(args, list)
     main_path = 'main.py'
     assert os.path.isfile(main_path), os.getcwd() + '/' + main_path + ' is not a file'
