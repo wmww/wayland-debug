@@ -2,41 +2,41 @@ import unittest
 from backends.gdb_plugin import runner
 
 class TestRunnerParseArgs(unittest.TestCase):
-    def test_parse_args_no_g(self):
+    def test_without_g_arg(self):
         args = runner.parse_args(['aaa', '-l', 'bbb'])
         self.assertEqual(args, None)
 
-    def test_parse_args_g_simple(self):
+    def test_with_g_arg(self):
         args = runner.parse_args(['aaa', '-g', 'bbb'])
         self.assertTrue(args)
         self.assertEqual(args.wldbg, ['aaa'])
         self.assertEqual(args.gdb, ['bbb'])
 
-    def test_parse_args_g_simple(self):
+    def test_with_gdb_arg(self):
         args = runner.parse_args(['aaa', '--gdb', 'bbb'])
         self.assertTrue(args)
         self.assertEqual(args.wldbg, ['aaa'])
         self.assertEqual(args.gdb, ['bbb'])
 
-    def test_parse_args_g_more_args(self):
+    def test_with_more_args_before_and_after_g(self):
         args = runner.parse_args(['something.py', '-f', 'aaa', '-g', 'bbb', '--nh'])
         self.assertTrue(args)
         self.assertEqual(args.wldbg, ['something.py', '-f', 'aaa'])
         self.assertEqual(args.gdb, ['bbb', '--nh'])
 
-    def test_parse_args_uses_first_g(self):
+    def test_that_parse_args_ignores_subsequent_gs(self):
         args = runner.parse_args(['aaa', '-g', 'bbb', '-g'])
         self.assertTrue(args)
         self.assertEqual(args.wldbg, ['aaa'])
         self.assertEqual(args.gdb, ['bbb', '-g'])
 
-    def test_parse_args_g_in_multi_arg(self):
+    def test_g_detected_when_part_of_compound_arg(self):
         args = runner.parse_args(['aaa', '-vCg', 'bbb'])
         self.assertTrue(args)
         self.assertEqual(args.wldbg, ['aaa', '-vC'])
         self.assertEqual(args.gdb, ['bbb'])
 
-    def test_parse_args_g_in_multi_arg_not_at_end_throws(self):
+    def test_that_parse_args_raises_error_when_g_in_middle_of_compound_arg(self):
         with self.assertRaises(RuntimeError):
             args = runner.parse_args(['aaa', '-vgC', 'bbb'])
 
