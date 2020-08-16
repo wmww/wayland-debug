@@ -7,6 +7,27 @@
 
 static struct wl_display* display;
 
+static void client_disconnect(struct wl_listener *listener, void *data)
+{
+    (void)listener; (void)data;
+    mock_program_terminate();
+}
+
+static struct wl_listener client_disconnect_listener = {
+    .notify = client_disconnect,
+};
+
+static void client_connect(struct wl_listener *listener, void *data)
+{
+    (void)listener;
+    struct wl_client* client = (struct wl_client*)data;
+    wl_client_add_destroy_listener(client, &client_disconnect_listener);
+}
+
+static struct wl_listener client_connect_listener = {
+    .notify = client_connect,
+};
+
 static void compositor_create_surface(struct wl_client* client, struct wl_resource* resource, uint32_t id)
 {
     (void)client; (void)resource; (void)id;
@@ -41,6 +62,8 @@ void mock_server_init()
         printf("Server failed to connect to Wayland display %s\n", socket_name());
         exit(1);
     }
+
+    wl_display_add_client_created_listener(display, &client_connect_listener);
 
     wl_global_create(display, &wl_compositor_interface, 4, NULL, wl_compositor_bind);
 }

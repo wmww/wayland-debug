@@ -81,10 +81,9 @@ def run_in_gdb(wldbg_args, gdb_args, also_run=None):
     gdb_plugin.run_gdb(args)
 
     if also_run:
-        other_process.kill()
         out, _ = other_process.communicate(timeout=1)
         out_str = out.decode('utf-8')
-        if other_process.returncode != -9:
+        if other_process.returncode != 0:
             raise RuntimeError('Server exit code: ' + str(other_process.returncode) + ', Output: ' + out_str)
 
     if os.path.exists(gdb_log_path):
