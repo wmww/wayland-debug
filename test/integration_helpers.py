@@ -38,12 +38,36 @@ def run_main(args):
     assert err.buffer == '', err.buffer
     return out.buffer
 
+def provision_tmp_path():
+    prefix = '/tmp/wldbg-test-'
+    for i in range(100):
+        try:
+            open(prefix + str(i) + '.lock', 'x')
+            return prefix + str(i)
+        except FileExistsError:
+            pass
+    raise RuntimeError('Failed to find a free tmp file (' + prefix + '{0 - 100})')
+
+def release_tmp_path(file_path):
+    assert file_path.startswith('/tmp')
+    if os.path.exists(file_path):
+        os.remove(file_path)
+    os.remove(file_path + '.lock')
+
 def run_in_gdb(wldbg_args, gdb_args):
     assert isinstance(wldbg_args, list)
     assert isinstance(gdb_args, list)
+    tmp_file = provision_tmp_path()
+    gdb_args = ['-ex', 'set logging file ' + tmp_file, '-ex', 'set logging on'] + gdb_args
     args = gdb_plugin.runner.Args([get_main_path()] + wldbg_args, gdb_args)
     gdb_plugin.run_gdb(args)
-    return ''
+    if os.path.exists(tmp_file):
+        with open(tmp_file, 'r') as f:
+            result = f.read()
+    else:
+        result = ''
+    release_tmp_path(tmp_file)
+    return result
 
 mock_program_path = 'test/mock_program'
 
