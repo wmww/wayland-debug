@@ -7,6 +7,7 @@ enum Mode
     MODE_SERVER,
     MODE_CLIENT_AND_SERVER,
     MODE_SIMPLE_CLIENT,
+    MODE_POINTER_MOVE,
 };
 
 extern enum Mode mode;

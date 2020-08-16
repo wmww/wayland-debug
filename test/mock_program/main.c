@@ -26,6 +26,10 @@ struct {
         .mode = MODE_SIMPLE_CLIENT,
         .arg = "simple-client",
     },
+    {
+        .mode = MODE_POINTER_MOVE,
+        .arg = "pointer-move",
+    },
 };
 
 static void client_prepare_read()

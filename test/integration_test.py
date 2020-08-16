@@ -1,5 +1,6 @@
 import pytest
 import unittest
+import re
 
 import integration_helpers as helpers
 
@@ -30,15 +31,11 @@ class MockProgramInGDBTests(unittest.TestCase):
     def run_client_in_gdb(self, mode, wldbg_args=[]):
         return helpers.run_in_gdb(wldbg_args, ['--ex', 'r', '--args', self.prog, mode], [self.prog, 'server'])
 
+    def run_server_in_gdb(self, mode, wldbg_args=[]):
+        return helpers.run_in_gdb(wldbg_args, ['--ex', 'r', '--args', self.prog, 'server'], [self.prog, mode])
+
     def test_gdb_plugin_starts(self):
         helpers.run_in_gdb([], [self.prog, '-ex', 'q'], None)
-
-    def test_server_in_gdb(self):
-        result = helpers.run_in_gdb(
-            [],
-            ['--ex', 'r', '--args', self.prog, 'server'],
-            [self.prog, 'simple-client'])
-        self.assertIn('get_registry', result)
 
     def test_client_and_server_in_gdb(self):
         result = helpers.run_in_gdb(
@@ -54,6 +51,22 @@ class MockProgramInGDBTests(unittest.TestCase):
         '''
         self.run_client_in_gdb('simple-client')
 
-    def test_detects_get_registry(self):
+    def test_detects_get_registry_from_client(self):
         result = self.run_client_in_gdb('simple-client')
         self.assertIn('get_registry', result)
+
+    def test_detects_get_registry_from_server(self):
+        result = self.run_server_in_gdb('simple-client')
+        self.assertIn('get_registry', result)
+
+    def test_correctly_extracts_fixed_point_numbers(self):
+        result = self.run_server_in_gdb('pointer-move')
+        # This list should match test_fixed_sequence in mock_server.c
+        matches = re.findall(r'surface_y=(.*)\)', result)
+        expected_values = [0.0, 1.0, 0.5, -1.0, 280.0, -12.5, 16.3, 425.87, -100000.0, 0.001]
+        self.assertEqual(len(matches), len(expected_values))
+        for i in range(len(matches)):
+            match = float(matches[i])
+            expected = expected_values[i]
+            # TODO: figure out why we're only getting 2 decimal places of accuracy
+            self.assertAlmostEqual(match, expected, places = 2)
