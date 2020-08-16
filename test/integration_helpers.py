@@ -5,6 +5,8 @@ import main
 from backends import gdb_plugin
 from core.output import stream
 
+gdb_log_path = '/tmp/gdb_log.txt'
+
 def short_log_file():
     path = 'resources/libwayland_debug_logs/short.log'
     assert os.path.isfile(path), os.getcwd() + '/' + path + ' is not a file'
@@ -38,21 +40,6 @@ def run_main(args):
     assert err.buffer == '', err.buffer
     return out.buffer
 
-def provision_tmp_path(prefix):
-    for i in range(100):
-        try:
-            open(prefix + str(i) + '.lock', 'x')
-            return prefix + str(i)
-        except FileExistsError:
-            pass
-    raise RuntimeError('Failed to find a free tmp file (' + prefix + '{0 - 100})')
-
-def release_tmp_path(file_path):
-    if os.path.exists(file_path):
-        os.remove(file_path)
-    if os.path.exists(file_path + '.lock'):
-        os.remove(file_path + '.lock')
-
 def run_in_gdb(wldbg_args, gdb_args, also_run=None):
     assert isinstance(wldbg_args, list)
     assert isinstance(gdb_args, list)
@@ -67,10 +54,8 @@ def run_in_gdb(wldbg_args, gdb_args, also_run=None):
         print('XDG_RUNTIME_DIR not set. Setting to ' + tmp_runtime_dir)
         os.environ['XDG_RUNTIME_DIR'] = tmp_runtime_dir
 
-    wayland_display_path = provision_tmp_path(os.environ.get('XDG_RUNTIME_DIR') + '/wayland-wldbg-test-')
+    wayland_display_path = os.environ.get('XDG_RUNTIME_DIR') + '/wayland-wldbg-test'
     os.environ['WAYLAND_DISPLAY'] = os.path.basename(wayland_display_path)
-
-    gdb_log_path = provision_tmp_path('/tmp/wldbg-test-gdb-log-')
 
     gdb_args = ['-ex', 'set logging file ' + gdb_log_path, '-ex', 'set logging on'] + gdb_args
     args = gdb_plugin.runner.Args([get_main_path()] + wldbg_args, gdb_args)
@@ -91,9 +76,6 @@ def run_in_gdb(wldbg_args, gdb_args, also_run=None):
             result = f.read()
     else:
         result = ''
-
-    release_tmp_path(gdb_log_path)
-    release_tmp_path(wayland_display_path)
 
     return result
 
