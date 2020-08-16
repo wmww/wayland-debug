@@ -56,9 +56,15 @@ def run_in_gdb(wldbg_args, gdb_args, also_run):
 
     wayland_display_path = os.environ.get('XDG_RUNTIME_DIR') + '/wayland-wldbg-test'
     os.environ['WAYLAND_DISPLAY'] = os.path.basename(wayland_display_path)
+    if os.path.exists(wayland_display_path):
+        os.remove(wayland_display_path)
+    if os.path.exists(wayland_display_path + '.lock'):
+        os.remove(wayland_display_path + '.lock')
 
     gdb_args = ['-ex', 'set logging file ' + gdb_log_path, '-ex', 'set logging on'] + gdb_args
     args = gdb_plugin.runner.Args([get_main_path()] + wldbg_args, gdb_args)
+    if os.path.exists(gdb_log_path):
+        os.remove(gdb_log_path)
 
     if also_run:
         other_process = subprocess.Popen(also_run, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
