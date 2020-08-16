@@ -41,7 +41,7 @@ void mock_client_init()
     display = wl_display_connect(socket_name());
     if (!display)
     {
-        printf("wayland_proxy_create(): can't connect to host Wayland display %s\n", socket_name());
+        printf("mock_client_init(): can't connect to host Wayland display %s\n", socket_name());
         exit(1);
     }
 

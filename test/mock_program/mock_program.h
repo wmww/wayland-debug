@@ -1,6 +1,16 @@
 #ifndef MOCK_PROGRAM_H
 #define MOCK_PROGRAM_H
 
+enum Mode
+{
+    MODE_INVALID = 0,
+    MODE_SERVER,
+    MODE_CLIENT_AND_SERVER,
+    MODE_SIMPLE_CLIENT,
+};
+
+extern enum Mode mode;
+
 const char* socket_name();
 void mock_server_init();
 struct wl_display* mock_server_get_display();
