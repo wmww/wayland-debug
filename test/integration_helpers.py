@@ -2,6 +2,7 @@ import os
 import subprocess
 
 import main
+from backends import gdb_plugin
 from core.output import stream
 
 def short_log_file():
@@ -22,9 +23,6 @@ def wayland_socket_exists():
         xdg_runtime_dir = '/run/user/1000'
     return os.path.exists(xdg_runtime_dir + '/wayland-0')
 
-def _raising_input_func(msg):
-    raise RuntimeError('Input should not be requested')
-
 def get_main_path():
     main_path = 'main.py'
     assert os.path.isfile(main_path), os.getcwd() + '/' + main_path + ' is not a file'
@@ -43,13 +41,8 @@ def run_main(args):
 def run_in_gdb(wldbg_args, gdb_args):
     assert isinstance(wldbg_args, list)
     assert isinstance(gdb_args, list)
-    args = [get_main_path()] + wldbg_args + ['-g'] + gdb_args
-    out = stream.String()
-    err = stream.String()
-    input_func = _raising_input_func
-    main.main(out, err, args, input_func)
-    assert err.buffer == '', err.buffer
-    assert out.buffer == '', out.buffer
+    args = gdb_plugin.runner.Args([get_main_path()] + wldbg_args, gdb_args)
+    gdb_plugin.run_gdb(args)
     return ''
 
 mock_program_path = 'test/mock_program'
