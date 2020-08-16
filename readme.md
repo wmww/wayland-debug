@@ -111,4 +111,4 @@ WAYLAND_DEBUG=1 program 2>&1 1>/dev/null | ./main.py -f 'wl_pointer, wl_surface[
 ```
 
 ## Running the tests
-Run the python3 version of pytest (`pytest-3` on Ubuntu) in the project's root directory. The integration tests will attempt to build a Wayland C program, so you'll need the Wayland development libraries installed for that to work (`libwayland-dev` on Ubuntu).
+Run the python3 version of pytest (`pytest-3` on Ubuntu) in the project's root directory. The integration tests will attempt to build a Wayland C program, so you'll need the Wayland development libraries as well as meson and ninja. To install all dependencies on Ubuntu run `sudo apt install python3-pytest libwayland-dev gdb meson ninja-build`.

@@ -57,6 +57,14 @@ def release_tmp_path(file_path):
 def run_in_gdb(wldbg_args, gdb_args):
     assert isinstance(wldbg_args, list)
     assert isinstance(gdb_args, list)
+    if not os.environ.get('XDG_RUNTIME_DIR'):
+        tmp_runtime_dir = '/tmp/wldbg-runtime-dir'
+        try:
+            os.mkdir(tmp_runtime_dir)
+        except FileExistsError:
+            pass
+        print('XDG_RUNTIME_DIR not set. Setting to ' + tmp_runtime_dir)
+        os.environ['XDG_RUNTIME_DIR'] = tmp_runtime_dir
     tmp_file = provision_tmp_path()
     gdb_args = ['-ex', 'set logging file ' + tmp_file, '-ex', 'set logging on'] + gdb_args
     args = gdb_plugin.runner.Args([get_main_path()] + wldbg_args, gdb_args)
