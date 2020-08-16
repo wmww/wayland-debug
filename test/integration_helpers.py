@@ -53,9 +53,11 @@ def release_tmp_path(file_path):
     if os.path.exists(file_path + '.lock'):
         os.remove(file_path + '.lock')
 
-def run_in_gdb(wldbg_args, gdb_args):
+def run_in_gdb(wldbg_args, gdb_args, also_run=None):
     assert isinstance(wldbg_args, list)
     assert isinstance(gdb_args, list)
+    assert also_run is None or isinstance(also_run, list)
+
     if not os.environ.get('XDG_RUNTIME_DIR'):
         tmp_runtime_dir = '/tmp/wldbg-runtime-dir'
         try:
@@ -64,19 +66,36 @@ def run_in_gdb(wldbg_args, gdb_args):
             pass
         print('XDG_RUNTIME_DIR not set. Setting to ' + tmp_runtime_dir)
         os.environ['XDG_RUNTIME_DIR'] = tmp_runtime_dir
+
     wayland_display_path = provision_tmp_path(os.environ.get('XDG_RUNTIME_DIR') + '/wayland-wldbg-test-')
     os.environ['WAYLAND_DISPLAY'] = os.path.basename(wayland_display_path)
+
     gdb_log_path = provision_tmp_path('/tmp/wldbg-test-gdb-log-')
+
     gdb_args = ['-ex', 'set logging file ' + gdb_log_path, '-ex', 'set logging on'] + gdb_args
     args = gdb_plugin.runner.Args([get_main_path()] + wldbg_args, gdb_args)
+
+    if also_run:
+        other_process = subprocess.Popen(also_run, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
     gdb_plugin.run_gdb(args)
+
+    if also_run:
+        other_process.kill()
+        out, _ = other_process.communicate(timeout=1)
+        out_str = out.decode('utf-8')
+        if other_process.returncode != -9:
+            raise RuntimeError('Server exit code: ' + str(other_process.returncode) + ', Output: ' + out_str)
+
     if os.path.exists(gdb_log_path):
         with open(gdb_log_path, 'r') as f:
             result = f.read()
     else:
         result = ''
+
     release_tmp_path(gdb_log_path)
     release_tmp_path(wayland_display_path)
+
     return result
 
 mock_program_path = 'test/mock_program'

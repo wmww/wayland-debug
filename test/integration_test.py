@@ -27,8 +27,8 @@ class MockProgramInGDBTests(unittest.TestCase):
     def setUp(self):
         self.prog = helpers.build_mock_program()
 
-    def run_prog_in_gdb(self, mode='client-and-server', wldbg_args=[]):
-        return helpers.run_in_gdb(wldbg_args, ['--ex', 'r', '--args', self.prog, mode])
+    def run_prog_in_gdb(self, mode='simple-client', wldbg_args=[]):
+        return helpers.run_in_gdb(wldbg_args, ['--ex', 'r', '--args', self.prog, mode], [self.prog, 'server'])
 
     def test_gdb_plugin_starts(self):
         helpers.run_in_gdb([], [self.prog, '-ex', 'q'])
