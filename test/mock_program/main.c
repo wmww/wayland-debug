@@ -158,7 +158,6 @@ const char* socket_name()
         printf("Error: WAYLAND_DISPLAY not set\n");
         exit(1);
     }
-    printf("Wayland display: %s\n", result);
     return result;
 }
 

@@ -27,19 +27,26 @@ class MockProgramInGDBTests(unittest.TestCase):
     def setUp(self):
         self.prog = helpers.build_mock_program()
 
-    def run_prog_in_gdb(self, mode='simple-client', wldbg_args=[]):
+    def run_client_in_gdb(self, mode, wldbg_args=[]):
         return helpers.run_in_gdb(wldbg_args, ['--ex', 'r', '--args', self.prog, mode], [self.prog, 'server'])
 
     def test_gdb_plugin_starts(self):
         helpers.run_in_gdb([], [self.prog, '-ex', 'q'])
+
+    def test_server_in_gdb(self):
+        result = helpers.run_in_gdb(
+            [],
+            ['--ex', 'r', '--args', self.prog, 'server'],
+            [self.prog, 'simple-client'])
+        self.assertIn('get_registry', result)
 
     def test_gdb_plugin_runs(self):
         '''
         These tests look nice, but they don't seem to detect any errors inside GDB
         Luckily we also have test_runner.py which does
         '''
-        self.run_prog_in_gdb()
+        self.run_client_in_gdb('simple-client')
 
     def test_detects_get_registry(self):
-        result = self.run_prog_in_gdb()
+        result = self.run_client_in_gdb('simple-client')
         self.assertIn('get_registry', result)

@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
+#include <sys/time.h>
 
 #include "mock_program.h"
 
@@ -38,7 +40,21 @@ static const struct wl_registry_listener registry_listener = {
 
 void mock_client_init()
 {
-    display = wl_display_connect(socket_name());
+    for (int i = 0; i < 100; i++)
+    {
+        display = wl_display_connect(socket_name());
+        if (display)
+        {
+            break;
+        }
+
+        static const struct timespec sleep_time = {
+            .tv_sec = 0,
+            .tv_nsec = 50000000,
+        };
+        nanosleep(&sleep_time, NULL);
+    };
+
     if (!display)
     {
         printf("mock_client_init(): can't connect to host Wayland display %s\n", socket_name());
