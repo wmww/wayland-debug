@@ -38,8 +38,7 @@ def run_main(args):
     assert err.buffer == '', err.buffer
     return out.buffer
 
-def provision_tmp_path():
-    prefix = '/tmp/wldbg-test-'
+def provision_tmp_path(prefix):
     for i in range(100):
         try:
             open(prefix + str(i) + '.lock', 'x')
@@ -49,10 +48,10 @@ def provision_tmp_path():
     raise RuntimeError('Failed to find a free tmp file (' + prefix + '{0 - 100})')
 
 def release_tmp_path(file_path):
-    assert file_path.startswith('/tmp')
     if os.path.exists(file_path):
         os.remove(file_path)
-    os.remove(file_path + '.lock')
+    if os.path.exists(file_path + '.lock'):
+        os.remove(file_path + '.lock')
 
 def run_in_gdb(wldbg_args, gdb_args):
     assert isinstance(wldbg_args, list)
@@ -65,16 +64,19 @@ def run_in_gdb(wldbg_args, gdb_args):
             pass
         print('XDG_RUNTIME_DIR not set. Setting to ' + tmp_runtime_dir)
         os.environ['XDG_RUNTIME_DIR'] = tmp_runtime_dir
-    tmp_file = provision_tmp_path()
-    gdb_args = ['-ex', 'set logging file ' + tmp_file, '-ex', 'set logging on'] + gdb_args
+    wayland_display_path = provision_tmp_path(os.environ.get('XDG_RUNTIME_DIR') + '/wayland-wldbg-test-')
+    os.environ['WAYLAND_DISPLAY'] = os.path.basename(wayland_display_path)
+    gdb_log_path = provision_tmp_path('/tmp/wldbg-test-gdb-log-')
+    gdb_args = ['-ex', 'set logging file ' + gdb_log_path, '-ex', 'set logging on'] + gdb_args
     args = gdb_plugin.runner.Args([get_main_path()] + wldbg_args, gdb_args)
     gdb_plugin.run_gdb(args)
-    if os.path.exists(tmp_file):
-        with open(tmp_file, 'r') as f:
+    if os.path.exists(gdb_log_path):
+        with open(gdb_log_path, 'r') as f:
             result = f.read()
     else:
         result = ''
-    release_tmp_path(tmp_file)
+    release_tmp_path(gdb_log_path)
+    release_tmp_path(wayland_display_path)
     return result
 
 mock_program_path = 'test/mock_program'

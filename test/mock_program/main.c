@@ -150,6 +150,18 @@ int main(int argc, const char** argv)
     }
 }
 
+const char* socket_name()
+{
+    const char* result = getenv("WAYLAND_DISPLAY");
+    if (!result)
+    {
+        printf("Error: WAYLAND_DISPLAY not set\n");
+        exit(1);
+    }
+    printf("Wayland display: %s\n", result);
+    return result;
+}
+
 void mock_program_terminate()
 {
     switch (mode)

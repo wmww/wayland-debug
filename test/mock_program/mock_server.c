@@ -1,13 +1,11 @@
 #include <wayland-server.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
+
+#include "mock_program.h"
 
 static struct wl_display* display;
-
-const char* socket_name()
-{
-    return "wayland-debug-mock";
-}
 
 static void compositor_create_surface(struct wl_client* client, struct wl_resource* resource, uint32_t id)
 {
@@ -38,7 +36,11 @@ static void wl_compositor_bind(struct wl_client* client, void* data, uint32_t ve
 void mock_server_init()
 {
     display = wl_display_create();
-    wl_display_add_socket(display, socket_name());
+    if (wl_display_add_socket(display, socket_name()) != 0)
+    {
+        printf("Server failed to connect to Wayland display %s\n", socket_name());
+        exit(1);
+    }
 
     wl_global_create(display, &wl_compositor_interface, 4, NULL, wl_compositor_bind);
 }
