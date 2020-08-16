@@ -6,7 +6,7 @@ project('layer-shell-proxy',
     default_options: ['c_std=gnu11', 'warning_level=3'])
 
 add_project_arguments(
-    ['-Wno-pedantic'],
+    ['-Wno-pedantic', '-Wno-unused-parameter'],
     language: 'c')
 
 wayland_client = dependency('wayland-client', version: '>=1.10.0')

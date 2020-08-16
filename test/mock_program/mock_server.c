@@ -7,6 +7,8 @@
 
 static struct wl_display* display;
 
+#define FATAL_NOT_IMPL printf("fatal: %s() not implemented", __func__); exit(1)
+
 static void client_disconnect(struct wl_listener *listener, void *data)
 {
     (void)listener; (void)data;
@@ -30,16 +32,12 @@ static struct wl_listener client_connect_listener = {
 
 static void compositor_create_surface(struct wl_client* client, struct wl_resource* resource, uint32_t id)
 {
-    (void)client; (void)resource; (void)id;
-    printf("fatal: wl_compositor.create_surface() not implemented");
-    exit(1);
+    FATAL_NOT_IMPL;
 }
 
 static void compositor_create_region(struct wl_client * client, struct wl_resource * resource, uint32_t id)
 {
-    (void)client; (void)resource; (void)id;
-    printf("fatal: wl_compositor.create_region() not implemented");
-    exit(1);
+    FATAL_NOT_IMPL;
 }
 
 static const struct wl_compositor_interface compositor_interface = {
@@ -47,7 +45,14 @@ static const struct wl_compositor_interface compositor_interface = {
     .create_region = compositor_create_region,
 };
 
-static void wl_compositor_bind(struct wl_client* client, void* data, uint32_t version, uint32_t id)
+static void compositor_bind(struct wl_client* client, void* data, uint32_t version, uint32_t id)
+{
+    (void)data;
+    struct wl_resource* resource = wl_resource_create(client, &wl_compositor_interface, version, id);
+    wl_resource_set_implementation(resource, &compositor_interface, NULL, NULL);
+};
+
+static void seat_bind(struct wl_client* client, void* data, uint32_t version, uint32_t id)
 {
     (void)data;
     struct wl_resource* resource = wl_resource_create(client, &wl_compositor_interface, version, id);
@@ -65,7 +70,7 @@ void mock_server_init()
 
     wl_display_add_client_created_listener(display, &client_connect_listener);
 
-    wl_global_create(display, &wl_compositor_interface, 4, NULL, wl_compositor_bind);
+    wl_global_create(display, &wl_compositor_interface, 4, NULL, compositor_bind);
 }
 
 struct wl_display* mock_server_get_display()
