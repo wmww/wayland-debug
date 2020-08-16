@@ -3,11 +3,7 @@ import unittest
 
 import integration_helpers as helpers
 
-class PartialIntegrationTests(unittest.TestCase):
-    def test_bin_exists_works(self):
-        self.assertTrue(helpers.bin_exists('ls'))
-        self.assertFalse(helpers.bin_exists('doesnotexist'))
-
+class FileLoadTests(unittest.TestCase):
     def test_load_from_file_doesnt_crash(self):
         helpers.run_main(['-l', helpers.short_log_file()])
 
@@ -27,16 +23,16 @@ class PartialIntegrationTests(unittest.TestCase):
         self.assertIn('get_registry', result)
         self.assertNotIn('create_surface', result)
 
-class MockProgramTests(unittest.TestCase):
+class MockProgramInGDBTests(unittest.TestCase):
     def setUp(self):
         self.prog = helpers.build_mock_program()
 
     def test_gdb_plugin_starts(self):
-        helpers.run_main(['-g', self.prog, '-ex', 'q'], error_on_input=True)
+        helpers.run_in_gdb([], [self.prog, '-ex', 'q'])
 
     def test_gdb_plugin_runs(self):
         '''
         These tests look nice, but they don't seem to detect any errors inside GDB
         Luckily we also have test_runner.py which does
         '''
-        helpers.run_main(['-g', self.prog, '--ex', 'r'], error_on_input=True)
+        helpers.run_in_gdb([], [self.prog, '--ex', 'r'])

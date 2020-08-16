@@ -25,20 +25,32 @@ def wayland_socket_exists():
 def _raising_input_func(msg):
     raise RuntimeError('Input should not be requested')
 
-def run_main(args, error_on_input=False):
-    assert isinstance(args, list)
+def get_main_path():
     main_path = 'main.py'
     assert os.path.isfile(main_path), os.getcwd() + '/' + main_path + ' is not a file'
-    args = [main_path] + args
+    return main_path
+
+def run_main(args):
+    assert isinstance(args, list)
+    args = [get_main_path()] + args
     out = stream.String()
     err = stream.String()
-    if error_on_input:
-        input_func = _raising_input_func
-    else:
-        input_func = lambda msg: 'q'
+    input_func = lambda msg: 'q'
     main.main(out, err, args, input_func)
     assert err.buffer == '', err.buffer
     return out.buffer
+
+def run_in_gdb(wldbg_args, gdb_args):
+    assert isinstance(wldbg_args, list)
+    assert isinstance(gdb_args, list)
+    args = [get_main_path()] + wldbg_args + ['-g'] + gdb_args
+    out = stream.String()
+    err = stream.String()
+    input_func = _raising_input_func
+    main.main(out, err, args, input_func)
+    assert err.buffer == '', err.buffer
+    assert out.buffer == '', out.buffer
+    return ''
 
 mock_program_path = 'test/mock_program'
 
