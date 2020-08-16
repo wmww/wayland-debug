@@ -27,6 +27,9 @@ class MockProgramInGDBTests(unittest.TestCase):
     def setUp(self):
         self.prog = helpers.build_mock_program()
 
+    def run_prog_in_gdb(self, wldbg_args=[]):
+        return helpers.run_in_gdb(wldbg_args, [self.prog, '--ex', 'r'])
+
     def test_gdb_plugin_starts(self):
         helpers.run_in_gdb([], [self.prog, '-ex', 'q'])
 
@@ -35,4 +38,8 @@ class MockProgramInGDBTests(unittest.TestCase):
         These tests look nice, but they don't seem to detect any errors inside GDB
         Luckily we also have test_runner.py which does
         '''
-        helpers.run_in_gdb([], [self.prog, '--ex', 'r'])
+        self.run_prog_in_gdb()
+
+    def test_detects_get_registry(self):
+        result = self.run_prog_in_gdb()
+        self.assertIn('get_registry', result)
