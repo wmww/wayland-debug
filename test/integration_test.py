@@ -31,13 +31,20 @@ class MockProgramInGDBTests(unittest.TestCase):
         return helpers.run_in_gdb(wldbg_args, ['--ex', 'r', '--args', self.prog, mode], [self.prog, 'server'])
 
     def test_gdb_plugin_starts(self):
-        helpers.run_in_gdb([], [self.prog, '-ex', 'q'])
+        helpers.run_in_gdb([], [self.prog, '-ex', 'q'], None)
 
     def test_server_in_gdb(self):
         result = helpers.run_in_gdb(
             [],
             ['--ex', 'r', '--args', self.prog, 'server'],
             [self.prog, 'simple-client'])
+        self.assertIn('get_registry', result)
+
+    def test_client_and_server_in_gdb(self):
+        result = helpers.run_in_gdb(
+            [],
+            ['--ex', 'r', '--args', self.prog, 'client-and-server'],
+            None)
         self.assertIn('get_registry', result)
 
     def test_gdb_plugin_runs(self):

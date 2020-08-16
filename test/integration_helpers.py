@@ -40,7 +40,7 @@ def run_main(args):
     assert err.buffer == '', err.buffer
     return out.buffer
 
-def run_in_gdb(wldbg_args, gdb_args, also_run=None):
+def run_in_gdb(wldbg_args, gdb_args, also_run):
     assert isinstance(wldbg_args, list)
     assert isinstance(gdb_args, list)
     assert also_run is None or isinstance(also_run, list)
