@@ -4,6 +4,7 @@ import subprocess
 import main
 from backends import gdb_plugin
 from core.output import stream
+from core.util import no_color
 
 gdb_log_path = '/tmp/gdb_log.txt'
 
@@ -80,6 +81,7 @@ def run_in_gdb(wldbg_args, gdb_args, also_run):
     if os.path.exists(gdb_log_path):
         with open(gdb_log_path, 'r') as f:
             result = f.read()
+            result = no_color(result) # I *think* Ubuntu 20.04 GDB strips color itself, but 18.04 GDB does not
     else:
         result = ''
 
