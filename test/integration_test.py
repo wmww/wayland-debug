@@ -4,6 +4,9 @@ import re
 
 import integration_helpers as helpers
 
+# This list should match test_fixed_sequence in mock_server.c
+test_fixed_sequence = [0.0, 1.0, 0.5, -1.0, 280.0, -12.5, 16.3, 425.87, -100000.0, 0.001]
+
 class FileLoadTests(unittest.TestCase):
     def test_load_from_file_doesnt_crash(self):
         helpers.run_main(['-l', helpers.short_log_file()])
@@ -60,14 +63,21 @@ class MockProgramInGDBTests(unittest.TestCase):
         result = self.run_server_in_gdb('simple-client')
         self.assertIn('get_registry', result)
 
-    def test_correctly_extracts_fixed_point_numbers(self):
+    def test_extracts_fixed_point_numbers_with_low_accuracy(self):
         result = self.run_server_in_gdb('pointer-move')
-        # This list should match test_fixed_sequence in mock_server.c
         matches = re.findall(r'surface_y=(.*)\)', result)
-        expected_values = [0.0, 1.0, 0.5, -1.0, 280.0, -12.5, 16.3, 425.87, -100000.0, 0.001]
-        self.assertEqual(len(matches), len(expected_values))
+        self.assertEqual(len(matches), len(test_fixed_sequence))
         for i in range(len(matches)):
             match = float(matches[i])
-            expected = expected_values[i]
-            # TODO: figure out why we're only getting 2 decimal places of accuracy
+            expected = test_fixed_sequence[i]
             self.assertAlmostEqual(match, expected, places = 2)
+
+    @pytest.mark.xfail(reason='see https://github.com/wmww/wayland-debug/issues/24')
+    def test_extracts_fixed_point_numbers_with_high_accuracy(self):
+        result = self.run_server_in_gdb('pointer-move')
+        matches = re.findall(r'surface_y=(.*)\)', result)
+        self.assertEqual(len(matches), len(test_fixed_sequence))
+        for i in range(len(matches)):
+            match = float(matches[i])
+            expected = test_fixed_sequence[i]
+            self.assertAlmostEqual(match, expected, places = 5)
