@@ -104,7 +104,7 @@ int main(int argc, const char** argv)
     wl_display_add_client_created_listener(display, &client_connect_listener);
 
     wl_global_create(display, &wl_compositor_interface, 4, NULL, compositor_bind);
-    wl_global_create(display, &wl_seat_interface, 7, NULL, seat_bind);
+    wl_global_create(display, &wl_seat_interface, 6, NULL, seat_bind);
 
     wl_display_run(display);
 
