@@ -56,15 +56,13 @@ static void registry_global(
             pointer = wl_seat_get_pointer(seat);
             wl_pointer_add_listener(pointer, &pointer_listener, NULL);
             wl_display_roundtrip(display);
-            mock_program_terminate();
         }
     }
 
-    if (mode != MODE_CLIENT_AND_SERVER)
+    if (mode == MODE_CLIENT_AND_SERVER)
     {
-        wl_display_roundtrip(display); // Causes problems when the server is running on the same event loop
+        mock_program_terminate();
     }
-    mock_program_terminate();
 }
 
 static void registry_global_remove(void* data, struct wl_registry* registry, uint32_t id)
@@ -103,6 +101,12 @@ void mock_client_init()
 
     registry = wl_display_get_registry(display);
     wl_registry_add_listener(registry, &registry_listener, NULL);
+
+    if (mode != MODE_CLIENT_AND_SERVER)
+    {
+        wl_display_roundtrip(display);
+        mock_program_terminate();
+    }
 }
 
 void mock_client_main()
