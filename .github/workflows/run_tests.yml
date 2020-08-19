@@ -20,6 +20,12 @@ jobs:
         sudo apt install ubuntu-dbgsym-keyring && \
         sudo apt update
     - name: Install dependencies
-      run: sudo apt install python3 python3-pytest libwayland-dev libwayland-server0-dbgsym libwayland-client0-dbgsym gdb meson ninja-build
+      run: >-
+        sudo apt install
+        python3 python3-pytest
+        libwayland-dev wayland-protocols
+        libwayland-server0-dbgsym libwayland-client0-dbgsym
+        gdb meson ninja-build
     - name: Run tests
       run: pytest-3
+      timeout-minutes: 5

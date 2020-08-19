@@ -4,6 +4,9 @@ import subprocess
 import main
 from backends import gdb_plugin
 from core.output import stream
+from core.util import no_color
+
+gdb_log_path = '/tmp/gdb_log.txt'
 
 def short_log_file():
     path = 'resources/libwayland_debug_logs/short.log'
@@ -38,25 +41,11 @@ def run_main(args):
     assert err.buffer == '', err.buffer
     return out.buffer
 
-def provision_tmp_path():
-    prefix = '/tmp/wldbg-test-'
-    for i in range(100):
-        try:
-            open(prefix + str(i) + '.lock', 'x')
-            return prefix + str(i)
-        except FileExistsError:
-            pass
-    raise RuntimeError('Failed to find a free tmp file (' + prefix + '{0 - 100})')
-
-def release_tmp_path(file_path):
-    assert file_path.startswith('/tmp')
-    if os.path.exists(file_path):
-        os.remove(file_path)
-    os.remove(file_path + '.lock')
-
-def run_in_gdb(wldbg_args, gdb_args):
+def run_in_gdb(wldbg_args, gdb_args, also_run):
     assert isinstance(wldbg_args, list)
     assert isinstance(gdb_args, list)
+    assert also_run is None or isinstance(also_run, list)
+
     if not os.environ.get('XDG_RUNTIME_DIR'):
         tmp_runtime_dir = '/tmp/wldbg-runtime-dir'
         try:
@@ -65,16 +54,37 @@ def run_in_gdb(wldbg_args, gdb_args):
             pass
         print('XDG_RUNTIME_DIR not set. Setting to ' + tmp_runtime_dir)
         os.environ['XDG_RUNTIME_DIR'] = tmp_runtime_dir
-    tmp_file = provision_tmp_path()
-    gdb_args = ['-ex', 'set logging file ' + tmp_file, '-ex', 'set logging on'] + gdb_args
+
+    wayland_display_path = os.environ.get('XDG_RUNTIME_DIR') + '/wayland-wldbg-test'
+    os.environ['WAYLAND_DISPLAY'] = os.path.basename(wayland_display_path)
+    if os.path.exists(wayland_display_path):
+        os.remove(wayland_display_path)
+    if os.path.exists(wayland_display_path + '.lock'):
+        os.remove(wayland_display_path + '.lock')
+
+    gdb_args = ['-ex', 'set logging file ' + gdb_log_path, '-ex', 'set logging on'] + gdb_args
     args = gdb_plugin.runner.Args([get_main_path()] + wldbg_args, gdb_args)
+    if os.path.exists(gdb_log_path):
+        os.remove(gdb_log_path)
+
+    if also_run:
+        other_process = subprocess.Popen(also_run, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
     gdb_plugin.run_gdb(args)
-    if os.path.exists(tmp_file):
-        with open(tmp_file, 'r') as f:
+
+    if also_run:
+        out, _ = other_process.communicate(timeout=1)
+        out_str = out.decode('utf-8')
+        if other_process.returncode != 0:
+            raise RuntimeError('Server exit code: ' + str(other_process.returncode) + ', Output: ' + out_str)
+
+    if os.path.exists(gdb_log_path):
+        with open(gdb_log_path, 'r') as f:
             result = f.read()
+            result = no_color(result) # I *think* Ubuntu 20.04 GDB strips color itself, but 18.04 GDB does not
     else:
         result = ''
-    release_tmp_path(tmp_file)
+
     return result
 
 mock_program_path = 'test/mock_program'
@@ -85,6 +95,9 @@ def build_mock_program():
     if not os.path.isdir(build_dir):
         subprocess.run(['meson', 'build'], cwd = mock_program_path).check_returncode()
     subprocess.run(['ninja', '-C', build_dir]).check_returncode()
-    bin_path = os.path.join(build_dir, 'mock_program')
-    assert os.path.isfile(bin_path)
-    return bin_path
+    bin_paths = (
+        os.path.join(build_dir, 'mock-client'),
+        os.path.join(build_dir, 'mock-server'))
+    for path in bin_paths:
+        assert os.path.isfile(path)
+    return bin_paths
