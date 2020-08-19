@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "mock_program.h"
+#include "common.h"
 
 static struct wl_display* display;
 
@@ -13,7 +13,7 @@ static const double test_fixed_sequence[] = {0.0, 1.0, 0.5, -1.0, 280.0, -12.5, 
 
 static void client_disconnect(struct wl_listener *listener, void *data)
 {
-    mock_program_terminate();
+    wl_display_terminate(display);
 }
 
 static struct wl_listener client_disconnect_listener = {
@@ -92,29 +92,23 @@ static void seat_bind(struct wl_client* client, void* data, uint32_t version, ui
     wl_resource_set_implementation(resource, &seat_interface, NULL, NULL);
 };
 
-void mock_server_init()
+int main(int argc, const char** argv)
 {
     display = wl_display_create();
-    if (wl_display_add_socket(display, socket_name()) != 0)
+    if (wl_display_add_socket(display, get_display_name()) != 0)
     {
-        printf("Server failed to connect to Wayland display %s\n", socket_name());
+        printf("Server failed to connect to Wayland display %s\n", get_display_name());
         exit(1);
     }
 
     wl_display_add_client_created_listener(display, &client_connect_listener);
 
     wl_global_create(display, &wl_compositor_interface, 4, NULL, compositor_bind);
-    printf("Created compositor\n");
     wl_global_create(display, &wl_seat_interface, 7, NULL, seat_bind);
-    printf("Created seat\n");
-}
 
-struct wl_display* mock_server_get_display()
-{
-    return display;
-}
+    wl_display_run(display);
 
-void mock_server_deinit()
-{
     wl_display_destroy(display);
+
+    return 0;
 }

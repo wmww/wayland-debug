@@ -2,10 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
-#include <sys/time.h>
 
-#include "mock_program.h"
+#include "client_args.h"
+#include "common.h"
 
 static struct wl_display* display;
 static struct wl_registry* registry;
@@ -58,11 +57,6 @@ static void registry_global(
             wl_display_roundtrip(display);
         }
     }
-
-    if (mode == MODE_CLIENT_AND_SERVER)
-    {
-        mock_program_terminate();
-    }
 }
 
 static void registry_global_remove(void* data, struct wl_registry* registry, uint32_t id)
@@ -76,50 +70,33 @@ static const struct wl_registry_listener registry_listener = {
     .global_remove = registry_global_remove,
 };
 
-void mock_client_init()
+int main(int argc, const char** argv)
 {
-    for (int i = 0; i < 100; i++)
+    parse_args(argc, argv);
+
+    // Wait 5 seconds for server to appear
+    const int wait_time_ms = 5000;
+    const int check_interval_ms = 50;
+    // We don't account for time not spent sleeping but who cares
+    for (int t = 0; t < wait_time_ms; t += check_interval_ms)
     {
-        display = wl_display_connect(socket_name());
-        if (display)
+        if ((display = wl_display_connect(get_display_name())))
         {
             break;
         }
 
-        static const struct timespec sleep_time = {
-            .tv_sec = 0,
-            .tv_nsec = 50000000,
-        };
-        nanosleep(&sleep_time, NULL);
+        sleep_for_ms(check_interval_ms);
     };
 
     if (!display)
     {
-        printf("mock_client_init(): can't connect to host Wayland display %s\n", socket_name());
+        printf("mock_client_init(): can't connect to host Wayland display %s\n", get_display_name());
         exit(1);
     }
 
     registry = wl_display_get_registry(display);
     wl_registry_add_listener(registry, &registry_listener, NULL);
+    wl_display_roundtrip(display);
 
-    if (mode != MODE_CLIENT_AND_SERVER)
-    {
-        wl_display_roundtrip(display);
-        mock_program_terminate();
-    }
-}
-
-void mock_client_main()
-{
-    mock_program_terminate();
-}
-
-struct wl_display* mock_client_get_display()
-{
-    return display;
-}
-
-void mock_client_deinit()
-{
     wl_display_disconnect(display);
 }

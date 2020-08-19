@@ -26,23 +26,24 @@ class FileLoadTests(unittest.TestCase):
 
 class MockProgramInGDBTests(unittest.TestCase):
     def setUp(self):
-        self.prog = helpers.build_mock_program()
+        mock_client, mock_server = helpers.build_mock_program()
+        self.mock_client = mock_client
+        self.mock_server = mock_server
 
     def run_client_in_gdb(self, mode, wldbg_args=[]):
-        return helpers.run_in_gdb(wldbg_args, ['--ex', 'r', '--args', self.prog, mode], [self.prog, 'server'])
+        return helpers.run_in_gdb(
+            wldbg_args,
+            ['--ex', 'r', '--args', self.mock_client, mode],
+            [self.mock_server])
 
     def run_server_in_gdb(self, mode, wldbg_args=[]):
-        return helpers.run_in_gdb(wldbg_args, ['--ex', 'r', '--args', self.prog, 'server'], [self.prog, mode])
+        return helpers.run_in_gdb(
+            wldbg_args,
+            ['--ex', 'r', '--args', self.mock_server],
+            [self.mock_client, mode])
 
     def test_gdb_plugin_starts(self):
-        helpers.run_in_gdb([], [self.prog, '-ex', 'q'], None)
-
-    def test_client_and_server_in_gdb(self):
-        result = helpers.run_in_gdb(
-            [],
-            ['--ex', 'r', '--args', self.prog, 'client-and-server'],
-            None)
-        self.assertIn('get_registry', result)
+        helpers.run_in_gdb([], [self.mock_client, '-ex', 'q'], None)
 
     def test_gdb_plugin_runs(self):
         '''

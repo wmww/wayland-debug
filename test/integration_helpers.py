@@ -93,6 +93,9 @@ def build_mock_program():
     if not os.path.isdir(build_dir):
         subprocess.run(['meson', 'build'], cwd = mock_program_path).check_returncode()
     subprocess.run(['ninja', '-C', build_dir]).check_returncode()
-    bin_path = os.path.join(build_dir, 'mock_program')
-    assert os.path.isfile(bin_path)
-    return bin_path
+    bin_paths = (
+        os.path.join(build_dir, 'mock-client'),
+        os.path.join(build_dir, 'mock-server'))
+    for path in bin_paths:
+        assert os.path.isfile(path)
+    return bin_paths
