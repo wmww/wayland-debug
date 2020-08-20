@@ -97,7 +97,6 @@ static void registry_global(
         {
             pointer = wl_seat_get_pointer(seat);
             wl_pointer_add_listener(pointer, &pointer_listener, NULL);
-            wl_display_roundtrip(display);
         }
     }
     else if (strcmp(wl_data_device_manager_interface.name, name) == 0)
@@ -158,6 +157,7 @@ int main(int argc, const char** argv)
 
     registry = wl_display_get_registry(display);
     wl_registry_add_listener(registry, &registry_listener, NULL);
+    wl_display_roundtrip(display);
     wl_display_roundtrip(display);
 
     wl_display_disconnect(display);

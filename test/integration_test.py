@@ -65,6 +65,10 @@ class MockProgramInGDBTests(unittest.TestCase):
         self.assertIn('get_registry', result)
         self.assertIn('global', result)
 
+    def test_extracts_enum_values(self):
+        result = self.run_server_in_gdb('simple-client')
+        self.assertIn('capabilities=5:pointer&touch', result)
+
     def test_extracts_fixed_point_numbers_with_low_accuracy(self):
         result = self.run_server_in_gdb('pointer-move')
         matches = re.findall(r'surface_y=(.*)\)', result)

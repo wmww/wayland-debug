@@ -114,6 +114,7 @@ static void seat_bind(struct wl_client* client, void* data, uint32_t version, ui
 {
     seat = wl_resource_create(client, &wl_seat_interface, version, id);
     wl_resource_set_implementation(seat, &seat_interface, NULL, NULL);
+    wl_seat_send_capabilities(seat, WL_SEAT_CAPABILITY_POINTER | WL_SEAT_CAPABILITY_TOUCH);
 };
 
 void data_device_manager_create_data_source(struct wl_client *client, struct wl_resource *resource, uint32_t id)
