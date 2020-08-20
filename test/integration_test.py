@@ -58,10 +58,12 @@ class MockProgramInGDBTests(unittest.TestCase):
     def test_detects_get_registry_from_client(self):
         result = self.run_client_in_gdb('simple-client')
         self.assertIn('get_registry', result)
+        self.assertIn('global', result)
 
     def test_detects_get_registry_from_server(self):
         result = self.run_server_in_gdb('simple-client')
         self.assertIn('get_registry', result)
+        self.assertIn('global', result)
 
     def test_extracts_fixed_point_numbers_with_low_accuracy(self):
         result = self.run_server_in_gdb('pointer-move')
@@ -81,3 +83,29 @@ class MockProgramInGDBTests(unittest.TestCase):
             match = float(matches[i])
             expected = test_fixed_sequence[i]
             self.assertAlmostEqual(match, expected, places = 5)
+
+    def check_result_of_server_created_obj(self, result):
+        matches = re.findall(r'new wl_data_offer@(.*)\.\d+', result)
+        self.assertEqual(len(matches), 1)
+        data_offer_id = matches[0]
+        matches = re.findall(r'.*wl_data_offer@(.*)\..*mock-meme-type', result)
+        self.assertEqual(len(matches), 1)
+        self.assertEqual(matches[0], data_offer_id)
+
+    def test_client_with_server_created_obj(self):
+        result = self.run_client_in_gdb('server-created-obj')
+        self.check_result_of_server_created_obj(result)
+
+    def test_server_with_server_created_obj(self):
+        result = self.run_server_in_gdb('server-created-obj')
+        self.check_result_of_server_created_obj(result)
+
+    def test_client_with_dispatcher(self):
+        result = self.run_client_in_gdb('dispatcher')
+        self.assertIn('attach', result)
+        self.assertIn('enter', result)
+
+    def test_server_with_dispatcher(self):
+        result = self.run_server_in_gdb('dispatcher')
+        self.assertIn('attach', result)
+        self.assertIn('enter', result)

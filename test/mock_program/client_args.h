@@ -7,6 +7,8 @@ enum Mode
     MODE_INVALID = 0,
     MODE_SIMPLE_CLIENT,
     MODE_POINTER_MOVE,
+    MODE_DISPATCHER,
+    MODE_SERVER_CREATED_OBJ,
 };
 
 extern enum Mode mode;

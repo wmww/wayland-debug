@@ -3,6 +3,7 @@ import re
 import os
 import types
 import logging
+import time
 
 def check_gdb():
     '''Check if the gdb module is available, and thus if we are inside a running instance of GDB'''
@@ -110,6 +111,9 @@ def new_disseminator_of_type(Listener, *args, **kwargs):
     if not hasattr(Listener, 'Disseminator'):
         generate_disseminator(Listener)
     return Listener.Disseminator(*args, **kwargs)
+
+def time_now():
+    return time.perf_counter()
 
 if __name__ == '__main__':
     print('File meant to be imported, not run')

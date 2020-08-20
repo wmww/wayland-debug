@@ -1,16 +1,13 @@
-import time
 import logging
 import gdb
 
 import interfaces
 from core import wl, output, PersistentUIState
+from core.util import time_now
 from . import libwayland_symbols
 from . import extract
 
 logger = logging.getLogger(__name__)
-
-def time_now():
-    return time.perf_counter()
 
 class Stream(output.stream.Base):
     def __init__(self, stream):
@@ -59,12 +56,12 @@ class WlConnectionCreateBreakpoint(gdb.Breakpoint):
             return False
 
 class WlClosureCallBreakpoint(gdb.Breakpoint):
-    def __init__(self, plugin, name, is_sending):
-        super().__init__('wl_closure_' + name, internal=True)
+    def __init__(self, plugin, name, message_extractor):
+        super().__init__(name, internal=True)
         self.plugin = plugin
-        self.is_sending = is_sending
+        self.message_extractor = message_extractor
     def stop(self):
-        self.plugin.process_message(self.is_sending)
+        self.plugin.process_message(self.message_extractor)
         return self.plugin.paused()
 
 class WlCommand(gdb.Command):
@@ -116,10 +113,10 @@ class Plugin:
             self.out.warn('See https://github.com/wmww/wayland-debug/blob/master/libwayland_debug_symbols.md for more information')
         WlConnectionCreateBreakpoint(self)
         WlConnectionDestroyBreakpoint(self)
-        WlClosureCallBreakpoint(self, 'invoke', False)
-        WlClosureCallBreakpoint(self, 'dispatch', False)
-        WlClosureCallBreakpoint(self, 'send', True)
-        WlClosureCallBreakpoint(self, 'queue', True)
+        WlClosureCallBreakpoint(self, 'wl_closure_invoke', extract.received_message)
+        WlClosureCallBreakpoint(self, 'wl_closure_dispatch', extract.received_message)
+        WlClosureCallBreakpoint(self, 'wl_closure_send', extract.sent_message)
+        WlClosureCallBreakpoint(self, 'wl_closure_queue', extract.sent_message)
         WlCommand(self, 'w')
         WlCommand(self, 'wl')
         WlCommand(self, 'wayland')
@@ -142,15 +139,11 @@ class Plugin:
             if not self.catch: raise
             self.out.error(repr(e) + ' raised closing connection ' + str(connection_id))
 
-    def process_message(self, is_sending):
+    def process_message(self, message_extractor):
         if self.state.paused():
             self.state.resume_requested()
         try:
-            closure = extract.closure()
-            connection_id, object_id, object_type = extract.object(closure)
-            message_name, message_args = extract.message(closure)
-            object = wl.Object.Unresolved(object_id, object_type)
-            message = wl.Message(time_now(), object, is_sending, message_name, message_args)
+            connection_id, message = message_extractor()
             current_thread_num = gdb.selected_thread().global_num
             connection_thread_num = self.connection_threads.get(connection_id)
             if connection_thread_num != current_thread_num:

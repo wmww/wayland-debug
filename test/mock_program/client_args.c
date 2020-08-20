@@ -18,6 +18,14 @@ struct {
         .mode = MODE_POINTER_MOVE,
         .arg = "pointer-move",
     },
+    {
+        .mode = MODE_DISPATCHER,
+        .arg = "dispatcher",
+    },
+    {
+        .mode = MODE_SERVER_CREATED_OBJ,
+        .arg = "server-created-obj",
+    },
 };
 
 void parse_args(int argc, const char** argv)

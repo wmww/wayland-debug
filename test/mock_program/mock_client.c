@@ -9,8 +9,12 @@
 static struct wl_display* display;
 static struct wl_registry* registry;
 static struct wl_compositor* compositor;
+static struct wl_output* output;
+static struct wl_surface* surface;
 static struct wl_seat* seat;
 static struct wl_pointer* pointer;
+static struct wl_data_device_manager* data_device_manager;
+static struct wl_data_device* data_device;
 
 #define FATAL_NOT_IMPL printf("fatal: %s() not implemented", __func__); exit(1)
 
@@ -36,6 +40,41 @@ static const struct wl_pointer_listener pointer_listener = {
     .axis_discrete = pointer_axis_discrete,
 };
 
+void data_offer_offer(void *data, struct wl_data_offer *wl_data_offer, const char *mime_type) {}
+void data_offer_source_actions(void *data, struct wl_data_offer *wl_data_offer, uint32_t source_actions) {}
+void data_offer_action(void *data, struct wl_data_offer *wl_data_offer, uint32_t dnd_action) {}
+
+static const struct wl_data_offer_listener data_offer_listener = {
+    .offer = data_offer_offer,
+    .source_actions = data_offer_source_actions,
+    .action = data_offer_action,
+};
+
+void data_device_data_offer(void *data, struct wl_data_device *wl_data_device, struct wl_data_offer *id)
+{
+    wl_data_offer_add_listener(id, &data_offer_listener, NULL);
+}
+
+void data_device_enter(void *data, struct wl_data_device *wl_data_device, uint32_t serial, struct wl_surface *surface, wl_fixed_t x, wl_fixed_t y, struct wl_data_offer *id) {}
+void data_device_leave(void *data, struct wl_data_device *wl_data_device) {}
+void data_device_motion(void *data, struct wl_data_device *wl_data_device, uint32_t time, wl_fixed_t x, wl_fixed_t y) {}
+void data_device_drop(void *data, struct wl_data_device *wl_data_device) {}
+void data_device_selection(void *data, struct wl_data_device *wl_data_device, struct wl_data_offer *id) {}
+
+static const struct wl_data_device_listener data_device_listener = {
+    .data_offer = data_device_data_offer,
+    .enter = data_device_enter,
+    .leave = data_device_leave,
+    .motion = data_device_motion,
+    .drop = data_device_drop,
+    .selection = data_device_selection,
+};
+
+static int surface_dispatcher(const void* data, void* resource, uint32_t opcode, const struct wl_message* message, union wl_argument* args)
+{
+    return 0;
+}
+
 static void registry_global(
     void* data,
     struct wl_registry* registry,
@@ -47,6 +86,10 @@ static void registry_global(
     {
         compositor = wl_registry_bind(registry, id, &wl_compositor_interface, version);
     }
+    if (strcmp(wl_output_interface.name, name) == 0)
+    {
+        output = wl_registry_bind(registry, id, &wl_output_interface, version);
+    }
     else if (strcmp(wl_seat_interface.name, name) == 0)
     {
         seat = wl_registry_bind(registry, id, &wl_seat_interface, version);
@@ -56,6 +99,25 @@ static void registry_global(
             wl_pointer_add_listener(pointer, &pointer_listener, NULL);
             wl_display_roundtrip(display);
         }
+    }
+    else if (strcmp(wl_data_device_manager_interface.name, name) == 0)
+    {
+        data_device_manager = wl_registry_bind(registry, id, &wl_data_device_manager_interface, version);
+    }
+
+    if (mode == MODE_SERVER_CREATED_OBJ && data_device_manager && seat && !data_device)
+    {
+        data_device = wl_data_device_manager_get_data_device(data_device_manager, seat);
+        wl_data_device_add_listener(data_device, &data_device_listener, NULL);
+        wl_display_roundtrip(display);
+    }
+
+    if (mode == MODE_DISPATCHER && compositor && output && !surface)
+    {
+        surface = wl_compositor_create_surface(compositor);
+        wl_proxy_add_dispatcher((struct wl_proxy*)surface, surface_dispatcher, NULL, NULL);
+        wl_surface_attach(surface, NULL, 0, 0);
+        wl_display_roundtrip(display);
     }
 }
 
