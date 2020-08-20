@@ -92,18 +92,17 @@ def extract_message(closure, object, is_sending):
             i += 1
     return wl.Message(time_now(), object, is_sending, message_name, args)
 
-def wl_closure_invoke():
+def received_message():
     closure = gdb.selected_frame().read_var('closure')
-    if int(gdb.selected_frame().read_var('flags')) == 1:
-        proxy = _fast_access(closure, 'proxy')
+    proxy = _fast_access(closure, 'proxy')
+    if not _is_null(proxy):
         wl_object = _fast_access(proxy, 'object')
         wl_display = _fast_access(proxy, 'display')
         connection = _fast_access(wl_display, 'connection')
     else:
-        target = gdb.selected_frame().read_var('target')
+        wl_object = gdb.selected_frame().read_var('target')
         resource_type = gdb.lookup_type('struct wl_resource').pointer()
-        resource = target.cast(resource_type)
-        wl_object = resource['object']
+        resource = wl_object.cast(resource_type)
         connection = resource['client']['connection']
     connection_id = str(connection)
     object_id = int(closure['sender_id'])
@@ -112,11 +111,7 @@ def wl_closure_invoke():
     message = extract_message(closure, object, False)
     return connection_id, message
 
-def wl_closure_dispatch():
-    raise RuntimeError('wl_closure_dispatch')
-    return extract_from_closure(False)
-
-def extract_sent_message():
+def sent_message():
     closure = gdb.selected_frame().read_var('closure')
     # closure -> proxy is always null in wl_closure_send and wl_closure_queue
     connection = gdb.selected_frame().read_var('connection')
@@ -125,9 +120,3 @@ def extract_sent_message():
     object = wl.Object.Unresolved(object_id, None)
     message = extract_message(closure, object, True)
     return connection_id, message
-
-def wl_closure_send():
-    return extract_sent_message()
-
-def wl_closure_queue():
-    return extract_sent_message()
