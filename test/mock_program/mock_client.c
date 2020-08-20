@@ -9,6 +9,8 @@
 static struct wl_display* display;
 static struct wl_registry* registry;
 static struct wl_compositor* compositor;
+static struct wl_output* output;
+static struct wl_surface* surface;
 static struct wl_seat* seat;
 static struct wl_pointer* pointer;
 static struct wl_data_device_manager* data_device_manager;
@@ -68,6 +70,11 @@ static const struct wl_data_device_listener data_device_listener = {
     .selection = data_device_selection,
 };
 
+static int surface_dispatcher(const void* data, void* resource, uint32_t opcode, const struct wl_message* message, union wl_argument* args)
+{
+    return 0;
+}
+
 static void registry_global(
     void* data,
     struct wl_registry* registry,
@@ -78,6 +85,10 @@ static void registry_global(
     if (strcmp(wl_compositor_interface.name, name) == 0)
     {
         compositor = wl_registry_bind(registry, id, &wl_compositor_interface, version);
+    }
+    if (strcmp(wl_output_interface.name, name) == 0)
+    {
+        output = wl_registry_bind(registry, id, &wl_output_interface, version);
     }
     else if (strcmp(wl_seat_interface.name, name) == 0)
     {
@@ -98,6 +109,14 @@ static void registry_global(
     {
         data_device = wl_data_device_manager_get_data_device(data_device_manager, seat);
         wl_data_device_add_listener(data_device, &data_device_listener, NULL);
+        wl_display_roundtrip(display);
+    }
+
+    if (mode == MODE_DISPATCHER && compositor && output && !surface)
+    {
+        surface = wl_compositor_create_surface(compositor);
+        wl_proxy_add_dispatcher((struct wl_proxy*)surface, surface_dispatcher, NULL, NULL);
+        wl_surface_attach(surface, NULL, 0, 0);
         wl_display_roundtrip(display);
     }
 }

@@ -9,7 +9,11 @@
 
 #include "common.h"
 
-static struct wl_display* display;
+static struct wl_display* display = NULL;
+static struct wl_resource* compositor = NULL;
+static struct wl_resource* seat = NULL;
+static struct wl_resource* data_device_manager = NULL;
+static struct wl_resource* output = NULL;
 
 static const double test_fixed_sequence[] = {0.0, 1.0, 0.5, -1.0, 280.0, -12.5, 16.3, 425.87, -100000.0, 0.001};
 
@@ -34,9 +38,25 @@ static struct wl_listener client_connect_listener = {
     .notify = client_connect,
 };
 
+static int surface_dispatcher(const void* data, void* resource, uint32_t opcode, const struct wl_message* message, union wl_argument* args)
+{
+    return 0;
+}
+
 static void compositor_create_surface(struct wl_client* client, struct wl_resource* resource, uint32_t id)
 {
-    FATAL_NOT_IMPL;
+    if (!output)
+    {
+        printf("Client should not have created surface without binding to output");
+        exit(1);
+    }
+    struct wl_resource* surface = wl_resource_create(
+        client,
+        &wl_surface_interface,
+        wl_resource_get_version(resource),
+        id);
+    wl_resource_set_dispatcher(surface, surface_dispatcher, NULL, NULL, NULL);
+    wl_surface_send_enter(surface, output);
 }
 
 static void compositor_create_region(struct wl_client * client, struct wl_resource * resource, uint32_t id)
@@ -51,8 +71,8 @@ static const struct wl_compositor_interface compositor_interface = {
 
 static void compositor_bind(struct wl_client* client, void* data, uint32_t version, uint32_t id)
 {
-    struct wl_resource* resource = wl_resource_create(client, &wl_compositor_interface, version, id);
-    wl_resource_set_implementation(resource, &compositor_interface, NULL, NULL);
+    compositor = wl_resource_create(client, &wl_compositor_interface, version, id);
+    wl_resource_set_implementation(compositor, &compositor_interface, NULL, NULL);
 };
 
 void seat_get_pointer(struct wl_client *client, struct wl_resource *resource, uint32_t id)
@@ -92,8 +112,8 @@ static const struct wl_seat_interface seat_interface = {
 
 static void seat_bind(struct wl_client* client, void* data, uint32_t version, uint32_t id)
 {
-    struct wl_resource* resource = wl_resource_create(client, &wl_seat_interface, version, id);
-    wl_resource_set_implementation(resource, &seat_interface, NULL, NULL);
+    seat = wl_resource_create(client, &wl_seat_interface, version, id);
+    wl_resource_set_implementation(seat, &seat_interface, NULL, NULL);
 };
 
 void data_device_manager_create_data_source(struct wl_client *client, struct wl_resource *resource, uint32_t id)
@@ -128,8 +148,13 @@ static const struct wl_data_device_manager_interface data_device_manager_interfa
 
 static void data_device_manager_bind(struct wl_client* client, void* data, uint32_t version, uint32_t id)
 {
-    struct wl_resource* resource = wl_resource_create(client, &wl_data_device_manager_interface, version, id);
-    wl_resource_set_implementation(resource, &data_device_manager_interface, NULL, NULL);
+    data_device_manager = wl_resource_create(client, &wl_data_device_manager_interface, version, id);
+    wl_resource_set_implementation(data_device_manager, &data_device_manager_interface, NULL, NULL);
+};
+
+static void output_bind(struct wl_client* client, void* data, uint32_t version, uint32_t id)
+{
+    output = wl_resource_create(client, &wl_data_device_manager_interface, version, id);
 };
 
 int main(int argc, const char** argv)
@@ -146,6 +171,7 @@ int main(int argc, const char** argv)
     wl_global_create(display, &wl_compositor_interface, 4, NULL, compositor_bind);
     wl_global_create(display, &wl_seat_interface, 6, NULL, seat_bind);
     wl_global_create(display, &wl_data_device_manager_interface, 2, NULL, data_device_manager_bind);
+    wl_global_create(display, &wl_output_interface, 1, NULL, output_bind);
 
     wl_display_run(display);
 

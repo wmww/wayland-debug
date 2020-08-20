@@ -19,6 +19,10 @@ struct {
         .arg = "pointer-move",
     },
     {
+        .mode = MODE_DISPATCHER,
+        .arg = "dispatcher",
+    },
+    {
         .mode = MODE_SERVER_CREATED_OBJ,
         .arg = "server-created-obj",
     },
