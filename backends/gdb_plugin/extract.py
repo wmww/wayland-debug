@@ -5,6 +5,7 @@ from core.util import time_now
 
 type_codes = {i: True for i in ['i', 'u', 'f', 's', 'o', 'n', 'a', 'h']}
 
+wl_resource_ptr_type = None
 gdb_fast_access_map = {}
 gdb_char_ptr_type = gdb.lookup_type('char').pointer()
 
@@ -12,6 +13,12 @@ gdb_char_ptr_type = gdb.lookup_type('char').pointer()
 # (there should be a better way, but I don't think there is)
 def _is_null(val):
     return str(val) == '0x0'
+
+def lazy_get_wl_resource_ptr_type():
+    global wl_resource_ptr_type
+    if wl_resource_ptr_type is None:
+        wl_resource_ptr_type = gdb.lookup_type('struct wl_resource').pointer()
+    return wl_resource_ptr_type
 
 # Like normal GDB property access,
 # except caches the poitner offset of fields on types to make future lookups faster
@@ -101,7 +108,7 @@ def received_message():
         connection = _fast_access(wl_display, 'connection')
     else:
         wl_object = gdb.selected_frame().read_var('target')
-        resource_type = gdb.lookup_type('struct wl_resource').pointer()
+        resource_type = lazy_get_wl_resource_ptr_type()
         resource = wl_object.cast(resource_type)
         connection = resource['client']['connection']
     connection_id = str(connection)
