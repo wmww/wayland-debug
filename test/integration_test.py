@@ -58,10 +58,12 @@ class MockProgramInGDBTests(unittest.TestCase):
     def test_detects_get_registry_from_client(self):
         result = self.run_client_in_gdb('simple-client')
         self.assertIn('get_registry', result)
+        self.assertIn('global', result)
 
     def test_detects_get_registry_from_server(self):
         result = self.run_server_in_gdb('simple-client')
         self.assertIn('get_registry', result)
+        self.assertIn('global', result)
 
     def test_extracts_fixed_point_numbers_with_low_accuracy(self):
         result = self.run_server_in_gdb('pointer-move')
