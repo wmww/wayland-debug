@@ -1,6 +1,7 @@
 import gdb
 
 from core import wl
+from core.util import time_now
 
 type_codes = {i: True for i in ['i', 'u', 'f', 's', 'o', 'n', 'a', 'h']}
 
@@ -31,40 +32,7 @@ def _fast_access(value, field_name):
     offset, ret_type_ptr_ptr = gdb_fast_access_map[key]
     return (value.cast(gdb_char_ptr_type) + offset).cast(ret_type_ptr_ptr).dereference()
 
-def closure():
-    '''Returns the closure pointer for the current stack frame'''
-    return gdb.selected_frame().read_var('closure')
-
-def object(closure):
-    '''Returns a tuple containing…
-    Connection ID: str, specifically the address of the connection struct
-    Object ID: int, the Wayland object ID of the object the current method was called on
-    Object Type: str or None, the type of the object, or None if it is not known
-    '''
-    wl_object = None
-    try:
-        connection = gdb.selected_frame().read_var('connection')
-    except ValueError:
-        if int(gdb.selected_frame().read_var('flags')) == 1:
-            proxy = _fast_access(closure, 'proxy')
-            wl_object = _fast_access(proxy, 'object')
-            wl_display = _fast_access(proxy, 'display')
-            connection = _fast_access(wl_display, 'connection')
-        else:
-            target = gdb.selected_frame().read_var('target')
-            resource_type = gdb.lookup_type('struct wl_resource').pointer()
-            resource = target.cast(resource_type)
-            wl_object = resource['object']
-            connection = resource['client']['connection']
-    connection_id = str(connection)
-    obj_id = int(closure['sender_id'])
-    if wl_object:
-        obj_type = _fast_access(wl_object['interface'], 'name').string()
-    else:
-        obj_type = None
-    return (connection_id, obj_id, obj_type)
-
-def message(closure):
+def extract_message(closure, object, is_sending):
     '''Returns a tuple containing…
     Message Name: str, the message being called
     Arguments: list of wl.Arg
@@ -122,5 +90,44 @@ def message(closure):
                         is_new = False
                     args.append(wl.Arg.Object(wl.Object.Unresolved(arg_id, arg_type_name), is_new))
             i += 1
-    return (message_name, args)
+    return wl.Message(time_now(), object, is_sending, message_name, args)
 
+def wl_closure_invoke():
+    closure = gdb.selected_frame().read_var('closure')
+    if int(gdb.selected_frame().read_var('flags')) == 1:
+        proxy = _fast_access(closure, 'proxy')
+        wl_object = _fast_access(proxy, 'object')
+        wl_display = _fast_access(proxy, 'display')
+        connection = _fast_access(wl_display, 'connection')
+    else:
+        target = gdb.selected_frame().read_var('target')
+        resource_type = gdb.lookup_type('struct wl_resource').pointer()
+        resource = target.cast(resource_type)
+        wl_object = resource['object']
+        connection = resource['client']['connection']
+    connection_id = str(connection)
+    object_id = int(closure['sender_id'])
+    obj_type = _fast_access(wl_object['interface'], 'name').string()
+    object = wl.Object.Unresolved(object_id, obj_type)
+    message = extract_message(closure, object, False)
+    return connection_id, message
+
+def wl_closure_dispatch():
+    raise RuntimeError('wl_closure_dispatch')
+    return extract_from_closure(False)
+
+def extract_sent_message():
+    closure = gdb.selected_frame().read_var('closure')
+    # closure -> proxy is always null in wl_closure_send and wl_closure_queue
+    connection = gdb.selected_frame().read_var('connection')
+    connection_id = str(connection)
+    object_id = int(closure['sender_id'])
+    object = wl.Object.Unresolved(object_id, None)
+    message = extract_message(closure, object, True)
+    return connection_id, message
+
+def wl_closure_send():
+    return extract_sent_message()
+
+def wl_closure_queue():
+    return extract_sent_message()
