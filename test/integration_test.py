@@ -99,3 +99,13 @@ class MockProgramInGDBTests(unittest.TestCase):
     def test_server_with_server_created_obj(self):
         result = self.run_server_in_gdb('server-created-obj')
         self.check_result_of_server_created_obj(result)
+
+    def test_client_with_dispatcher(self):
+        result = self.run_client_in_gdb('dispatcher')
+        self.assertIn('attach', result)
+        self.assertIn('enter', result)
+
+    def test_server_with_dispatcher(self):
+        result = self.run_server_in_gdb('dispatcher')
+        self.assertIn('attach', result)
+        self.assertIn('enter', result)
