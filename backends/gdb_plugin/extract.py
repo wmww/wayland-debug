@@ -39,7 +39,7 @@ def _fast_access(value, field_name):
     offset, ret_type_ptr_ptr = gdb_fast_access_map[key]
     return (value.cast(gdb_char_ptr_type) + offset).cast(ret_type_ptr_ptr).dereference()
 
-def extract_message(closure, object, is_sending):
+def extract_message(closure, object, is_sending, new_id_is_actually_an_object):
     '''Returns a tuple containing…
     Message Name: str, the message being called
     Arguments: list of wl.Arg
@@ -79,23 +79,29 @@ def extract_message(closure, object, is_sending):
                 args.append(wl.Arg.Array(elems))
             elif c == 'h':
                 args.append(wl.Arg.Fd(int(value)))
-            else:
-                assert c == 'n' or c == 'o'
+            elif c == 'o':
                 arg_type = message_types[i]
-                arg_type_name = None
-                if not _is_null(arg_type):
+                if _is_null(arg_type):
+                    arg_type_name = None
+                else:
                     arg_type_name = arg_type['name'].string()
                 if _is_null(value):
-                    assert c == 'o'
                     args.append(wl.Arg.Null(arg_type_name))
                 else:
-                    if c == 'n':
-                        arg_id = int(value)
-                        is_new = True
-                    else:
-                        arg_id = int(value['id'])
-                        is_new = False
-                    args.append(wl.Arg.Object(wl.Object.Unresolved(arg_id, arg_type_name), is_new))
+                    args.append(wl.Arg.Object(wl.Object.Unresolved(int(value['id']), arg_type_name), False))
+            elif c == 'n':
+                arg_type = message_types[i]
+                if _is_null(arg_type):
+                    arg_type_name = None
+                else:
+                    arg_type_name = arg_type['name'].string()
+                if new_id_is_actually_an_object:
+                    arg_id = int(closure_args[i]['o']['id'])
+                else:
+                    arg_id = int(value)
+                args.append(wl.Arg.Object(wl.Object.Unresolved(arg_id, arg_type_name), True))
+            else:
+                raise RuntimeError('Invalid type code ' + c)
             i += 1
     return wl.Message(time_now(), object, is_sending, message_name, args)
 
@@ -103,10 +109,12 @@ def received_message():
     closure = gdb.selected_frame().read_var('closure')
     proxy = _fast_access(closure, 'proxy')
     if not _is_null(proxy):
+        new_id_is_actually_an_object = True
         wl_object = _fast_access(proxy, 'object')
         wl_display = _fast_access(proxy, 'display')
         connection = _fast_access(wl_display, 'connection')
     else:
+        new_id_is_actually_an_object = False
         wl_object = gdb.selected_frame().read_var('target')
         resource_type = lazy_get_wl_resource_ptr_type()
         resource = wl_object.cast(resource_type)
@@ -115,7 +123,7 @@ def received_message():
     object_id = int(closure['sender_id'])
     obj_type = _fast_access(wl_object['interface'], 'name').string()
     object = wl.Object.Unresolved(object_id, obj_type)
-    message = extract_message(closure, object, False)
+    message = extract_message(closure, object, False, new_id_is_actually_an_object)
     return connection_id, message
 
 def sent_message():
@@ -125,5 +133,5 @@ def sent_message():
     connection_id = str(connection)
     object_id = int(closure['sender_id'])
     object = wl.Object.Unresolved(object_id, None)
-    message = extract_message(closure, object, True)
+    message = extract_message(closure, object, True, False)
     return connection_id, message
