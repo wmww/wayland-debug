@@ -1,3 +1,7 @@
+// This is an implementation of a Wayland compositor for testing
+// It does not show anything on the screen, and it is not conforment
+// The only client it's supposed to work with is the one in mock_client.c
+
 #include <wayland-server.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -92,6 +96,42 @@ static void seat_bind(struct wl_client* client, void* data, uint32_t version, ui
     wl_resource_set_implementation(resource, &seat_interface, NULL, NULL);
 };
 
+void data_device_manager_create_data_source(struct wl_client *client, struct wl_resource *resource, uint32_t id)
+{
+    FATAL_NOT_IMPL;
+}
+
+void data_device_manager_get_data_device(
+    struct wl_client *client,
+    struct wl_resource *resource,
+    uint32_t id,
+    struct wl_resource *seat)
+{
+    struct wl_resource* data_device = wl_resource_create(
+        client,
+        &wl_data_device_interface,
+        wl_resource_get_version(resource),
+        id);
+    struct wl_resource* data_offer = wl_resource_create(
+        client,
+        &wl_data_offer_interface,
+        wl_resource_get_version(resource),
+        0);
+    wl_data_device_send_data_offer(data_device, data_offer);
+    wl_data_offer_send_offer(data_offer, "mock-meme-type");
+}
+
+static const struct wl_data_device_manager_interface data_device_manager_interface = {
+    .create_data_source = data_device_manager_create_data_source,
+    .get_data_device = data_device_manager_get_data_device,
+};
+
+static void data_device_manager_bind(struct wl_client* client, void* data, uint32_t version, uint32_t id)
+{
+    struct wl_resource* resource = wl_resource_create(client, &wl_data_device_manager_interface, version, id);
+    wl_resource_set_implementation(resource, &data_device_manager_interface, NULL, NULL);
+};
+
 int main(int argc, const char** argv)
 {
     display = wl_display_create();
@@ -105,6 +145,7 @@ int main(int argc, const char** argv)
 
     wl_global_create(display, &wl_compositor_interface, 4, NULL, compositor_bind);
     wl_global_create(display, &wl_seat_interface, 6, NULL, seat_bind);
+    wl_global_create(display, &wl_data_device_manager_interface, 2, NULL, data_device_manager_bind);
 
     wl_display_run(display);
 
