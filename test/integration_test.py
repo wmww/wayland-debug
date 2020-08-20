@@ -81,3 +81,19 @@ class MockProgramInGDBTests(unittest.TestCase):
             match = float(matches[i])
             expected = test_fixed_sequence[i]
             self.assertAlmostEqual(match, expected, places = 5)
+
+    def check_result_of_server_created_obj(self, result):
+        matches = re.findall(r'new wl_data_offer@(.*)\.\d+', result)
+        self.assertEqual(len(matches), 1)
+        data_offer_id = matches[0]
+        matches = re.findall(r'.*wl_data_offer@(.*)\..*mock-meme-type', result)
+        self.assertEqual(len(matches), 1)
+        self.assertEqual(matches[0], data_offer_id)
+
+    def test_client_with_server_created_obj(self):
+        result = self.run_client_in_gdb('server-created-obj')
+        self.check_result_of_server_created_obj(result)
+
+    def test_server_with_server_created_obj(self):
+        result = self.run_server_in_gdb('server-created-obj')
+        self.check_result_of_server_created_obj(result)
