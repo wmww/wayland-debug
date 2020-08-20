@@ -112,10 +112,6 @@ class ConnectionImpl(interfaces.Connection.Sink, interfaces.Connection, interfac
         assert isinstance(type_name, str)
         if obj_id <= 1:
             raise RuntimeError('Invalid object ID ' + str(obj_id))
-        if obj_id > 100000:
-            logger.warning(
-                str(type_name) + ' ID ' + str(obj_id) + ' is probably bigger than it should be ' +
-                '(see https://github.com/wmww/wayland-debug/issues/6)')
         if obj_id in self.db:
             last_obj = self.db[obj_id][-1]
             if last_obj.alive:
@@ -140,10 +136,7 @@ class ConnectionImpl(interfaces.Connection.Sink, interfaces.Connection, interfac
         try:
             obj_list = self.db[id]
         except KeyError as e:
-            msg = 'Id ' + str(id) + ' not in object database'
-            if id > 100000:
-                msg += ' (see https://github.com/wmww/wayland-debug/issues/6)'
-            raise RuntimeError(msg) from e
+            raise RuntimeError('Id ' + str(id) + ' not in object database') from e
         try:
             obj = obj_list[generation]
         except IndexError as e:
