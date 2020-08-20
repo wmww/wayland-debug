@@ -88,7 +88,8 @@ def extract_message(closure, object, is_sending, new_id_is_actually_an_object):
                 if _is_null(value):
                     args.append(wl.Arg.Null(arg_type_name))
                 else:
-                    args.append(wl.Arg.Object(wl.Object.Unresolved(int(value['id']), arg_type_name), False))
+                    arg_id = int(_fast_access(value, 'id'))
+                    args.append(wl.Arg.Object(wl.Object.Unresolved(arg_id, arg_type_name), False))
             elif c == 'n':
                 arg_type = message_types[i]
                 if _is_null(arg_type):
@@ -96,7 +97,7 @@ def extract_message(closure, object, is_sending, new_id_is_actually_an_object):
                 else:
                     arg_type_name = arg_type['name'].string()
                 if new_id_is_actually_an_object:
-                    arg_id = int(closure_args[i]['o']['id'])
+                    arg_id = int(_fast_access(closure_args[i]['o'], 'id'))
                 else:
                     arg_id = int(value)
                 args.append(wl.Arg.Object(wl.Object.Unresolved(arg_id, arg_type_name), True))
@@ -118,9 +119,10 @@ def received_message():
         wl_object = gdb.selected_frame().read_var('target')
         resource_type = lazy_get_wl_resource_ptr_type()
         resource = wl_object.cast(resource_type)
-        connection = resource['client']['connection']
+        connection = _fast_access(_fast_access(resource, 'client'), 'connection')
     connection_id = str(connection)
-    object_id = int(closure['sender_id'])
+    object_id = int(_fast_access(closure, 'sender_id'))
+    # wl_object is not a pointer, so can't use _fast_access() to get interface
     obj_type = _fast_access(wl_object['interface'], 'name').string()
     object = wl.Object.Unresolved(object_id, obj_type)
     message = extract_message(closure, object, False, new_id_is_actually_an_object)
@@ -131,7 +133,7 @@ def sent_message():
     # closure -> proxy is always null in wl_closure_send and wl_closure_queue
     connection = gdb.selected_frame().read_var('connection')
     connection_id = str(connection)
-    object_id = int(closure['sender_id'])
+    object_id = int(_fast_access(closure, 'sender_id'))
     object = wl.Object.Unresolved(object_id, None)
     message = extract_message(closure, object, True, False)
     return connection_id, message
