@@ -108,18 +108,24 @@ def extract_message(closure, object, is_sending, new_id_is_actually_an_object):
 
 def received_message():
     closure = gdb.selected_frame().read_var('closure')
-    proxy = _fast_access(closure, 'proxy')
-    if not _is_null(proxy):
+    wl_object = gdb.selected_frame().read_var('target')
+    calling_func = gdb.selected_frame().older().name()
+    # NOTE: closure->proxy is often null but technically undefined in the server case
+    # Using it to detect server vs client works for the tests but fails on Mir
+    if calling_func == 'dispatch_event':
+        # Client connection
         new_id_is_actually_an_object = True
-        wl_object = _fast_access(proxy, 'object')
+        proxy = _fast_access(closure, 'proxy')
         wl_display = _fast_access(proxy, 'display')
         connection = _fast_access(wl_display, 'connection')
-    else:
+    elif calling_func == 'wl_client_connection_data':
+        # Server connection
         new_id_is_actually_an_object = False
-        wl_object = gdb.selected_frame().read_var('target')
         resource_type = lazy_get_wl_resource_ptr_type()
         resource = wl_object.cast(resource_type)
         connection = _fast_access(_fast_access(resource, 'client'), 'connection')
+    else:
+        raise RuntimeError('Unknown libwayland calling function ' + calling_func)
     connection_id = str(connection)
     object_id = int(_fast_access(closure, 'sender_id'))
     # wl_object is not a pointer, so can't use _fast_access() to get interface
