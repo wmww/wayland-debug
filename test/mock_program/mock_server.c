@@ -155,7 +155,7 @@ static void data_device_manager_bind(struct wl_client* client, void* data, uint3
 
 static void output_bind(struct wl_client* client, void* data, uint32_t version, uint32_t id)
 {
-    output = wl_resource_create(client, &wl_data_device_manager_interface, version, id);
+    output = wl_resource_create(client, &wl_output_interface, version, id);
 };
 
 int main(int argc, const char** argv)
