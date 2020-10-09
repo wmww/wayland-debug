@@ -55,6 +55,10 @@ class Object(Base):
     def resolved(self):
         return True
 
+    def owned_by_server(self):
+        # See https://wayland.freedesktop.org/docs/html/ch04.html#sect-Protocol-Creating-Objects
+        return self.id >= 0xff000000
+
     class Unresolved(Base):
         def __init__(self, obj_id, type_name):
             assert isinstance(obj_id, int)

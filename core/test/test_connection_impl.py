@@ -209,10 +209,24 @@ class TestObjectDBImpl(TestCase):
         with self.assertRaises(RuntimeError):
             self.c.create_object(0.0, self.c.wl_display(), 2, 'wl_registry')
 
-    def test_can_not_create_2nd_anything_with_same_id(self):
+    def test_can_not_create_2nd_object_with_different_type_and_same_id(self):
         self.c.create_object(0.0, self.c.wl_display(), 3, 'first_thing')
         with self.assertRaises(RuntimeError):
             self.c.create_object(0.0, self.c.wl_display(), 3, 'second_thing')
+
+    def test_destroyes_server_owned_object_when_new_one_is_created_with_same_id(self):
+        # Since we don't get .delete_id events for server-owned objects we have to assume they were deleted
+        # Objects with large IDs are server-owned
+        # See https://wayland.freedesktop.org/docs/html/ch04.html#sect-Protocol-Creating-Objects
+        id = 4278190081
+        self.c.create_object(0.0, self.c.wl_display(), id, 'first_thing')
+        self.c.create_object(1.0, self.c.wl_display(), id, 'second_thing')
+        first = self.c.retrieve_object(id, 0, None)
+        second = self.c.retrieve_object(id, 1, None)
+        self.assertEqual(first.type, 'first_thing')
+        self.assertEqual(second.type, 'second_thing')
+        self.assertFalse(first.alive)
+        self.assertEqual(first.destroy_time, 1.0)
 
     def test_retrieve_object_raises_on_invalid_id(self):
         with self.assertRaises(RuntimeError):
