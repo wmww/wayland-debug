@@ -120,6 +120,9 @@ class ConnectionImpl(interfaces.Connection.Sink, interfaces.Connection, interfac
                         + 'Please see https://github.com/wmww/wayland-debug/issues/5 for further details')
                     logger.error(msg)
                     raise RuntimeError(msg)
+                elif last_obj.owned_by_server():
+                    # We don't get .delete_id events for server-owned objects, so we have to delete them implicitly
+                    last_obj.destroy(time)
                 else:
                     raise RuntimeError(
                         'Tried to create object of type '
