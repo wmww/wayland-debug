@@ -13,7 +13,8 @@ declare -a REPOS=(
     "standard      https://gitlab.freedesktop.org/wayland/wayland-protocols.git"
     "mir           https://github.com/MirServer/mir.git"
     "wlroots       https://github.com/swaywm/wlroots.git"
-    "wlr-protocols https://github.com/swaywm/wlr-protocols.git")
+    "wlr-protocols https://github.com/swaywm/wlr-protocols.git"
+    "plasma-wayland-protocols https://invent.kde.org/libraries/plasma-wayland-protocols")
 
 # Get the directory where this script is located
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
