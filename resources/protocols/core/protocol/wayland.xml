@@ -2732,7 +2732,7 @@
       wl_surface state directly. A sub-surface is initially in the
       synchronized mode.
 
-      Sub-surfaces have also other kind of state, which is managed by
+      Sub-surfaces also have another kind of state, which is managed by
       wl_subsurface requests, as opposed to wl_surface requests. This
       state includes the sub-surface position relative to the parent
       surface (wl_subsurface.set_position), and the stacking order of
