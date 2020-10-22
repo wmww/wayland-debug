@@ -133,7 +133,10 @@ def parse_protocol(xmlfile):
 interfaces = {}
 
 def load(xml_file, out):
-    protocol = parse_protocol(xml_file)
+    try:
+        protocol = parse_protocol(xml_file)
+    except:
+        raise RuntimeError('Failed to parse ' + xml_file)
     for name, interface in protocol.interfaces.items():
         existing = interfaces.get(name, None)
         if not existing or existing.version < interface.version:
