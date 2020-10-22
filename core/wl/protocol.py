@@ -63,6 +63,7 @@ class Enum:
         assert isinstance(bitfield, bool)
         assert isinstance(entries, OrderedDict)
         for i in entries.values():
+            assert isinstance(i, Entry)
             i.parent = self
         self.name = name
         self.bitfield = bitfield
@@ -75,60 +76,64 @@ class Entry:
         self.name = name
         self.value = value
 
+def parse_arg(arg):
+    return Arg(
+        arg.attrib['name'],
+        arg.attrib['type'],
+        arg.attrib.get('interface', None),
+        arg.attrib.get('enum', None))
+
+def parse_message(message):
+    args = OrderedDict()
+    for node in message:
+        if node.tag == 'arg':
+            arg = parse_arg(node)
+            args[arg.name] = arg
+    return Message(message.attrib['name'], message.tag == 'event', args)
+
+def parse_enum_entry(entry):
+    # "Base 0 means to interpret exactly as a code literal"
+    # Value might be base 10 or hex, but format should be the same as Python literals
+    value = int(entry.attrib['value'], 0)
+    return Entry(entry.attrib['name'], value)
+
+def parse_enum(enum):
+    bitfield_str = enum.attrib.get('bitfield', 'false')
+    if bitfield_str == 'true':
+        bitfield = True
+    elif bitfield_str == 'false':
+        bitfield = False
+    else:
+        raise RuntimeError('Invalid bitfield string: ' + repr(bitfield_str))
+    entries = OrderedDict()
+    for node in enum:
+        if node.tag == 'entry':
+            entry = parse_enum_entry(node)
+            entries[entry.name] = entry
+    return Enum(enum.attrib['name'], bitfield, entries)
+
+def parse_interface(interface):
+    version = int(interface.attrib['version'])
+    messages = OrderedDict()
+    enums = OrderedDict()
+    for node in interface:
+        if node.tag == 'event' or node.tag == 'request':
+            message = parse_message(node)
+            messages[message.name] = message
+        elif node.tag == 'enum':
+            enum = parse_enum(node)
+            enums[enum.name] = enum
+    return Interface(interface.attrib['name'], version, messages, enums)
+
 def parse_protocol(xmlfile):
     protocol = ET.parse(xmlfile).getroot()
     assert protocol.tag == 'protocol'
-    return Protocol(
-        protocol.attrib['name'],
-        xmlfile,
-        OrderedDict(
-            [(i.name, i) for i in [
-                Interface(
-                    interface.attrib['name'],
-                    int(interface.attrib['version']),
-                    OrderedDict(
-                        [(i.name, i) for i in [
-                            Message(
-                                message.attrib['name'],
-                                message.tag == 'event',
-                                OrderedDict(
-                                    [(i.name, i) for i in [
-                                        Arg(
-                                            arg.attrib['name'],
-                                            arg.attrib['type'],
-                                            arg.attrib.get('interface', None),
-                                            arg.attrib.get('enum', None)
-                                        ) for arg in message
-                                        if arg.tag == 'arg'
-                                    ]]
-                                )
-                            ) for message in interface
-                            if message.tag == 'event' or message.tag == 'request'
-                        ]]
-                    ),
-                    OrderedDict(
-                        [(i.name, i) for i in [
-                            Enum(
-                                enum.attrib['name'],
-                                bool('bitfield' in enum.attrib and enum.attrib['bitfield']),
-                                OrderedDict(
-                                    [(i.name, i) for i in [
-                                        Entry(
-                                            entry.attrib['name'],
-                                            int(entry.attrib['value'], 0)
-                                        ) for entry in enum
-                                        if entry.tag == 'entry'
-                                    ]]
-                                )
-                            ) for enum in interface
-                            if enum.tag == 'enum'
-                        ]]
-                    ),
-                ) for interface in protocol
-                if interface.tag == 'interface'
-            ]]
-        )
-    )
+    interfaces = OrderedDict()
+    for node in protocol:
+        if node.tag == 'interface':
+            interface = parse_interface(node)
+            interfaces[interface.name] = interface
+    return Protocol(protocol.attrib['name'], xmlfile, interfaces)
 
 interfaces = {}
 
