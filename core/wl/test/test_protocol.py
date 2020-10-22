@@ -39,6 +39,19 @@ class TestProtocol(unittest.TestCase):
     def test_get_arg_fails_with_no_protocols_loaded(self):
         self.assertEqual(get_arg('wl_surface', 'attach', 0), None)
 
+    def test_parse_base_10_enum_value(self):
+        self.assertEqual(parse_enum_value('37'), 37)
+
+    def test_parse_hex_enum_value(self):
+        self.assertEqual(parse_enum_value('0x37'), 55)
+
+    def test_parse_bitwise_expr_enum_value(self):
+        self.assertEqual(parse_enum_value('1 << 4'), 16)
+
+    def test_enum_value_isnt_evaled_because_that_would_be_fucking_stupid(self):
+        with self.assertRaises(Exception):
+            parse_enum_value('int("0")')
+
 class TestLoadedProtocols(unittest.TestCase):
     def setUp(self):
         out = output.Strict()
