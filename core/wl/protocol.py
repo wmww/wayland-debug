@@ -6,6 +6,7 @@ from core.util import project_root
 from os import path
 import sys
 import time
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -91,10 +92,21 @@ def parse_message(message):
             args[arg.name] = arg
     return Message(message.attrib['name'], message.tag == 'event', args)
 
+number_re = re.compile(r'^\w+$') # Matches 7 and 0x42
+bitshift_re = re.compile(r'^(\w+)\s*<<\s*(\w+)$') # matches 3 << 4
+def parse_enum_value(value):
+    assert isinstance(value, str)
+    if number_re.match(value):
+        # "Base 0 means to interpret exactly as a code literal"
+        # Value might be base 10 or hex, but format should be the same as Python literals
+        return int(value, 0)
+    match = bitshift_re.match(value)
+    if match:
+        return int(match.group(1), 0) << int(match.group(2), 0)
+    raise RuntimeError('Could not parse enum value ' + repr(value))
+
 def parse_enum_entry(entry):
-    # "Base 0 means to interpret exactly as a code literal"
-    # Value might be base 10 or hex, but format should be the same as Python literals
-    value = int(entry.attrib['value'], 0)
+    value = parse_enum_value(entry.attrib['value'].strip())
     return Entry(entry.attrib['name'], value)
 
 def parse_enum(enum):
