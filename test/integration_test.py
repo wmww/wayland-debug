@@ -21,6 +21,9 @@ class FileLoadTests(unittest.TestCase):
         self.assertNotIn('get_registry', result)
         self.assertIn('create_surface', result)
 
+    def test_load_from_file_with_server_obj(self):
+        helpers.run_main(['-l', helpers.server_obj_log_file()])
+
     @pytest.mark.xfail(reason='see https://github.com/wmww/wayland-debug/issues/17')
     def test_load_from_file_with_break(self):
         result = helpers.run_main(['-l', helpers.short_log_file(), '-b', '[global]'])
