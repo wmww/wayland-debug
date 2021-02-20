@@ -8,10 +8,16 @@ from core.util import no_color
 
 gdb_log_path = '/tmp/gdb_log.txt'
 
-def short_log_file():
-    path = 'resources/libwayland_debug_logs/short.log'
+def log_file_path(name):
+    path = 'resources/libwayland_debug_logs/' + name + '.log'
     assert os.path.isfile(path), os.getcwd() + '/' + path + ' is not a file'
     return path
+
+def short_log_file():
+    return log_file_path('short')
+
+def server_obj_log_file():
+    return log_file_path('gedit-with-server-owned-objects')
 
 def bin_exists(name):
     '''Checks if a program exists on the system'''
