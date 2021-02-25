@@ -64,7 +64,8 @@ class WlClosureCallBreakpoint(gdb.Breakpoint):
         self.plugin = plugin
         self.message_extractor = message_extractor
     def stop(self):
-        self.plugin.process_message(self.message_extractor)
+        connection_id, message = self.message_extractor()
+        self.plugin.process_message(connection_id, message)
         return self.plugin.paused()
 
 class WlCommand(gdb.Command):
@@ -101,7 +102,6 @@ class Plugin:
         self.state = PersistentUIState(ui_state)
         # maps connection ids to thread numbers
         self.connection_threads = {}
-        self.catch = False # catch exceptions instead of letting them kill the plugin
         # Show full error messages in the case of a crash
         gdb.execute('set python print-stack full')
         if not self.out.show_unprocessed:
@@ -128,52 +128,31 @@ class Plugin:
         logger.info('Breakpoints: ' + repr(gdb.breakpoints()))
 
     def open_connection(self, connection_id, is_server):
-        try:
-            self.connection_threads[connection_id] = gdb.selected_thread().global_num
-            self.connection_id_sink.open_connection(time_now(), connection_id, is_server)
-        except Exception as e:
-            if not self.catch: raise
-            self.out.error(repr(e) + ' raised closing connection ' + str(connection_id))
+        self.connection_threads[connection_id] = gdb.selected_thread().global_num
+        self.connection_id_sink.open_connection(time_now(), connection_id, is_server)
 
     def close_connection(self, connection_id):
-        try:
-           self.connection_id_sink.close_connection(time_now(), connection_id)
-        except Exception as e:
-            if not self.catch: raise
-            self.out.error(repr(e) + ' raised closing connection ' + str(connection_id))
+        self.connection_id_sink.close_connection(time_now(), connection_id)
 
-    def process_message(self, message_extractor):
+    def process_message(self, connection_id, message):
         if self.state.paused():
             self.state.resume_requested()
-        try:
-            connection_id, message = message_extractor()
-            current_thread_num = gdb.selected_thread().global_num
-            connection_thread_num = self.connection_threads.get(connection_id)
-            if connection_thread_num != current_thread_num:
-                self.out.warn(
-                    'Got message ' + str(message) +
-                    ' on thread ' + str(current_thread_num) +
-                    ' instead of connection\'s main thread ' + str(connection_thread_num))
-        except Exception as e:
-            if not self.catch: raise
-            self.out.error(repr(e) + ' raised extracting message from GDB')
-        try:
-            self.connection_id_sink.message(connection_id, message)
-        except Exception as e:
-            if not self.catch: raise
-            self.out.error(repr(e) + ' raised processing message ' + str(message))
+        current_thread_num = gdb.selected_thread().global_num
+        connection_thread_num = self.connection_threads.get(connection_id)
+        if connection_thread_num != current_thread_num:
+            self.out.warn(
+                'Got message ' + str(message) +
+                ' on thread ' + str(current_thread_num) +
+                ' instead of connection\'s main thread ' + str(connection_thread_num))
+        self.connection_id_sink.message(connection_id, message)
 
     def invoke_command(self, command):
-        try:
-            self.state.pause_requested()
-            self.command_sink.process_command(command)
-            if self.state.should_quit():
-                gdb.execute('quit')
-            elif not self.state.paused():
-                gdb.execute('continue')
-        except Exception as e:
-            if not self.catch: raise
-            self.out.error(repr(e) + ' raised invoking command `' + command + '`')
+        self.state.pause_requested()
+        self.command_sink.process_command(command)
+        if self.state.should_quit():
+            gdb.execute('quit')
+        elif not self.state.paused():
+            gdb.execute('continue')
 
     def paused(self):
         return self.state.paused()
