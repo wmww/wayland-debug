@@ -138,7 +138,9 @@ def received_message():
     return connection_id, message
 
 def sent_message():
-    frame = gdb.selected_frame()
+    # We break on serialize_closure() (both wl_closure_send and wl_closure_queue call it, so just breaking on it
+    # reduces breakpoints and improves performance). Everything we're interested in is in the parent frame though.
+    frame = gdb.selected_frame().older()
     closure = frame.read_var('closure')
     # closure -> proxy is always null in wl_closure_send and wl_closure_queue
     connection = frame.read_var('connection')
