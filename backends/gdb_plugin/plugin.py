@@ -21,7 +21,8 @@ def output_streams():
 
 class WlConnectionDestroyBreakpoint(gdb.Breakpoint):
     def __init__(self, plugin):
-        super().__init__('wl_connection_destroy', internal=True)
+        # Unclear what qualified=True means, but it doesn't break anything and improves total performance by ~5%
+        super().__init__('wl_connection_destroy', internal=True, qualified=True)
         self.plugin = plugin
     def stop(self):
         connection_id = str(gdb.selected_frame().read_var('connection'))
@@ -30,7 +31,8 @@ class WlConnectionDestroyBreakpoint(gdb.Breakpoint):
 
 class WlConnectionCreateBreakpoint(gdb.Breakpoint):
     def __init__(self, plugin):
-        super().__init__('wl_connection_create', internal=True)
+        # Unclear what qualified=True means, but it doesn't break anything and improves total performance by ~5%
+        super().__init__('wl_connection_create', internal=True, qualified=True)
         self.plugin = plugin
     def stop(self):
         self.FinishBreakpoint(self.plugin)
@@ -57,7 +59,8 @@ class WlConnectionCreateBreakpoint(gdb.Breakpoint):
 
 class WlClosureCallBreakpoint(gdb.Breakpoint):
     def __init__(self, plugin, name, message_extractor):
-        super().__init__(name, internal=True)
+        # Unclear what qualified=True means, but it doesn't break anything and improves total performance by ~5%
+        super().__init__(name, internal=True, qualified=True)
         self.plugin = plugin
         self.message_extractor = message_extractor
     def stop(self):
