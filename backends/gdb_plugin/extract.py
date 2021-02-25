@@ -9,10 +9,9 @@ wl_resource_ptr_type = None
 gdb_fast_access_map = {}
 gdb_char_ptr_type = gdb.lookup_type('char').pointer()
 
-# Check if a GDB value is null
-# (there should be a better way, but I don't think there is)
+# Check if a GDB value is null (there should be a better way, but I don't think there is)
 def _is_null(val):
-    return str(val) == '0x0'
+    return int(val) == 0
 
 def lazy_get_wl_resource_ptr_type():
     global wl_resource_ptr_type
