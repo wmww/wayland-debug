@@ -112,14 +112,14 @@ def received_message():
     frame = gdb.selected_frame()
     closure = frame.read_var('closure')
     wl_object = frame.read_var('target')
-    calling_func = frame.older().name()
+    parent_frame = frame.older()
+    calling_func = parent_frame.name()
     # NOTE: closure->proxy is often null but technically undefined in the server case
     # Using it to detect server vs client works for the tests but fails on Mir
     if calling_func == 'dispatch_event':
         # Client connection
         new_id_is_actually_an_object = True
-        proxy = _fast_access(closure, 'wl_closure.proxy')
-        wl_display = _fast_access(proxy, 'wl_proxy.display')
+        wl_display = parent_frame.read_var('display')
         connection = _fast_access(wl_display, 'wl_display.connection')
     elif calling_func == 'wl_client_connection_data':
         # Server connection
