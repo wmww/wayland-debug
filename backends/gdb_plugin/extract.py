@@ -108,6 +108,9 @@ def extract_message(closure, object, is_sending, new_id_is_actually_an_object):
             i += 1
     return wl.Message(time_now(), object, is_sending, message_name, args)
 
+def connection_id_of(connection):
+    return 'gdb_conn:' + hex(int(connection))
+
 def received_message():
     frame = gdb.selected_frame()
     closure = frame.read_var('closure')
@@ -129,7 +132,7 @@ def received_message():
         connection = _fast_access(_fast_access(resource, 'wl_resource.client'), 'wl_client.connection')
     else:
         raise RuntimeError('Unknown libwayland calling function ' + calling_func)
-    connection_id = hex(int(connection))
+    connection_id = connection_id_of(connection)
     object_id = int(_fast_access(closure, 'wl_closure.sender_id'))
     # wl_object is not a pointer, so can't use _fast_access() to get interface
     obj_type = _fast_access(wl_object['interface'], 'wl_interface.name').string()
@@ -144,7 +147,7 @@ def sent_message():
     closure = frame.read_var('closure')
     # closure -> proxy is always null in wl_closure_send and wl_closure_queue
     connection = frame.read_var('connection')
-    connection_id = hex(int(connection))
+    connection_id = connection_id_of(connection)
     object_id = int(_fast_access(closure, 'wl_closure.sender_id'))
     object = wl.Object.Unresolved(object_id, None)
     message = extract_message(closure, object, True, False)
