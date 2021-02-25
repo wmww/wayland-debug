@@ -29,6 +29,8 @@ class WlConnectionDestroyBreakpoint(gdb.Breakpoint):
         self.plugin.close_connection(connection_id)
         return False
 
+# This works, but breakpoints are expensive and we can create the connection when the first message comes in
+'''
 class WlConnectionCreateBreakpoint(gdb.Breakpoint):
     def __init__(self, plugin):
         # Unclear what qualified=True means, but it doesn't break anything and improves total performance by ~5%
@@ -56,6 +58,7 @@ class WlConnectionCreateBreakpoint(gdb.Breakpoint):
                 is_server = None
             self.plugin.open_connection(connection_id, is_server)
             return False
+'''
 
 class WlClosureCallBreakpoint(gdb.Breakpoint):
     def __init__(self, plugin, name, message_extractor):
@@ -114,7 +117,7 @@ class Plugin:
             self.out.warn('Loading libwayland symbols failed: ' + str(e))
             self.out.warn('libwayland debug symbols were not found, so Wayland messages may not be detected in GDB mode')
             self.out.warn('See https://github.com/wmww/wayland-debug/blob/master/libwayland_debug_symbols.md for more information')
-        WlConnectionCreateBreakpoint(self)
+        #WlConnectionCreateBreakpoint(self)
         WlConnectionDestroyBreakpoint(self)
         WlClosureCallBreakpoint(self, 'wl_closure_invoke', extract.received_message)
         WlClosureCallBreakpoint(self, 'wl_closure_dispatch', extract.received_message)
@@ -138,7 +141,12 @@ class Plugin:
             self.state.resume_requested()
         current_thread_num = gdb.selected_thread().global_num
         connection_thread_num = self.connection_threads.get(connection_id)
-        if connection_thread_num != current_thread_num:
+        if connection_thread_num is None:
+            is_server = None
+            if message.name == 'get_registry':
+                is_server = not message.sent
+            self.open_connection(connection_id, is_server)
+        elif connection_thread_num != current_thread_num:
             self.out.warn(
                 'Got message ' + str(message) +
                 ' on thread ' + str(current_thread_num) +
