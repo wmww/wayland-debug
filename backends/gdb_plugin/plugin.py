@@ -25,7 +25,7 @@ class WlConnectionDestroyBreakpoint(gdb.Breakpoint):
         super().__init__('wl_connection_destroy', internal=True, qualified=True)
         self.plugin = plugin
     def stop(self):
-        connection_id = str(gdb.selected_frame().read_var('connection'))
+        connection_id = hex(int(gdb.selected_frame().read_var('connection')))
         self.plugin.close_connection(connection_id)
         return False
 
@@ -43,7 +43,7 @@ class WlConnectionCreateBreakpoint(gdb.Breakpoint):
             super().__init__(gdb.selected_frame(), internal=True)
             self.plugin = plugin
         def stop(self):
-            connection_id = str(self.return_value)
+            connection_id = hex(int(self.return_value))
             calling_function = str(gdb.selected_frame().function())
             if calling_function == 'wl_display_connect_to_fd':
                 is_server = False

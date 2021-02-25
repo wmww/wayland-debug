@@ -130,7 +130,7 @@ def received_message():
         connection = _fast_access(_fast_access(resource, 'wl_resource.client'), 'wl_client.connection')
     else:
         raise RuntimeError('Unknown libwayland calling function ' + calling_func)
-    connection_id = str(connection)
+    connection_id = hex(int(connection))
     object_id = int(_fast_access(closure, 'wl_closure.sender_id'))
     # wl_object is not a pointer, so can't use _fast_access() to get interface
     obj_type = _fast_access(wl_object['interface'], 'wl_interface.name').string()
@@ -143,7 +143,7 @@ def sent_message():
     closure = frame.read_var('closure')
     # closure -> proxy is always null in wl_closure_send and wl_closure_queue
     connection = frame.read_var('connection')
-    connection_id = str(connection)
+    connection_id = hex(int(connection))
     object_id = int(_fast_access(closure, 'wl_closure.sender_id'))
     object = wl.Object.Unresolved(object_id, None)
     message = extract_message(closure, object, True, False)
