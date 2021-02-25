@@ -107,9 +107,10 @@ def extract_message(closure, object, is_sending, new_id_is_actually_an_object):
     return wl.Message(time_now(), object, is_sending, message_name, args)
 
 def received_message():
-    closure = gdb.selected_frame().read_var('closure')
-    wl_object = gdb.selected_frame().read_var('target')
-    calling_func = gdb.selected_frame().older().name()
+    frame = gdb.selected_frame()
+    closure = frame.read_var('closure')
+    wl_object = frame.read_var('target')
+    calling_func = frame.older().name()
     # NOTE: closure->proxy is often null but technically undefined in the server case
     # Using it to detect server vs client works for the tests but fails on Mir
     if calling_func == 'dispatch_event':
@@ -135,9 +136,10 @@ def received_message():
     return connection_id, message
 
 def sent_message():
-    closure = gdb.selected_frame().read_var('closure')
+    frame = gdb.selected_frame()
+    closure = frame.read_var('closure')
     # closure -> proxy is always null in wl_closure_send and wl_closure_queue
-    connection = gdb.selected_frame().read_var('connection')
+    connection = frame.read_var('connection')
     connection_id = str(connection)
     object_id = int(_fast_access(closure, 'sender_id'))
     object = wl.Object.Unresolved(object_id, None)
