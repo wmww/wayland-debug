@@ -135,6 +135,7 @@ class Plugin:
         self.connection_id_sink.open_connection(time_now(), connection_id, is_server)
 
     def close_connection(self, connection_id):
+        del self.connection_threads[connection_id]
         self.connection_id_sink.close_connection(time_now(), connection_id)
 
     def process_message(self, connection_id, message):
