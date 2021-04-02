@@ -112,7 +112,7 @@
 	wl_display.sync request immediately after binding to ensure that they
 	receive all the capability events.
       </description>
-      <arg name="capability" type="uint"/>
+      <arg name="capability" type="uint" enum="capability" />
     </event>
 
     <enum name="present_method">
@@ -149,7 +149,7 @@
 	ignored.
       </description>
       <arg name="surface" type="object" interface="wl_surface" allow-null="true"/>
-      <arg name="method" type="uint"/>
+      <arg name="method" type="uint" enum="present_method" />
       <arg name="output" type="object" interface="wl_output" allow-null="true"/>
     </request>
 

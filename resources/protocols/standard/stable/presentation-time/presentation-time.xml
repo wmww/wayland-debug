@@ -253,7 +253,7 @@
            summary="high 32 bits of refresh counter"/>
       <arg name="seq_lo" type="uint"
            summary="low 32 bits of refresh counter"/>
-      <arg name="flags" type="uint" summary="combination of 'kind' values"/>
+      <arg name="flags" type="uint" enum="kind" summary="combination of 'kind' values"/>
     </event>
 
     <event name="discarded">

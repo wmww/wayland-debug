@@ -6,7 +6,7 @@
     SPDX-License-Identifier: LGPL-2.1-or-later
   ]]></copyright>
 
-  <interface name="org_kde_plasma_window_management" version="13">
+  <interface name="org_kde_plasma_window_management" version="14">
     <description summary="application windows management">
       This interface manages application windows.
       It provides requests to show and hide the desktop and emits
@@ -101,7 +101,7 @@
     </event>
   </interface>
 
-  <interface name="org_kde_plasma_window" version="13">
+  <interface name="org_kde_plasma_window" version="14">
     <description summary="interface to control application windows">
       Manages and control an application window.
 
@@ -335,7 +335,36 @@
       </description>
       <arg name="service_name" type="string" />
       <arg name="object_path" type="string" />
-  </event>
+    </event>
+
+    <request name="request_enter_activity" since="14">
+      <description summary="map window on an activity">
+        Make the window enter an activity. A window can enter more activity. If the id is empty or invalid, no action will be performed.
+      </description>
+      <arg name="id" type="string" summary="activity id"/>
+    </request>
+
+    <request name="request_leave_activity" since="14">
+      <description summary="remove a window from an activity">
+        Make the window exit a an activity. If it exits all activities it will be considered on all of them.
+      </description>
+      <arg name="id" type="string" summary="activity id"/>
+    </request>
+
+    <event name="activity_entered" since="14">
+      <description summary="the window entered an activity">
+        This event will be sent when the window has entered an activity. The window can be on more than one activity, or none: then is considered on all of them.
+      </description>
+      <arg name="id" type="string" summary="activity id"/>
+    </event>
+
+    <event name="activity_left" since="14">
+      <description summary="the window left an activity">
+        This event will be sent when the window left an activity. If the window leaves all activities, it will be considered on all.
+        If the window gets manually added on all activities, the server has to send activity_left for every previous activity it was in for the window to be really considered on all activities.
+      </description>
+      <arg name="id" type="string" summary="activity id"/>
+    </event>
 
   </interface>
 </protocol>
