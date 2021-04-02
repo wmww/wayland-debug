@@ -30,7 +30,7 @@ class TestProtocol(unittest.TestCase):
         if delta.days > 160:
             raise RuntimeError(
                 'It has been ' + str(delta.days) + ' days since the protocols were updated. ' +
-                'Please run update-protocols.sh and commit any changes')
+                'Please run resources/update-protocols.sh and commit any changes')
 
     def test_load_all(self):
         out = output.Strict()
