@@ -23,7 +23,7 @@ jobs:
     - name: Install dependencies
       run: >-
         sudo apt install
-        python3 python3-pytest
+        python3 python3-pytest python3-mypy
         libwayland-dev wayland-protocols
         libwayland-server0-dbgsym libwayland-client0-dbgsym
         gdb meson ninja-build
