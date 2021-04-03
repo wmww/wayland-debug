@@ -1,6 +1,8 @@
 from abc import abstractmethod
-from typing import Tuple
-from . import Connection
+from typing import Tuple, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from . import Connection
 
 class ConnectionList:
     '''Simply a list of wl.Connections that supports adding listeners'''
@@ -11,12 +13,12 @@ class ConnectionList:
         '''
 
         @abstractmethod
-        def connection_opened(self, connection_list: ConnectionList, connection: Connection) -> None:
+        def connection_opened(self, connection_list: 'ConnectionList', connection: 'Connection') -> None:
             '''A new connection has been opened'''
             raise NotImplementedError()
 
     @abstractmethod
-    def connections(self) -> Tuple[Connection, ...]:
+    def connections(self) -> Tuple['Connection', ...]:
         '''Get all connections (open and closed) in order they were created'''
         raise NotImplementedError()
 

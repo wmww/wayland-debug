@@ -1,10 +1,13 @@
 import logging
+from typing import TYPE_CHECKING
 
 from core.util import *
-import interfaces
 from . import object
 from . import protocol
-from . import Message
+
+if TYPE_CHECKING:
+    from interfaces import ObjectDB
+    from . import Message
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +86,7 @@ class Arg:
                 self.obj.type = new_type
             assert new_type == self.obj.type, 'Object arg already has type ' + self.obj.type + ', so can not be set to ' + new_type
 
-        def resolve(self, db: interfaces.ObjectDB, message: Message, index: int) -> None:
+        def resolve(self, db: 'ObjectDB', message: 'Message', index: int) -> None:
             super().resolve(db, message, index)
             if not self.obj.resolved():
                 if self.is_new:

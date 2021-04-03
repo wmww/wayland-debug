@@ -2,11 +2,6 @@ import os
 import subprocess
 import shutil
 
-import main
-from backends import gdb_plugin
-from core.output import stream
-from core.util import no_color
-
 gdb_log_path = '/tmp/gdb_log.txt'
 
 def get_project_path() -> str:
@@ -47,6 +42,8 @@ def get_main_path():
     return main_path
 
 def run_main(args):
+    import main
+    from core.output import stream
     assert isinstance(args, list)
     args = [get_main_path()] + args
     out = stream.String()
@@ -57,6 +54,8 @@ def run_main(args):
     return out.buffer
 
 def run_in_gdb(wldbg_args, gdb_args, also_run):
+    from backends import gdb_plugin
+    from core.util import no_color
     assert isinstance(wldbg_args, list)
     assert isinstance(gdb_args, list)
     assert also_run is None or isinstance(also_run, list)

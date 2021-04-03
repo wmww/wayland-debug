@@ -1,6 +1,8 @@
 from abc import abstractmethod
-from typing import Tuple, Optional
-from core import wl
+from typing import Tuple, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from core import wl
 
 class Connection():
     '''A single Wayland client-server connection'''
@@ -9,7 +11,7 @@ class Connection():
         '''Used to update connection state'''
 
         @abstractmethod
-        def message(self, message: wl.Message) -> None:
+        def message(self, message: 'wl.Message') -> None:
             '''Process a new message'''
             raise NotImplementedError()
 
@@ -24,22 +26,22 @@ class Connection():
         '''Implement to be notified of connection state changes'''
 
         @abstractmethod
-        def connection_str_changed(self, connection: Connection) -> None:
+        def connection_str_changed(self, connection: 'Connection') -> None:
             '''Called whenever str(connection) may return different output'''
             raise NotImplementedError()
 
         @abstractmethod
-        def connection_app_id_set(self, connection: Connection, new_app_id: str) -> None:
+        def connection_app_id_set(self, connection: 'Connection', new_app_id: str) -> None:
             '''Called when connection.app_id has been changed'''
             raise NotImplementedError()
 
         @abstractmethod
-        def connection_got_new_message(self, connection: Connection, message: wl.Message) -> None:
+        def connection_got_new_message(self, connection: 'Connection', message: 'wl.Message') -> None:
             '''Called when a new message has been processed'''
             raise NotImplementedError()
 
         @abstractmethod
-        def connection_closed(self, connection: Connection) -> None:
+        def connection_closed(self, connection: 'Connection') -> None:
             '''Called only once when the connection is closed'''
             raise NotImplementedError()
 
@@ -54,7 +56,7 @@ class Connection():
         raise NotImplementedError()
 
     @abstractmethod
-    def messages(self) -> Tuple[wl.Message, ...]:
+    def messages(self) -> Tuple['wl.Message', ...]:
         '''Returns a tuple of all messages in order they were processed'''
         raise NotImplementedError()
 

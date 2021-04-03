@@ -191,14 +191,6 @@ class TestObjectDBImpl(TestCase):
     def test_can_create_registry(self):
         self.c.create_object(0.0, self.c.wl_display(), 2, 'wl_registry')
 
-    def test_create_object_fails_with_no_parent(self):
-        with self.assertRaises(AssertionError):
-            self.c.create_object(0.0, None, 2, 'wl_registry')
-
-    def test_create_object_fails_with_no_type(self):
-        with self.assertRaises(AssertionError):
-            self.c.create_object(0.0, self.c.wl_display(), 2, None)
-
     def test_can_not_create_2nd_display(self):
         with self.assertRaises(RuntimeError):
             self.c.create_object(0.0, self.c.wl_display(), 1, 'wl_display')
