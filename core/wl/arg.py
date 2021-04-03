@@ -4,6 +4,7 @@ from core.util import *
 import interfaces
 from . import object
 from . import protocol
+from . import Message
 
 logger = logging.getLogger(__name__)
 
@@ -76,12 +77,13 @@ class Arg:
             assert isinstance(is_new, bool)
             self.obj = obj
             self.is_new = is_new
+
         def set_type(self, new_type):
             if not self.obj.resolved() and self.obj.type == None:
                 self.obj.type = new_type
             assert new_type == self.obj.type, 'Object arg already has type ' + self.obj.type + ', so can not be set to ' + new_type
-        def resolve(self, db, message, index):
-            assert isinstance(db, interfaces.ObjectDB)
+
+        def resolve(self, db: interfaces.ObjectDB, message: Message, index: int) -> None:
             super().resolve(db, message, index)
             if not self.obj.resolved():
                 if self.is_new:
@@ -90,6 +92,7 @@ class Arg:
                     except RuntimeError as e:
                         logger.warning('Unable to resolve object argument ' + str(self) + ': ' + str(e))
                 self.obj = self.obj.resolve(db)
+
         def value_to_str(self):
             return (color('1;32', 'new ') if self.is_new else '') + str(self.obj)
 
