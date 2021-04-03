@@ -1,66 +1,84 @@
-class Connection:
+from abc import abstractmethod
+from typing import Tuple, Optional
+from core import wl
+
+class Connection():
     '''A single Wayland client-server connection'''
 
     class Sink:
         '''Used to update connection state'''
 
-        def message(self, message):
-            '''Process a new wl.Message'''
+        @abstractmethod
+        def message(self, message: wl.Message) -> None:
+            '''Process a new message'''
             raise NotImplementedError()
 
-        def close(self, time):
+        @abstractmethod
+        def close(self, time: float) -> None:
             '''Close the connection
-            time: float, the time the connection was closed
+            time: the time the connection was closed
             '''
             raise NotImplementedError()
 
     class Listener:
         '''Implement to be notified of connection state changes'''
 
-        def connection_str_changed(self, connection):
+        @abstractmethod
+        def connection_str_changed(self, connection: Connection) -> None:
             '''Called whenever str(connection) may return different output'''
             raise NotImplementedError()
 
-        def connection_app_id_set(self, connection, new_app_id):
+        @abstractmethod
+        def connection_app_id_set(self, connection: Connection, new_app_id: str) -> None:
             '''Called when connection.app_id has been changed'''
             raise NotImplementedError()
 
-        def connection_got_new_message(self, connection, message):
-            '''Called when a new wl.Message has been processed'''
+        @abstractmethod
+        def connection_got_new_message(self, connection: Connection, message: wl.Message) -> None:
+            '''Called when a new message has been processed'''
             raise NotImplementedError()
 
-        def connection_closed(self, connection):
+        @abstractmethod
+        def connection_closed(self, connection: Connection) -> None:
             '''Called only once when the connection is closed'''
             raise NotImplementedError()
 
-    def name(self):
+    @abstractmethod
+    def name(self) -> str:
         '''Returns the name the connection was created with'''
         raise NotImplementedError()
 
-    def is_server(self):
+    @abstractmethod
+    def is_server(self) -> Optional[bool]:
         '''Returns if this connection is a server or client, or None if unknown'''
         raise NotImplementedError()
 
-    def messages(self):
+    @abstractmethod
+    def messages(self) -> Tuple[wl.Message, ...]:
         '''Returns a tuple of all messages in order they were processed'''
         raise NotImplementedError()
 
-    def is_open(self):
+    @abstractmethod
+    def is_open(self) -> bool:
         '''Returns if this connection is currently open'''
         raise NotImplementedError()
 
-    def app_id(self):
+    @abstractmethod
+    def app_id(self) -> Optional[str]:
         '''Returns the app's app_id if detected or None'''
         raise NotImplementedError()
 
-    def __str__(self):
+    @abstractmethod
+    def __str__(self) -> str:
         '''Describes connection'''
         raise NotImplementedError()
 
-    def add_connection_listener(self, listener):
+    @abstractmethod
+    def add_connection_listener(self, listener: Listener) -> None:
         '''Get notified of connection changes and messages'''
         raise NotImplementedError()
 
-    def remove_connection_list_listener(self, listener):
-        '''Stop the listener from being notified'''
+    @abstractmethod
+    def remove_connection_listener(self, listener: Listener) -> None:
+        '''Stop the given connection listener being notified'''
         raise NotImplementedError()

@@ -1,3 +1,7 @@
+from abc import abstractmethod
+from typing import Tuple
+from . import Connection
+
 class ConnectionList:
     '''Simply a list of wl.Connections that supports adding listeners'''
 
@@ -6,27 +10,25 @@ class ConnectionList:
         To be notified when connections are closed, register a connection listener
         '''
 
-        def connection_opened(self, connection_list, connection):
-            '''A new connection has been opened
-            connection: wl.Connection
-            '''
+        @abstractmethod
+        def connection_opened(self, connection_list: ConnectionList, connection: Connection) -> None:
+            '''A new connection has been opened'''
             raise NotImplementedError()
 
-    def connections(self):
-        '''Get all connections (open and closed) in order they were created
-        returns: tuple of wl.Connection
-        '''
+    @abstractmethod
+    def connections(self) -> Tuple[Connection, ...]:
+        '''Get all connections (open and closed) in order they were created'''
         raise NotImplementedError()
 
-    def add_connection_list_listener(self, listener, catch_up):
+    @abstractmethod
+    def add_connection_list_listener(self, listener: Listener, catch_up: bool) -> None:
         '''Add a listener to be notified of opened and closed connections
-        listener: ConnectionList.Listener
-        catch_up: bool, if to send connection_opened() events for all open and closed connections
+        listener: a ConnectionList.Listener
+        catch_up: if to send connection_opened() events for all open and closed connections
         '''
         raise NotImplementedError()
 
-    def remove_connection_list_listener(self, listener):
-        '''Remove the given listener so it no longer gets notifications
-        listener: ConnectionList.Listener
-        '''
+    @abstractmethod
+    def remove_connection_list_listener(self, listener: Listener) -> None:
+        '''Remove the given listener so it no longer gets notifications'''
         raise NotImplementedError()
