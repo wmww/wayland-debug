@@ -13,7 +13,7 @@ class ConnectionManager(interfaces.ConnectionIDSink, interfaces.ConnectionList):
         self.connection_name_generator = NameGenerator()
         self.listener = new_disseminator_of_type(interfaces.ConnectionList.Listener)
 
-    def open_connection(self, time, connection_id, is_server):
+    def open_connection(self, time: float, connection_id, is_server):
         '''Overries method in ConnectionIDSink'''
         assert isinstance(time, float)
         assert isinstance(connection_id, str) and connection_id

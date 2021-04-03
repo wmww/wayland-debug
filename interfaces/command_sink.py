@@ -1,14 +1,17 @@
+from abc import abstractmethod
+from typing import List
+
 class CommandSink:
     '''An interface for processing commands originating from the user'''
 
-    def process_command(self, command):
+    @abstractmethod
+    def process_command(self, command: str) -> None:
         '''Parses and executes a user command
-        command: str, the command from the user
+        command: the command from the user
         '''
         raise NotImplementedError()
 
-    def toplevel_commands(self):
-        '''Returns a list of toplevel commands
-        returns: list of str
-        '''
+    @abstractmethod
+    def toplevel_commands(self) -> List[str]:
+        '''Returns a list of toplevel commands'''
         raise NotImplementedError()

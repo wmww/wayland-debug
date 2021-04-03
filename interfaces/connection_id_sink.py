@@ -1,26 +1,36 @@
+from abc import abstractmethod
+from typing import Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from core import wl
+    from . import Connection
+
 class ConnectionIDSink:
     '''Receives messages and connection created/deleted events based on a unique connection ID'''
 
-    def open_connection(self, time, connection_id, is_server):
+    @abstractmethod
+    def open_connection(self, time: float, connection_id: str, is_server: Optional[bool]) -> 'Connection':
         '''Open a new client-server connection
-        time: float, what is returned by time.perf_counter() will do
-        connection_id: str, unique identifier of the connection (only used internally, never shown to user)
-        is_server: bool/None, if this connection is a server or a client (can be None if value is unknown)
-        returns: wl.Connection, the newly created connection
+        time: what is returned by time.perf_counter() will do
+        connection_id: unique identifier of the connection (only used internally, never shown to user)
+        is_server: if this connection is a server or a client (can be None if value is unknown)
+        returns: the newly created connection
         '''
         # TODO: make return None
         raise NotImplementedError()
 
-    def close_connection(self, time, connection_id):
+    @abstractmethod
+    def close_connection(self, time: float, connection_id: str) -> None:
         '''Close the given connection
-        time: float, what is returned by time.perf_counter() will do
-        connection_id: str, the unique ID the connection was created with
+        time: what is returned by time.perf_counter() will do
+        connection_id: the unique ID the connection was created with
         '''
         raise NotImplementedError()
 
-    def message(self, connection_id, message):
+    @abstractmethod
+    def message(self, connection_id: str, message: 'wl.Message') -> None:
         '''Process a new message
-        connection_id: str, the unique ID of the connection this message was on
-        message: wl.Message, the message
+        connection_id: the unique ID of the connection this message was on
+        message: the message
         '''
         raise NotImplementedError()
