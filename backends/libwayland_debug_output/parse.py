@@ -33,6 +33,7 @@ class WlPatterns:
         self.out_msg_re = re.compile(timestamp_regex + '  -> ' + message_regex)
         self.in_msg_re = re.compile(timestamp_regex + ' ' + message_regex)
 
+    @staticmethod
     def lazy_get_instance():
         if not WlPatterns.instance:
             WlPatterns.instance = WlPatterns()

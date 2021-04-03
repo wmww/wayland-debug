@@ -1,5 +1,6 @@
 import os
 import subprocess
+import shutil
 
 import main
 from backends import gdb_plugin
@@ -8,23 +9,31 @@ from core.util import no_color
 
 gdb_log_path = '/tmp/gdb_log.txt'
 
-def log_file_path(name):
+def get_project_path() -> str:
+    project = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    # Use the presence of LICENSE to make sure the path is correct
+    license = os.path.join(project, 'LICENSE');
+    assert os.path.isfile(license), license + ' not found, this may indicate the project path is wrong'
+    return project
+
+def log_file_path(name) -> str:
     path = 'resources/libwayland_debug_logs/' + name + '.log'
-    assert os.path.isfile(path), os.getcwd() + '/' + path + ' is not a file'
+    assert os.path.isfile(path), get_project_path() + '/' + path + ' is not a file'
     return path
 
-def short_log_file():
+def short_log_file() -> str:
     return log_file_path('short')
 
-def server_obj_log_file():
+def server_obj_log_file() -> str:
     return log_file_path('gedit-with-server-owned-objects')
 
-def bin_exists(name):
-    '''Checks if a program exists on the system'''
-    args = ['which', name]
-    sp = subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    _, _ = sp.communicate()
-    return sp.returncode == 0
+def find_bin(name: str) -> str:
+    '''Returns the path to a program if it exists on the system, or an empty string otherwise'''
+    path = shutil.which(name);
+    if path is not None:
+        return path
+    else:
+        return ''
 
 def wayland_socket_exists():
     xdg_runtime_dir = os.getenv('XDG_RUNTIME_DIR')
@@ -34,7 +43,7 @@ def wayland_socket_exists():
 
 def get_main_path():
     main_path = 'main.py'
-    assert os.path.isfile(main_path), os.getcwd() + '/' + main_path + ' is not a file'
+    assert os.path.isfile(main_path), get_project_path() + '/' + main_path + ' is not a file'
     return main_path
 
 def run_main(args):
@@ -96,11 +105,13 @@ def run_in_gdb(wldbg_args, gdb_args, also_run):
 mock_program_path = 'test/mock_program'
 
 def build_mock_program():
-    assert bin_exists('meson') and bin_exists('ninja'), 'meson and ninja needed to build mock program'
+    meson = find_bin('meson')
+    ninja = find_bin('ninja')
+    assert meson and ninja, 'meson and ninja needed to build mock program'
     build_dir = os.path.join(mock_program_path, 'build')
     if not os.path.isdir(build_dir):
-        subprocess.run(['meson', 'build'], cwd = mock_program_path).check_returncode()
-    subprocess.run(['ninja', '-C', build_dir]).check_returncode()
+        subprocess.run([meson, 'build'], cwd = mock_program_path).check_returncode()
+    subprocess.run([ninja, '-C', build_dir]).check_returncode()
     bin_paths = (
         os.path.join(build_dir, 'mock-client'),
         os.path.join(build_dir, 'mock-server'))

@@ -1,6 +1,7 @@
 import pytest
 import unittest
 import re
+import shutil
 
 import integration_helpers as helpers
 

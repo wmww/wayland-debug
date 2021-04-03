@@ -1,7 +1,7 @@
 import subprocess
 import re
 import logging
-import gdb
+import gdb # type: ignore
 
 logger = logging.getLogger(__name__)
 

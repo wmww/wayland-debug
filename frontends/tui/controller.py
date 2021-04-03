@@ -231,7 +231,6 @@ class Controller(interfaces.CommandSink,
             if arg.startswith('wl'):
                 arg = arg[2:].strip()
             if arg == 'matcher':
-                import matcher
                 matcher.print_help()
                 return
             else:
