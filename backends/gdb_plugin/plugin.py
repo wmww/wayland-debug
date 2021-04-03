@@ -1,5 +1,5 @@
 import logging
-import gdb
+import gdb # type: ignore
 
 import interfaces
 from core import wl, output, PersistentUIState

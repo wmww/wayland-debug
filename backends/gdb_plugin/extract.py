@@ -1,4 +1,5 @@
-import gdb
+import gdb # type: ignore
+from typing import Dict, Tuple, Any
 
 from core import wl
 from core.util import time_now
@@ -6,7 +7,7 @@ from core.util import time_now
 type_codes = {i: True for i in ['i', 'u', 'f', 's', 'o', 'n', 'a', 'h']}
 
 wl_resource_ptr_type = None
-gdb_fast_access_map = {}
+gdb_fast_access_map: Dict[str, Tuple[int, Any]] = {}
 gdb_char_ptr_type = gdb.lookup_type('char').pointer()
 
 # Check if a GDB value is null (there should be a better way, but I don't think there is)

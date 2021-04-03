@@ -8,3 +8,4 @@ from .name_generator import NameGenerator
 from .persistent_ui_state import PersistentUIState
 from . import wl
 from . import output
+from . import matcher

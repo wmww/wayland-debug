@@ -1,6 +1,7 @@
 import xml.etree.ElementTree as ET
 from collections import OrderedDict
 import logging
+from typing import Dict
 
 from core.util import project_root
 from os import path
@@ -147,7 +148,7 @@ def parse_protocol(xmlfile):
             interfaces[interface.name] = interface
     return Protocol(protocol.attrib['name'], xmlfile, interfaces)
 
-interfaces = {}
+interfaces: Dict[str, Interface] = {}
 
 def load(xml_file, out):
     try:
