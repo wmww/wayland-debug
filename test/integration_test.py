@@ -22,6 +22,10 @@ class FileLoadTests(unittest.TestCase):
         self.assertNotIn('get_registry', result)
         self.assertIn('create_surface', result)
 
+    def test_load_file_with_comma_numbers(self):
+        result = helpers.run_main(['-l', helpers.log_file_with_comma_numbers()])
+        self.assertIn('2690.6303 wl_pointer@19.0 motion(time=4491984, surface_x=561.15625, surface_y=501.382812)', result)
+
     @pytest.mark.xfail(reason='see https://github.com/wmww/wayland-debug/issues/35')
     def test_load_from_file_with_server_obj(self):
         helpers.run_main(['-l', helpers.server_obj_log_file()])
