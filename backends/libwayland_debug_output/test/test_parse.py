@@ -37,6 +37,18 @@ class TestParseMessage(unittest.TestCase):
         self.assertEqual(m.args, [])
         self.assertEqual(m.destroyed_obj, None)
 
+    def test_parse_message_timestamp(self):
+        parse.message('[1234567.890] some_object@12.some_message()')
+        conn_id, m = parse.message('[1234588.390] other_object@6.some_message()')
+        self.assertIsInstance(m, Message)
+        self.assertAlmostEqual(m.timestamp, 20.5 / 1000)
+
+    def test_parse_message_timestamp_with_comma(self):
+        parse.message('[1234567,890] some_object@12.some_message()')
+        conn_id, m = parse.message('[1234588,390] other_object@6.some_message()')
+        self.assertIsInstance(m, Message)
+        self.assertAlmostEqual(m.timestamp, 20.5 / 1000)
+
     def parse_message_with_args(self, args_str):
         conn_id, m = parse.message('[1234567.890] some_object@12.some_message(' + args_str + ')')
         self.assertIsInstance(m, Message)
@@ -89,6 +101,11 @@ class TestParseArg(unittest.TestCase):
         a = self.parse_arg('129.04')
         self.assertIsInstance(a, Arg.Float)
         self.assertEqual(a.value, 129.04)
+
+    def test_parse_float_arg_with_comma(self):
+        a = self.parse_arg('57,98')
+        self.assertIsInstance(a, Arg.Float)
+        self.assertEqual(a.value, 57.98)
 
     def test_parse_negative_float_arg(self):
         a = self.parse_arg('-0.293')
