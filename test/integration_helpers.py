@@ -22,6 +22,9 @@ def short_log_file() -> str:
 def server_obj_log_file() -> str:
     return log_file_path('gedit-with-server-owned-objects')
 
+def log_file_with_comma_numbers() -> str:
+    return log_file_path('weston-terminal-with-comma-floats')
+
 def find_bin(name: str) -> str:
     '''Returns the path to a program if it exists on the system, or an empty string otherwise'''
     path = shutil.which(name);
