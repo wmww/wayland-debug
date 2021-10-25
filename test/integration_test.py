@@ -1,7 +1,14 @@
-import pytest
 import unittest
 import re
 import shutil
+from typing import Any, TYPE_CHECKING
+
+# pytest takes a really long time to typecheck
+if TYPE_CHECKING:
+    pytest: Any = None
+else:
+    import pytest
+
 
 import integration_helpers as helpers
 
