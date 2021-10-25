@@ -9,7 +9,7 @@
         SPDX-License-Identifier: MIT-CMU
         ]]></copyright>
 
-<interface name="org_kde_kwin_outputmanagement" version="2">
+<interface name="org_kde_kwin_outputmanagement" version="4">
     <description summary="configuration of server outputs through clients">
     This interface enables clients to set properties of output devices for screen
     configuration purposes via the server. To this end output devices are referenced
@@ -61,7 +61,7 @@
 
 </interface>
 
-<interface name="org_kde_kwin_outputconfiguration" version="2">
+<interface name="org_kde_kwin_outputconfiguration" version="4">
     <description summary="configure single output devices">
         outputconfiguration is a client-specific resource that can be used to ask
         the server to apply changes to available output devices.
@@ -169,6 +169,32 @@
 
     <request name="destroy" type="destructor" since="2">
         <description summary="release the outputconfiguration object"/>
+    </request>
+
+    <request name="overscan" since="3">
+        <description summary="set overscan value">
+            Set the overscan value of this output device with a value in percent.
+        </description>
+        <arg name="outputdevice" type="object" interface="org_kde_kwin_outputdevice" summary="outputdevice overscan applies to"/>
+        <arg name="overscan" type="uint" summary="overscan value"/>
+    </request>
+
+    <enum name="vrr_policy" since="4">
+        <description summary="describes vrr policy">
+            Describes when the compositor may employ variable refresh rate
+        </description>
+        <entry name="never" value="0"/>
+        <entry name="always" value="1"/>
+        <entry name="automatic" value="2"/>
+    </enum>
+
+    <request name="set_vrr_policy" since="4">
+        <description summary="set the VRR policy">
+            Set what policy the compositor should employ regarding its use of
+            variable refresh rate.
+        </description>
+        <arg name="outputdevice" type="object" interface="org_kde_kwin_outputdevice" summary="outputdevice this VRR policy applies to"/>
+        <arg name="policy" type="uint" enum="vrr_policy" summary="the vrr policy to apply"/>
     </request>
 
 </interface>

@@ -238,7 +238,7 @@
 	The leave notification is sent before the enter notification
 	for the new focus.
 
-	When the seat has the keyboard capabillity the text-input focus follows
+	When the seat has the keyboard capability the text-input focus follows
 	the keyboard focus.
       </description>
       <arg name="serial" type="uint"/>

@@ -41,7 +41,7 @@
       <request name="touch_down" since="2">
          <description summary="touch down event">
              A client should use this request to send touch down event at specific
-             co-ordinates.
+             coordinates.
          </description>
          <arg name="id" type="uint" summary="unique id for touch down event"/>
          <arg name="x" type="fixed" summary="x coordinate for touch down event"/>

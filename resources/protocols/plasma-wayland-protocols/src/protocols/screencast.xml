@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <protocol name="zkde_screencast_unstable_v1">
   <copyright><![CDATA[
-      SPDX-FileCopyrightText: 2020 Aleix Pol Gonzalez <aleixpol@kde.org>
+      SPDX-FileCopyrightText: 2020-2021 Aleix Pol Gonzalez <aleixpol@kde.org>
 
     SPDX-License-Identifier: LGPL-2.1-or-later
   ]]></copyright>
-    <interface name="zkde_screencast_unstable_v1" version="1">
+    <interface name="zkde_screencast_unstable_v1" version="2">
         <description summary="Protocol for managing PipeWire feeds of the different displays and windows."/>
 
         <enum name="pointer">
@@ -33,9 +33,19 @@
                 Destroy the zkde_screencast_unstable_v1 object.
             </description>
         </request>
+
+        <request name="stream_virtual_output" since="2">
+            <description summary="requests a feed from a new virtual output"/>
+            <arg name="stream" type="new_id" interface="zkde_screencast_stream_unstable_v1"/>
+            <arg name="name" type="string" summary="name of the created output"/>
+            <arg name="width" type="int" summary="Logical width resolution"/>
+            <arg name="height" type="int" summary="Logical height resolution"/>
+            <arg name="scale" type="fixed" summary="Scaling factor of the display where it's to be displayed"/>
+            <arg name="pointer" type="uint" summary="Requested pointer mode"/>
+        </request>
     </interface>
 
-    <interface name="zkde_screencast_stream_unstable_v1" version="1">
+    <interface name="zkde_screencast_stream_unstable_v1" version="2">
         <request name="close" type="destructor">
             <description summary="Indicates we are done with the stream and the communication is over."/>
         </request>

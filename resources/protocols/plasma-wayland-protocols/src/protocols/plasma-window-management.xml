@@ -6,7 +6,7 @@
     SPDX-License-Identifier: LGPL-2.1-or-later
   ]]></copyright>
 
-  <interface name="org_kde_plasma_window_management" version="14">
+  <interface name="org_kde_plasma_window_management" version="15">
     <description summary="application windows management">
       This interface manages application windows.
       It provides requests to show and hide the desktop and emits
@@ -101,7 +101,7 @@
     </event>
   </interface>
 
-  <interface name="org_kde_plasma_window" version="14">
+  <interface name="org_kde_plasma_window" version="15">
     <description summary="interface to control application windows">
       Manages and control an application window.
 
@@ -366,5 +366,52 @@
       <arg name="id" type="string" summary="activity id"/>
     </event>
 
+    <request name="send_to_output" since="15">
+     <description summary="send window to specified output">
+        Requests this window to be displayed in a specific output.
+      </description>
+      <arg name="output" type="object" interface="wl_output"/>
+    </request>
+  </interface>
+
+  <interface name="org_kde_plasma_activation_feedback" version="1">
+    <description summary="activation feedback">
+      The activation manager interface provides a way to get notified
+      when an application is about to be activated.
+    </description>
+
+    <request name="destroy" type="destructor">
+      <description summary="destroy the activation manager object">
+        Destroy the activation manager object. The activation objects introduced
+        by this manager object will be unaffected.
+      </description>
+    </request>
+
+    <event name="activation">
+      <description summary="notify that an app is starting">
+        Will be issued when an app is set to be activated. It offers
+        an instance of org_kde_plasma_activation that will tell us the app_id
+        and the extent of the activation.
+      </description>
+      <arg name="id" type="new_id" interface="org_kde_plasma_activation"/>
+    </event>
+  </interface>
+
+  <interface name="org_kde_plasma_activation" version="1">
+    <request name="destroy" type="destructor">
+      <description summary="destroy the org_kde_plasma_activation object">
+        Notify the compositor that the org_kde_plasma_activation object will no
+        longer be used.
+      </description>
+    </request>
+
+    <event name="app_id">
+      <description summary="Offers the app_id"></description>
+      <arg name="app_id" type="string" summary="application id, as described in xdg_activation_v1"/>
+    </event>
+
+    <event name="finished">
+        <description summary="Notifies about activation finished, either by activation or because it got invalidated"></description>
+    </event>
   </interface>
 </protocol>
