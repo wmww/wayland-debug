@@ -1,21 +1,14 @@
-import unittest
+from unittest import TestCase, expectedFailure
 import re
 import shutil
 from typing import Any, TYPE_CHECKING
-
-# pytest takes a really long time to typecheck
-if TYPE_CHECKING:
-    pytest: Any = None
-else:
-    import pytest
-
 
 import integration_helpers as helpers
 
 # This list should match test_fixed_sequence in mock_server.c
 test_fixed_sequence = [0.0, 1.0, 0.5, -1.0, 280.0, -12.5, 16.3, 425.87, -100000.0, 0.001]
 
-class FileLoadTests(unittest.TestCase):
+class FileLoadTests(TestCase):
     def test_load_from_file_doesnt_crash(self):
         helpers.run_main(['-l', helpers.short_log_file()])
 
@@ -33,17 +26,19 @@ class FileLoadTests(unittest.TestCase):
         result = helpers.run_main(['-l', helpers.log_file_with_comma_numbers()])
         self.assertIn('2690.6303 wl_pointer@19.0 motion(time=4491984, surface_x=561.15625, surface_y=501.382812)', result)
 
-    @pytest.mark.xfail(reason='see https://github.com/wmww/wayland-debug/issues/35')
+    # see https://github.com/wmww/wayland-debug/issues/35
+    @expectedFailure
     def test_load_from_file_with_server_obj(self):
         helpers.run_main(['-l', helpers.server_obj_log_file()])
 
-    @pytest.mark.xfail(reason='see https://github.com/wmww/wayland-debug/issues/17')
+    # see https://github.com/wmww/wayland-debug/issues/17
+    @expectedFailure
     def test_load_from_file_with_break(self):
         result = helpers.run_main(['-l', helpers.short_log_file(), '-b', '[global]'])
         self.assertIn('get_registry', result)
         self.assertNotIn('create_surface', result)
 
-class MockProgramInGDBTests(unittest.TestCase):
+class MockProgramInGDBTests(TestCase):
     def setUp(self):
         mock_client, mock_server = helpers.build_mock_program()
         self.mock_client = mock_client
@@ -94,7 +89,8 @@ class MockProgramInGDBTests(unittest.TestCase):
             expected = test_fixed_sequence[i]
             self.assertAlmostEqual(match, expected, places = 2)
 
-    @pytest.mark.xfail(reason='see https://github.com/wmww/wayland-debug/issues/24')
+    # see https://github.com/wmww/wayland-debug/issues/24
+    @expectedFailure
     def test_extracts_fixed_point_numbers_with_high_accuracy(self):
         result = self.run_server_in_gdb('pointer-move')
         matches = re.findall(r'surface_y=(.*)\)', result)
