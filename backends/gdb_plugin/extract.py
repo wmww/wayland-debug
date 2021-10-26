@@ -1,5 +1,5 @@
 import gdb # type: ignore
-from typing import Dict, Tuple, Any
+from typing import Dict, Tuple, Any, List, Tuple
 
 from core import wl
 from core.util import time_now
@@ -53,7 +53,7 @@ def extract_message(closure, object: wl.ObjectBase, is_sending: bool, new_id_is_
     signiture = _fast_access(closure_message, 'wl_message.signature').string()
     message_types = _fast_access(closure_message, 'wl_message.types')
     closure_args = _fast_access(closure, 'wl_closure.args')
-    args: list[wl.Arg.Base] = []
+    args: List[wl.Arg.Base] = []
     i = 0
     for c in signiture:
         # If its not a version number or '?' optional indicator
@@ -74,7 +74,7 @@ def extract_message(closure, object: wl.ObjectBase, is_sending: bool, new_id_is_
                 args.append(wl.Arg.String(str_val))
             elif c == 'a':
                 size = int(value['size'])
-                elems: list[wl.Arg.Base] = []
+                elems: List[wl.Arg.Base] = []
                 int_type = gdb.lookup_type('int')
                 for i in range(size // int_type.sizeof):
                     elem = value['data'].cast(int_type.pointer())[i]
@@ -112,7 +112,7 @@ def extract_message(closure, object: wl.ObjectBase, is_sending: bool, new_id_is_
 def connection_id_of(connection) -> str:
     return 'gdb_conn:' + hex(int(connection))
 
-def received_message() -> tuple[str, wl.Message]:
+def received_message() -> Tuple[str, wl.Message]:
     frame = gdb.selected_frame()
     closure = frame.read_var('closure')
     wl_object = frame.read_var('target')
@@ -141,7 +141,7 @@ def received_message() -> tuple[str, wl.Message]:
     message = extract_message(closure, object, False, new_id_is_actually_an_object)
     return connection_id, message
 
-def sent_message() -> tuple[str, wl.Message]:
+def sent_message() -> Tuple[str, wl.Message]:
     # We break on serialize_closure() (both wl_closure_send and wl_closure_queue call it, so just breaking on it
     # reduces breakpoints and improves performance). Everything we're interested in is in the parent frame though.
     frame = gdb.selected_frame().older()

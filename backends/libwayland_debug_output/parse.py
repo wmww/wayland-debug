@@ -1,5 +1,5 @@
 import re
-from typing import IO, Iterator, Optional
+from typing import IO, Iterator, Optional, List, Tuple, Set
 
 from interfaces import ConnectionIDSink
 from core import wl
@@ -72,7 +72,7 @@ def end_of_str(args_str: str, i: int) -> int:
         i += 1
     return i
 
-def argument_list_strs(args_str: str) -> list[str]:
+def argument_list_strs(args_str: str) -> List[str]:
     result = []
     i = 0
     start = 0
@@ -87,11 +87,11 @@ def argument_list_strs(args_str: str) -> list[str]:
         result.append(args_str[start:i])
     return result
 
-def argument_list(p: WlPatterns, args_str: str) -> list[wl.Arg.Base]:
+def argument_list(p: WlPatterns, args_str: str) -> List[wl.Arg.Base]:
     str_list = argument_list_strs(args_str)
     return [argument(p, s) for s in str_list]
 
-def message(raw: str) -> tuple[str, wl.Message]:
+def message(raw: str) -> Tuple[str, wl.Message]:
     p = WlPatterns.lazy_get_instance()
     sent = True
     conn_id = 'PARSED'
@@ -111,7 +111,7 @@ def message(raw: str) -> tuple[str, wl.Message]:
     message_args = argument_list(p, message_args_str)
     return conn_id, wl.Message(abs_timestamp, wl.UnresolvedObject(obj_id, type_name), sent, message_name, message_args)
 
-def file(input_file: IO, out: Output) -> Iterator[tuple[str, wl.Message]]:
+def file(input_file: IO, out: Output) -> Iterator[Tuple[str, wl.Message]]:
     parse = True
     while True:
         try:
@@ -133,18 +133,18 @@ def file(input_file: IO, out: Output) -> Iterator[tuple[str, wl.Message]]:
             parse = False
 
 def into_sink(input_file: IO, out: Output, sink: ConnectionIDSink):
-    known_connections = {}
+    known_connections: Set[str] = set()
     last_time = 0.0
     for conn_id, msg in file(input_file, out):
         last_time = msg.timestamp
         if not conn_id in known_connections:
-            known_connections[conn_id] = True
+            known_connections.add(conn_id)
             is_server = None
             if msg.name ==  'get_registry':
                 is_server = not msg.sent
             sink.open_connection(last_time, conn_id, is_server)
         sink.message(conn_id, msg)
-    for conn_id in known_connections.keys():
+    for conn_id in known_connections:
         sink.close_connection(last_time, conn_id)
 
 if __name__ == '__main__':

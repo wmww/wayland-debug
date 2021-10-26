@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 
 from core.util import *
 from interfaces import ObjectDB
@@ -10,7 +10,7 @@ class Message:
     # TODO: figure out a way to remove global time offset
     base_time = None
 
-    def __init__(self, abs_time: float, obj: ObjectBase, sent: bool, name: str, args: list[Arg.Base]) -> None:
+    def __init__(self, abs_time: float, obj: ObjectBase, sent: bool, name: str, args: List[Arg.Base]) -> None:
         if Message.base_time is None:
             Message.base_time = abs_time
         self.timestamp = abs_time - Message.base_time
@@ -36,7 +36,7 @@ class Message:
         for i, arg in enumerate(self.args):
             arg.resolve(db, self, i)
 
-    def used_objects(self) -> list[ObjectBase]:
+    def used_objects(self) -> List[ObjectBase]:
         result = []
         for i in self.args:
             if isinstance(i, Arg.Object):

@@ -1,8 +1,8 @@
-from typing import Optional
+from typing import Optional, List
 
 class NameGenerator:
     def __init__(self) -> None:
-        self.name: list[str] = []
+        self.name: List[str] = []
 
     def next(self) -> str:
         self._increment(len(self.name) - 1)

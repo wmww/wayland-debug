@@ -1,5 +1,5 @@
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 from core.util import *
 from . import protocol
@@ -110,7 +110,7 @@ class Arg:
             return color('36', 'fd ' + str(self.value))
 
     class Array(Base):
-        def __init__(self, values: Optional[list['Arg.Base']] = None) -> None:
+        def __init__(self, values: Optional[List['Arg.Base']] = None) -> None:
             super().__init__()
             self.values = values
         def resolve(self, db: 'ObjectDB', message: 'Message', index: int) -> None:

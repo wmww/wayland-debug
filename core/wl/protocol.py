@@ -1,7 +1,8 @@
+from __future__ import annotations
 import xml.etree.ElementTree as ET
 from collections import OrderedDict
 import logging
-from typing import Optional
+from typing import Optional, Dict, List
 import sys
 import time
 import re
@@ -13,7 +14,7 @@ from core.util import project_root
 logger = logging.getLogger(__name__)
 
 class Protocol:
-    def __init__(self, name: str, xml_file: str, interfaces: OrderedDict[str, 'Interface']) -> None:
+    def __init__(self, name: str, xml_file: str, interfaces: 'OrderedDict[str, Interface]') -> None:
         for i in interfaces.values():
             i.parent = self
         self.name = name
@@ -21,7 +22,7 @@ class Protocol:
         self.interfaces = interfaces
 
 class Interface:
-    def __init__(self, name: str, version: int, messages: OrderedDict[str, 'Message'], enums: OrderedDict[str, 'Enum']) -> None:
+    def __init__(self, name: str, version: int, messages: 'OrderedDict[str, Message]', enums: 'OrderedDict[str, Enum]') -> None:
         assert version > 0
         for message in messages.values():
             message.parent = self
@@ -34,7 +35,7 @@ class Interface:
         self.enums = enums
 
 class Message:
-    def __init__(self, name: str, is_event: bool, args: OrderedDict[str, 'Arg']) -> None:
+    def __init__(self, name: str, is_event: bool, args: 'OrderedDict[str, Arg]') -> None:
         for i in args.values():
             i.parent = self
         self.name = name
@@ -51,7 +52,7 @@ class Arg:
         self.enum = enum
 
 class Enum:
-    def __init__(self, name: str, bitfield: bool, entries: OrderedDict[str, 'EnumEntry']) -> None:
+    def __init__(self, name: str, bitfield: bool, entries: 'OrderedDict[str, EnumEntry]') -> None:
         for i in entries.values():
             i.parent = self
         self.name = name
@@ -134,7 +135,7 @@ def parse_protocol(xmlfile: str) -> Protocol:
             interfaces[interface.name] = interface
     return Protocol(protocol.attrib['name'], xmlfile, interfaces)
 
-interfaces: dict[str, Interface] = {}
+interfaces: Dict[str, Interface] = {}
 
 def load(xml_file: str, out: Output) -> None:
     try:
@@ -147,9 +148,9 @@ def load(xml_file: str, out: Output) -> None:
             interfaces[name] = interface
     logger.info('Loaded ' + str(len(protocol.interfaces)) + ' interfaces from ' + xml_file)
 
-def discover_xml(p: str, out: Output) -> list[str]:
+def discover_xml(p: str, out: Output) -> List[str]:
     if os.path.isdir(p):
-        files = []
+        files: List[str] = []
         for i in os.listdir(p):
             files += discover_xml(os.path.join(p, i), out)
         return files
@@ -291,7 +292,7 @@ def get_enum(interface_name: str, enum_path: str) -> Optional[Enum]:
     if enum_interface is None: return None
     return enum_interface.enums.get(enum_name)
 
-def look_up_enum(interface_name: str, message_name: str, arg_index: int, arg_value: int) -> list[str]:
+def look_up_enum(interface_name: str, message_name: str, arg_index: int, arg_value: int) -> List[str]:
     arg = get_arg(interface_name, message_name, arg_index)
     if arg is None or arg.enum is None: return []
     enum = get_enum(interface_name, arg.enum)

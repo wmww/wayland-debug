@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List, Dict, Tuple
 from interfaces import ConnectionIDSink, ConnectionList, Connection
 from .connection_impl import ConnectionImpl
 from .name_generator import NameGenerator
@@ -9,8 +9,8 @@ class ConnectionManager(ConnectionIDSink, ConnectionList):
     '''The basic implementation of MessageSink and ConnectionList'''
 
     def __init__(self) -> None:
-        self.connection_list: list[ConnectionImpl] = [] # List of all connections (open and closed) in the order they were created
-        self.open_connections: dict[str, ConnectionImpl] = {} # Maps open connection ids to connection objects
+        self.connection_list: List[ConnectionImpl] = [] # List of all connections (open and closed) in the order they were created
+        self.open_connections: Dict[str, ConnectionImpl] = {} # Maps open connection ids to connection objects
         self.connection_name_generator = NameGenerator()
         self.listener = new_disseminator_of_type(ConnectionList.Listener)
 
@@ -41,7 +41,7 @@ class ConnectionManager(ConnectionIDSink, ConnectionList):
         assert connection, 'Message sent to connection with ID "' + connection_id + '" which has not been opened'
         connection.message(message)
 
-    def connections(self) -> tuple[Connection, ...]:
+    def connections(self) -> Tuple[Connection, ...]:
         '''Overries method in ConnectionList'''
         return tuple(self.connection_list)
 
