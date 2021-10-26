@@ -1,12 +1,13 @@
+from typing import Any, IO
 import sys
 
 class Base:
     '''An output stream that supports tokens.'''
-    def write(self, thing):
+    def write(self, thing: Any) -> None:
         '''Show anything that can be converted to a string.'''
         self.override_write(str(thing))
 
-    def override_write(self, string):
+    def override_write(self, string: str) -> None:
         '''Print a string to the stream.
 
         Input is always a string.
@@ -16,21 +17,21 @@ class Base:
         raise NotImplementedError()
 
 class Std(Base):
-    def __init__(self, file=sys.stdout):
+    def __init__(self, file: IO[str] = sys.stdout) -> None:
         self.file = file
     def override_write(self, string):
         print(string, file=self.file)
 
 class String(Base):
-    def __init__(self):
+    def __init__(self) -> None:
         self.buffer = ''
-    def override_write(self, string):
+    def override_write(self, string: str) -> None:
         self.buffer += string + '\n'
 
 class Null(Base):
-    def override_write(self, string):
+    def override_write(self, string: str) -> None:
         pass
 
 class ErrorRaising(Base):
-    def override_write(self, string):
+    def override_write(self, string: str) -> None:
         raise RuntimeError(string)

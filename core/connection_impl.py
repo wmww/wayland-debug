@@ -1,14 +1,14 @@
 import logging
 from typing import Optional, List, Tuple
 
-import interfaces
+from interfaces import Connection, ObjectDB
 from .util import *
 from . import wl
 
 logger = logging.getLogger(__name__)
 
-class ConnectionImpl(interfaces.Connection.Sink, interfaces.Connection, interfaces.ObjectDB):
-    def __init__(self, time: float, name: str, is_server: Optional[bool]):
+class ConnectionImpl(Connection.Sink, Connection, ObjectDB):
+    def __init__(self, time: float, name: str, is_server: Optional[bool]) -> None:
         '''Create a new connection
         time: when the connection was created
         name: unique name of the connection, often A, B, C etc
@@ -22,11 +22,11 @@ class ConnectionImpl(interfaces.Connection.Sink, interfaces.Connection, interfac
         self.open = True
         # keys are ids, values are arrays of objects in the order they are created
         self.message_list: List[wl.Message] = []
-        self.display = wl.Object(0.0, None, 1, 0, 'wl_display')
+        self.display = wl.ResolvedObject(0.0, None, 1, 0, 'wl_display')
         self.db = {1: [self.display]}
-        self.listener = new_disseminator_of_type(interfaces.Connection.Listener)
+        self.listener = new_disseminator_of_type(Connection.Listener)
 
-    def message(self, message: wl.Message):
+    def message(self, message: wl.Message) -> None:
         '''Overrides method in Connection.Sink'''
         if not self.open:
             logger.warning(
@@ -37,17 +37,20 @@ class ConnectionImpl(interfaces.Connection.Sink, interfaces.Connection, interfac
         self.listener.connection_got_new_message(self, message)
         try:
             if message.name == 'set_app_id':
+                assert isinstance(message.args[0], wl.Arg.String)
                 app_id = message.args[0].value
                 self._set_app_id(app_id)
                 self._set_title(app_id.rsplit('.', 1)[-1])
             elif message.name == 'set_title' and not self.title: # this isn't as good as set_app_id, so don't overwrite
+                assert isinstance(message.args[0], wl.Arg.String)
                 self._set_title(message.args[0].value)
             elif message.name == 'get_layer_surface':
+                assert isinstance(message.args[4], wl.Arg.String)
                 self._set_title(message.args[4].value)
         except Exception as e: # Connection name is a non-critical feature, so don't be mean if something goes wrong
             logger.error('Could not set connection name: ' + str(e))
 
-    def close(self, time: float):
+    def close(self, time: float) -> None:
         '''Overrides method in Connection.Sink'''
         self.open = False
         self.close_time = time
@@ -93,15 +96,15 @@ class ConnectionImpl(interfaces.Connection.Sink, interfaces.Connection, interfac
         txt += ')'
         return txt
 
-    def add_connection_listener(self, listener: interfaces.Connection.Listener):
+    def add_connection_listener(self, listener: Connection.Listener) -> None:
         '''Overrides method in Connection'''
         self.listener.add_listener(listener)
 
-    def remove_connection_listener(self, listener: interfaces.Connection.Listener):
+    def remove_connection_listener(self, listener: Connection.Listener) -> None:
         '''Overrides method in Connection'''
         self.listener.remove_listener(listener)
 
-    def create_object(self, time: float, parent: wl.Object, obj_id: int, type_name: str) -> wl.Object:
+    def create_object(self, time: float, parent: wl.ObjectBase, obj_id: int, type_name: str) -> wl.ObjectBase:
         '''Overrides method in ObjectDB'''
         if obj_id <= 1:
             raise RuntimeError('Invalid object ID ' + str(obj_id))
@@ -123,11 +126,11 @@ class ConnectionImpl(interfaces.Connection.Sink, interfaces.Connection, interfac
         else:
             self.db[obj_id] = []
         generation = len(self.db[obj_id])
-        obj = wl.Object(time, parent, obj_id, generation, type_name)
+        obj = wl.ResolvedObject(time, parent, obj_id, generation, type_name)
         self.db[obj_id].append(obj)
         return obj
 
-    def retrieve_object(self, id: int, generation: int, type_name: Optional[str]) -> wl.Object:
+    def retrieve_object(self, id: int, generation: int, type_name: Optional[str]) -> wl.ObjectBase:
         '''Overrides method in ObjectDB'''
         try:
             obj_list = self.db[id]
@@ -144,16 +147,16 @@ class ConnectionImpl(interfaces.Connection.Sink, interfaces.Connection, interfac
             raise RuntimeError(str(obj) + ' expected to be of type ' + type_name)
         return obj
 
-    def wl_display(self) -> wl.Object:
+    def wl_display(self) -> wl.ObjectBase:
         '''Overrides method in ObjectDB'''
         return self.display
 
-    def _set_title(self, title: str):
+    def _set_title(self, title: str) -> None:
         assert isinstance(title, str) and title
         self.title = title
         self.listener.connection_str_changed(self)
 
-    def _set_app_id(self, app_id: str):
+    def _set_app_id(self, app_id: str) -> None:
         assert isinstance(app_id, str) and app_id
         self._app_id = app_id
         self.listener.connection_app_id_set(self, app_id)

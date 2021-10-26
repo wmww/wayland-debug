@@ -4,8 +4,9 @@ import os
 import types
 import logging
 import time
+from typing import Any, Optional
 
-def check_gdb():
+def check_gdb() -> bool:
     '''Check if the gdb module is available, and thus if we are inside a running instance of GDB'''
     import importlib.util
     return importlib.util.find_spec("gdb") is not None
@@ -18,19 +19,19 @@ timestamp_color = '37'
 object_color = '1;37'
 message_color = None
 
-def set_color_output(val):
+def set_color_output(val: bool) -> None:
     global color_output
     assert isinstance(val, bool)
     color_output = val
 
 # if string is not None, resets to normal at end
-def color(color, string):
+def color(color: Optional[str], string: str) -> str:
     string = str(string)
     result = ''
     if string == '':
         return ''
     if color_output:
-        if color:
+        if color is not None:
             result += '\x1b[' + color + 'm'
         else:
             result += '\x1b[0m'
@@ -40,31 +41,28 @@ def color(color, string):
             result += '\x1b[0m'
     return result
 
-def no_color(string):
+def no_color(string: str) -> str:
     return re.sub(r'\x1b\[[\d;]*m', '', string)
 
-def set_verbose(val):
+def set_verbose(val: bool) -> None:
     global verbose
-    assert isinstance(val, bool)
     verbose = val
     logging.getLogger().setLevel(logging.DEBUG)
 
-def str_matches(pattern, txt):
-    assert isinstance(pattern, str)
-    assert isinstance(txt, str)
+def str_matches(pattern: str, txt: str) -> bool:
     pattern = re.escape(pattern)
     pattern = pattern.replace(r'\*', '.*')
     pattern = r'^' + pattern + r'$'
     return len(re.findall(pattern, txt)) == 1
 
 cached_project_root = None
-def project_root():
+def project_root() -> str:
     global cached_project_root
     if not cached_project_root:
         cached_project_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
     return cached_project_root
 
-def generate_disseminator(Listener):
+def generate_disseminator(Listener: type) -> type:
     assert isinstance(Listener, type)
     assert not hasattr(Listener, 'Disseminator')
 
@@ -94,25 +92,25 @@ def generate_disseminator(Listener):
     class_dict['remove_listener'] = remove_listener
 
     diss_class = type(class_name, (Listener,), class_dict)
-    Listener.Disseminator = diss_class
+    setattr(Listener, 'Disseminator', diss_class)
 
     def init(self, *args, **kwargs):
         super(diss_class, self).__init__(*args, **kwargs)
         self.listeners = []
-    diss_class.__init__ = init
+    setattr(diss_class, '__init__', init)
 
     return Listener
 
-def new_disseminator_of_type(Listener, *args, **kwargs):
+def new_disseminator_of_type(Listener: type, *args, **kwargs) -> Any:
     '''Creates a Disseminator for the given listener interface.
     The disseminator implements that interface, and will relay calls to an arbitrary number of listeners.
     Use disseminator.add_listener(listener) and disseminator.remove_listener(listener) to control notifications.
     '''
     if not hasattr(Listener, 'Disseminator'):
         generate_disseminator(Listener)
-    return Listener.Disseminator(*args, **kwargs)
+    return getattr(Listener, 'Disseminator')(*args, **kwargs)
 
-def time_now():
+def time_now() -> float:
     return time.perf_counter()
 
 if __name__ == '__main__':

@@ -8,7 +8,7 @@ class ObjectDB:
     '''A queryable database of wl.Objects'''
 
     @abstractmethod
-    def create_object(self, time: float, parent: 'wl.Object', obj_id: int, type_name: str) -> 'wl.Object':
+    def create_object(self, time: float, parent: 'wl.ObjectBase', obj_id: int, type_name: str) -> 'wl.ObjectBase':
         '''Create a new objects and add it to the database
         time: the time to create the object with
         parent: the object that created this object
@@ -18,7 +18,7 @@ class ObjectDB:
         raise NotImplementedError()
 
     @abstractmethod
-    def retrieve_object(self, id: int, generation: int, type_name: Optional[str]) -> 'wl.Object':
+    def retrieve_object(self, id: int, generation: int, type_name: Optional[str]) -> 'wl.ObjectBase':
         '''Get an object
         id: the objects's Wayland ID (database can contain multiple objects with the same ID)
         generation: 0 for first object with the given ID, 1 for 2nd, -1 for the last, etc.
@@ -28,6 +28,6 @@ class ObjectDB:
         raise NotImplementedError()
 
     @abstractmethod
-    def wl_display(self) -> 'wl.Object':
+    def wl_display(self) -> 'wl.ObjectBase':
         '''Get the wl_display object every connection has'''
         raise NotImplementedError()

@@ -1,14 +1,15 @@
 import re
-from typing import List
+from typing import IO, Iterator, Optional
 
-import interfaces
+from interfaces import ConnectionIDSink
 from core import wl
+from core.output import Output
 from core.util import *
 
 class WlPatterns:
     instance = None
 
-    def __init__(self):
+    def __init__(self) -> None:
         int_re = r'(?P<int>-?\d+)'
         float_re = r'(?P<float>-?\d+(?:[\.,]\d+)?(?:[eE][+-]?\d+)?)'
         fd_re = r'(?:fd (?P<fd>\d+))'
@@ -34,23 +35,23 @@ class WlPatterns:
         self.in_msg_re = re.compile(timestamp_regex + ' ' + message_regex)
 
     @staticmethod
-    def lazy_get_instance():
+    def lazy_get_instance() -> 'WlPatterns':
         if not WlPatterns.instance:
             WlPatterns.instance = WlPatterns()
         return WlPatterns.instance
 
-def argument(p, value_str):
+def argument(p: WlPatterns, value_str: str) -> wl.Arg.Base:
     match = p.arg_re.match(value_str)
     if match:
         if match.group('int'):
             return wl.Arg.Int(int(value_str))
         elif match.group('obj_id'):
-            return wl.Arg.Object(wl.Object.Unresolved(int(match.group('obj_id')), match.group('obj_type')), False)
+            return wl.Arg.Object(wl.UnresolvedObject(int(match.group('obj_id')), match.group('obj_type')), False)
         elif match.group('new_id'):
-            type_name = match.group('new_type')
+            type_name: Optional[str] = match.group('new_type')
             if not type_name:
                 type_name = None
-            return wl.Arg.Object(wl.Object.Unresolved(int(match.group('new_id')), type_name), True)
+            return wl.Arg.Object(wl.UnresolvedObject(int(match.group('new_id')), type_name), True)
         elif match.group('nil'):
             return wl.Arg.Null()
         elif match.group('str'):
@@ -71,7 +72,7 @@ def end_of_str(args_str: str, i: int) -> int:
         i += 1
     return i
 
-def argument_list_strs(args_str: str) -> List[str]:
+def argument_list_strs(args_str: str) -> list[str]:
     result = []
     i = 0
     start = 0
@@ -86,11 +87,11 @@ def argument_list_strs(args_str: str) -> List[str]:
         result.append(args_str[start:i])
     return result
 
-def argument_list(p: WlPatterns, args_str: str) -> List[wl.Arg.Base]:
+def argument_list(p: WlPatterns, args_str: str) -> list[wl.Arg.Base]:
     str_list = argument_list_strs(args_str)
     return [argument(p, s) for s in str_list]
 
-def message(raw):
+def message(raw: str) -> tuple[str, wl.Message]:
     p = WlPatterns.lazy_get_instance()
     sent = True
     conn_id = 'PARSED'
@@ -108,9 +109,9 @@ def message(raw):
     message_name = match[3]
     message_args_str = match[4]
     message_args = argument_list(p, message_args_str)
-    return conn_id, wl.Message(abs_timestamp, wl.Object.Unresolved(obj_id, type_name), sent, message_name, message_args)
+    return conn_id, wl.Message(abs_timestamp, wl.UnresolvedObject(obj_id, type_name), sent, message_name, message_args)
 
-def file(input_file, out):
+def file(input_file: IO, out: Output) -> Iterator[tuple[str, wl.Message]]:
     parse = True
     while True:
         try:
@@ -131,10 +132,9 @@ def file(input_file, out):
             out.show(traceback.format_exc())
             parse = False
 
-def into_sink(input_file, out, sink):
-    assert isinstance(sink, interfaces.ConnectionIDSink)
+def into_sink(input_file: IO, out: Output, sink: ConnectionIDSink):
     known_connections = {}
-    last_time = 0
+    last_time = 0.0
     for conn_id, msg in file(input_file, out):
         last_time = msg.timestamp
         if not conn_id in known_connections:

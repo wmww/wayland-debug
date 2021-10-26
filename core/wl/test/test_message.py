@@ -8,11 +8,11 @@ class TestMessage(TestCase):
         Message.base_time = None
 
     def test_create_message(self):
-        o = Object.Unresolved(7, None)
+        o = UnresolvedObject(7, None)
         m = Message(12.5, o, False, "some_msg", [])
 
     def test_message_calculates_timestamp_offset(self):
-        o = Object.Unresolved(7, None)
+        o = UnresolvedObject(7, None)
         m0 = Message(4.0, o, False, "some_msg", [])
         m1 = Message(6.0, o, False, "other_msg", [])
         self.assertEqual(m0.timestamp, 0.0)

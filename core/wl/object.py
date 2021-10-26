@@ -1,96 +1,101 @@
 import logging
+from typing import Optional
 
-import interfaces
+from interfaces import ObjectDB
 from core.util import *
 
 logger = logging.getLogger(__name__)
 
-class Base:
-    def type_str(self):
+class ObjectBase:
+    def __init__(self, obj_id: int) -> None:
+        assert obj_id > 0
+        self.id = obj_id
+        self.generation: Optional[int] = None
+        self.type: Optional[str] = None
+        self.create_time: Optional[float] = None
+        self.destroy_time: Optional[float] = None
+        self.alive = True
+
+    def resolve(self, db: ObjectDB) -> 'ObjectBase':
+        return self
+
+    def type_str(self) -> str:
         if self.type:
             return self.type
         else:
             return color('1;31', '???')
-    def id_str(self):
+
+    def id_str(self) -> str:
         ret = str(self.id)
         if self.generation == None:
             ret += '.' + color('1;31', '?')
         else:
             ret += '.' + str(self.generation)
         return ret
-    def to_str(self):
+
+    def to_str(self) -> str:
         return color('1;36' if self.type else '1;31', self.type_str()) + color('37', '@') + color('1;37', self.id_str())
-    def lifespan(self):
-        if not hasattr(self, 'create_time') or not hasattr(self, 'destroy_time') or self.destroy_time == None:
-            return None
-        else:
-            return self.destroy_time - self.create_time
-    def resolved(self):
-        raise NotImplementedError()
 
-class Object(Base):
-    def __init__(self, create_time, parent_obj, obj_id, generation, type_name):
-        assert isinstance(create_time, float)
-        assert isinstance(parent_obj, Object) or parent_obj is None
-        assert isinstance(obj_id, int)
-        assert obj_id > 0
-        assert isinstance(generation, int)
-        assert generation >= 0
-        assert isinstance(type_name, str)
-        self.create_time = create_time
-        self.parent = parent_obj
-        self.id = obj_id
-        self.generation = generation
-        self.type = type_name
-        self.destroy_time = None
-        self.alive = True
-
-    def destroy(self, time):
-        self.destroy_time = time
-        self.alive = False
-
-    def __str__(self):
+    def __str__(self) -> str:
         return self.to_str()
 
-    def resolved(self):
-        return True
-
-    def owned_by_server(self):
+    def owned_by_server(self) -> bool:
         # See https://wayland.freedesktop.org/docs/html/ch04.html#sect-Protocol-Creating-Objects
         return self.id >= 0xff000000
 
-    class Unresolved(Base):
-        def __init__(self, obj_id, type_name):
-            assert isinstance(obj_id, int)
-            assert obj_id > 0
-            assert isinstance(type_name, str) or type_name == None
-            self.id = obj_id
-            self.generation = None
-            self.type = type_name
-            self.create_time = 0
-        def resolve(self, db):
-            assert isinstance(db, interfaces.ObjectDB)
-            try:
-                resolved = db.retrieve_object(self.id, -1, self.type)
-                assert isinstance(resolved, Base)
-                return resolved
-            except RuntimeError as e:
-                logger.error('Unable to resolve object ' + str(self) + ': ' + str(e))
-                return self
-        def __str__(self):
-            return color('1;31', 'unresolved ') + self.to_str()
-        def resolved(self):
-            return False
+    def destroy(self, time: float) -> None:
+        self.destroy_time = time
+        self.alive = False
 
-class Mock(Base):
-    def __init__(self):
-        self.id = 1
-        self.generation = None
-        self.type = 'mock'
+    def lifespan(self) -> Optional[float]:
+        if self.create_time is not None and self.destroy_time is not None:
+            return self.destroy_time - self.create_time
+        else:
+            return None
+
+    def resolved(self) -> bool:
+        raise NotImplementedError()
+
+class ResolvedObject(ObjectBase):
+    def __init__(self, create_time: float, parent_obj: Optional[ObjectBase], obj_id: int, generation: int, type_name: Optional[str]) -> None:
+        assert generation >= 0
+        super().__init__(obj_id)
+        self.create_time = create_time
+        self.parent = parent_obj
+        self.generation = generation
+        self.type = type_name
+
+    def resolved(self) -> bool:
+        return True
+
+class UnresolvedObject(ObjectBase):
+    def __init__(self, obj_id: int, type_name: Optional[str]) -> None:
+        super().__init__(obj_id)
+        self.type = type_name
+
+    def resolve(self, db: ObjectDB) -> ObjectBase:
+        try:
+            resolved = db.retrieve_object(self.id, -1, self.type)
+            assert isinstance(resolved, ObjectBase)
+            return resolved
+        except RuntimeError as e:
+            logger.error('Unable to resolve object ' + str(self) + ': ' + str(e))
+            return self
+
+    def __str__(self) -> str:
+        return color('1;31', 'unresolved ') + self.to_str()
+
+    def resolved(self) -> bool:
+        return False
+
+class MockObject(ObjectBase):
+    def __init__(self) -> None:
+        super().__init__(1)
         self.create_time = 0.0
-    def resolve(self, db):
-        return self
-    def __str__(self):
+        self.type = 'mock'
+
+    def __str__(self) -> str:
         return 'mock object'
-    def resolved(self):
+
+    def resolved(self) -> bool:
         return False

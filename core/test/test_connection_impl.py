@@ -104,7 +104,6 @@ class TestConnectionImpl(TestCase):
         self.c.message(m)
         self.assertIn(title, str(self.c))
 
-    @expectedFailure
     def test_description_includes_layer_namespace_from_message(self):
         title = 'some_app_title'
         m = message.Mock()
@@ -239,7 +238,7 @@ class TestObjectDBImpl(TestCase):
         self.assertEqual(self.c.retrieve_object(1, -1, 'wl*disp*'), self.c.wl_display())
 
     def test_wl_display(self):
-        self.assertIsInstance(self.c.wl_display(), Object)
+        self.assertIsInstance(self.c.wl_display(), ObjectBase)
         self.assertEqual(self.c.wl_display().type, 'wl_display')
         self.assertEqual(self.c.wl_display().id, 1)
         self.assertEqual(self.c.wl_display().generation, 0)

@@ -1,20 +1,19 @@
 import xml.etree.ElementTree as ET
 from collections import OrderedDict
 import logging
-from typing import Dict
-
-from core.util import project_root
-from os import path
+from typing import Optional
 import sys
 import time
 import re
+import os
+
+from core.output import Output
+from core.util import project_root
 
 logger = logging.getLogger(__name__)
 
 class Protocol:
-    def __init__(self, name, xml_file, interfaces):
-        assert isinstance(name, str)
-        assert isinstance(interfaces, OrderedDict)
+    def __init__(self, name: str, xml_file: str, interfaces: OrderedDict[str, 'Interface']) -> None:
         for i in interfaces.values():
             i.parent = self
         self.name = name
@@ -22,70 +21,58 @@ class Protocol:
         self.interfaces = interfaces
 
 class Interface:
-    def __init__(self, name, version, messages, enums):
-        assert isinstance(name, str)
-        assert isinstance(version, int)
+    def __init__(self, name: str, version: int, messages: OrderedDict[str, 'Message'], enums: OrderedDict[str, 'Enum']) -> None:
         assert version > 0
-        assert isinstance(messages, OrderedDict)
-        assert isinstance(enums, OrderedDict)
-        for i in messages.values():
-            i.parent = self
-        for i in enums.values():
-            i.parent = self
+        for message in messages.values():
+            message.parent = self
+        for enum in enums.values():
+            enum.parent = self
         self.name = name
+        self.parent: Optional[Protocol] = None
         self.version = version
         self.messages = messages
         self.enums = enums
 
 class Message:
-    def __init__(self, name, is_event, args):
-        assert isinstance(name, str)
-        assert isinstance(is_event, bool)
-        assert isinstance(args, OrderedDict)
+    def __init__(self, name: str, is_event: bool, args: OrderedDict[str, 'Arg']) -> None:
         for i in args.values():
             i.parent = self
         self.name = name
+        self.parent: Optional[Interface] = None
         self.is_event = is_event
         self.args = args
 
 class Arg:
-    def __init__(self, name, type_, interface, enum):
-        assert isinstance(name, str)
-        assert isinstance(type_, str)
-        assert isinstance(interface, str) or interface == None
-        assert isinstance(enum, str) or enum == None
+    def __init__(self, name: str, type_: str, interface: Optional[str], enum: Optional[str]) -> None:
         self.name = name
+        self.parent: Optional[Message] = None
         self.type = type_
         self.interface = interface
         self.enum = enum
 
 class Enum:
-    def __init__(self, name, bitfield, entries):
-        assert isinstance(name, str)
-        assert isinstance(bitfield, bool)
-        assert isinstance(entries, OrderedDict)
+    def __init__(self, name: str, bitfield: bool, entries: OrderedDict[str, 'EnumEntry']) -> None:
         for i in entries.values():
-            assert isinstance(i, Entry)
             i.parent = self
         self.name = name
+        self.parent: Optional[Interface] = None
         self.bitfield = bitfield
         self.entries = entries
 
-class Entry:
-    def __init__(self, name, value):
-        assert isinstance(name, str)
-        assert isinstance(value, int)
+class EnumEntry:
+    def __init__(self, name: str, value: int) -> None:
         self.name = name
+        self.parent: Optional[Enum] = None
         self.value = value
 
-def parse_arg(arg):
+def parse_arg(arg: ET.Element) -> Arg:
     return Arg(
         arg.attrib['name'],
         arg.attrib['type'],
         arg.attrib.get('interface', None),
         arg.attrib.get('enum', None))
 
-def parse_message(message):
+def parse_message(message: ET.Element) -> Message:
     args = OrderedDict()
     for node in message:
         if node.tag == 'arg':
@@ -95,8 +82,7 @@ def parse_message(message):
 
 number_re = re.compile(r'^\w+$') # Matches 7 and 0x42
 bitshift_re = re.compile(r'^(\w+)\s*<<\s*(\w+)$') # matches 3 << 4
-def parse_enum_value(value):
-    assert isinstance(value, str)
+def parse_enum_value(value: str) -> int:
     if number_re.match(value):
         # "Base 0 means to interpret exactly as a code literal"
         # Value might be base 10 or hex, but format should be the same as Python literals
@@ -106,11 +92,11 @@ def parse_enum_value(value):
         return int(match.group(1), 0) << int(match.group(2), 0)
     raise RuntimeError('Could not parse enum value ' + repr(value))
 
-def parse_enum_entry(entry):
+def parse_enum_entry(entry: ET.Element) -> EnumEntry:
     value = parse_enum_value(entry.attrib['value'].strip())
-    return Entry(entry.attrib['name'], value)
+    return EnumEntry(entry.attrib['name'], value)
 
-def parse_enum(enum):
+def parse_enum(enum: ET.Element) -> Enum:
     bitfield_str = enum.attrib.get('bitfield', 'false')
     if bitfield_str == 'true':
         bitfield = True
@@ -125,7 +111,7 @@ def parse_enum(enum):
             entries[entry.name] = entry
     return Enum(enum.attrib['name'], bitfield, entries)
 
-def parse_interface(interface):
+def parse_interface(interface: ET.Element) -> Interface:
     version = int(interface.attrib['version'])
     messages = OrderedDict()
     enums = OrderedDict()
@@ -138,7 +124,7 @@ def parse_interface(interface):
             enums[enum.name] = enum
     return Interface(interface.attrib['name'], version, messages, enums)
 
-def parse_protocol(xmlfile):
+def parse_protocol(xmlfile: str) -> Protocol:
     protocol = ET.parse(xmlfile).getroot()
     assert protocol.tag == 'protocol'
     interfaces = OrderedDict()
@@ -148,9 +134,9 @@ def parse_protocol(xmlfile):
             interfaces[interface.name] = interface
     return Protocol(protocol.attrib['name'], xmlfile, interfaces)
 
-interfaces: Dict[str, Interface] = {}
+interfaces: dict[str, Interface] = {}
 
-def load(xml_file, out):
+def load(xml_file: str, out: Output) -> None:
     try:
         protocol = parse_protocol(xml_file)
     except:
@@ -161,24 +147,24 @@ def load(xml_file, out):
             interfaces[name] = interface
     logger.info('Loaded ' + str(len(protocol.interfaces)) + ' interfaces from ' + xml_file)
 
-def discover_xml(p, out):
-    if path.isdir(p):
+def discover_xml(p: str, out: Output) -> list[str]:
+    if os.path.isdir(p):
         files = []
-        for i in path.os.listdir(p):
-            files += discover_xml(path.join(p, i), out)
+        for i in os.listdir(p):
+            files += discover_xml(os.path.join(p, i), out)
         return files
-    elif path.isfile(p) and p.endswith('.xml'):
+    elif os.path.isfile(p) and p.endswith('.xml'):
         return [p]
     else:
         return []
 
-def protocols_path():
-    return path.join(project_root(), 'resources', 'protocols')
+def protocols_path() -> str:
+    return os.path.join(project_root(), 'resources', 'protocols')
 
-def load_all(out):
+def load_all(out: Output) -> None:
     start = time.perf_counter()
     shipped_protocols_path = protocols_path()
-    if not path.isdir(shipped_protocols_path):
+    if not os.path.isdir(shipped_protocols_path):
         out.warn(
             'Could not fined protocols shipped with Wayland Debug at ' + shipped_protocols_path +
             ', will look for protocols on system and fall back to simpler output when not found')
@@ -227,9 +213,9 @@ def load_all(out):
                     'button',
                     False,
                     OrderedDict([
-                        ('left', Entry('left', 0x110)),
-                        ('right', Entry('right', 0x111)),
-                        ('middle', Entry('middle', 0x112)),
+                        ('left', EnumEntry('left', 0x110)),
+                        ('right', EnumEntry('right', 0x111)),
+                        ('middle', EnumEntry('middle', 0x112)),
                     ])
                 )
             )])
@@ -260,11 +246,11 @@ def load_all(out):
     exit(1)
     """
 
-def dump_all():
+def dump_all() -> None:
     global interfaces
     interfaces = {}
 
-def get_arg(interface_name, message_name, arg_index):
+def get_arg(interface_name: str, message_name: str, arg_index: int) -> Optional[Arg]:
     if (interface_name, message_name) == ('wl_registry', 'bind'):
         return None # the protocol doesn't match the detected messages
     interface = interfaces.get(interface_name)
@@ -282,32 +268,34 @@ def get_arg(interface_name, message_name, arg_index):
     arg = arg_list[arg_index]
     return arg
 
-def get_arg_name(interface_name, message_name, arg_index):
+def get_arg_name(interface_name: str, message_name: str, arg_index: int) -> Optional[str]:
     arg = get_arg(interface_name, message_name, arg_index)
     if arg:
         return arg.name
     else:
         return None
 
-def look_up_interface(interface_name, message_name, arg_index):
+def look_up_interface(interface_name: str, message_name: str, arg_index: int) -> Optional[str]:
     arg = get_arg(interface_name, message_name, arg_index)
-    return arg.interface
+    if arg is None:
+        return None
+    else:
+        return arg.interface
 
-def get_enum(interface_name, enum_path):
+def get_enum(interface_name: str, enum_path: str) -> Optional[Enum]:
     # enum can be "interface.enum" or just "enum" (in which case the provided interface is used)
     enum_name_parts = [interface_name] + enum_path.split('.')
     enum_interface_name = enum_name_parts[-2]
     enum_name = enum_name_parts[-1]
-    enum_interface = interfaces[enum_interface_name]
-    if not enum_name in enum_interface.enums:
-        raise RuntimeError(str(enum_name) + ' is not an enum in ' + enum_interface_name)
-    return enum_interface.enums[enum_name]
+    enum_interface = interfaces.get(enum_interface_name)
+    if enum_interface is None: return None
+    return enum_interface.enums.get(enum_name)
 
-def look_up_enum(interface_name, message_name, arg_index, arg_value):
+def look_up_enum(interface_name: str, message_name: str, arg_index: int, arg_value: int) -> list[str]:
     arg = get_arg(interface_name, message_name, arg_index)
-    if not arg or not arg.enum:
-        return []
+    if arg is None or arg.enum is None: return []
     enum = get_enum(interface_name, arg.enum)
+    if enum is None: return []
     entries = []
     for entry in enum.entries.values():
         if enum.bitfield:

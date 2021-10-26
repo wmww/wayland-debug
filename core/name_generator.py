@@ -1,17 +1,15 @@
+from typing import Optional
 
 class NameGenerator:
-    def __init__(self):
-        self.name = []
+    def __init__(self) -> None:
+        self.name: list[str] = []
 
-    def next(self):
-        self.increment()
+    def next(self) -> str:
+        self._increment(len(self.name) - 1)
         return ''.join(self.name)
 
-    def increment(self, current=None):
+    def _increment(self, current: int) -> None:
         '''Increments a list in place'''
-        # If no current letter is specified, start at the right
-        if current is None:
-            current = len(self.name) - 1
         if current < 0:
             # We have run left past the end of the list without finding a letter to increment
             # We need to add a new letter to the left
@@ -21,7 +19,7 @@ class NameGenerator:
             # We can't increment this letter any more
             # Set it to 'A' and increment the letter to the left
             self.name[current] = 'A'
-            self.increment(current - 1)
+            self._increment(current - 1)
         else:
             # Increment the current letter by 1
             self.name[current] = chr(ord(self.name[current]) + 1)

@@ -11,7 +11,7 @@ gdb_fast_access_map: Dict[str, Tuple[int, Any]] = {}
 gdb_char_ptr_type = gdb.lookup_type('char').pointer()
 
 # Check if a GDB value is null (there should be a better way, but I don't think there is)
-def _is_null(val):
+def _is_null(val) -> bool:
     return int(val) == 0
 
 def lazy_get_wl_resource_ptr_type():
@@ -23,7 +23,7 @@ def lazy_get_wl_resource_ptr_type():
 # Like normal GDB property access, except caches the poitner offset of fields on types to make future much faster.
 # value: pointer to struct
 # key: string containing 'type.property' (I know this is weird)
-def _fast_access(value, key):
+def _fast_access(value, key: str):
     cached = gdb_fast_access_map.get(key)
     if cached is None:
         offset = None
@@ -42,7 +42,7 @@ def _fast_access(value, key):
         offset, ret_type_ptr_ptr = cached
     return (value.cast(gdb_char_ptr_type) + offset).cast(ret_type_ptr_ptr).dereference()
 
-def extract_message(closure, object, is_sending, new_id_is_actually_an_object):
+def extract_message(closure, object: wl.ObjectBase, is_sending: bool, new_id_is_actually_an_object: bool) -> wl.Message:
     '''Returns a tuple containing…
     Message Name: str, the message being called
     Arguments: list of wl.Arg
@@ -53,7 +53,7 @@ def extract_message(closure, object, is_sending, new_id_is_actually_an_object):
     signiture = _fast_access(closure_message, 'wl_message.signature').string()
     message_types = _fast_access(closure_message, 'wl_message.types')
     closure_args = _fast_access(closure, 'wl_closure.args')
-    args = []
+    args: list[wl.Arg.Base] = []
     i = 0
     for c in signiture:
         # If its not a version number or '?' optional indicator
@@ -74,7 +74,7 @@ def extract_message(closure, object, is_sending, new_id_is_actually_an_object):
                 args.append(wl.Arg.String(str_val))
             elif c == 'a':
                 size = int(value['size'])
-                elems = []
+                elems: list[wl.Arg.Base] = []
                 int_type = gdb.lookup_type('int')
                 for i in range(size // int_type.sizeof):
                     elem = value['data'].cast(int_type.pointer())[i]
@@ -92,7 +92,7 @@ def extract_message(closure, object, is_sending, new_id_is_actually_an_object):
                     args.append(wl.Arg.Null(arg_type_name))
                 else:
                     arg_id = int(_fast_access(value, 'wl_object.id'))
-                    args.append(wl.Arg.Object(wl.Object.Unresolved(arg_id, arg_type_name), False))
+                    args.append(wl.Arg.Object(wl.UnresolvedObject(arg_id, arg_type_name), False))
             elif c == 'n':
                 arg_type = message_types[i]
                 if _is_null(arg_type):
@@ -103,16 +103,16 @@ def extract_message(closure, object, is_sending, new_id_is_actually_an_object):
                     arg_id = int(_fast_access(closure_args[i]['o'], 'wl_object.id'))
                 else:
                     arg_id = int(value)
-                args.append(wl.Arg.Object(wl.Object.Unresolved(arg_id, arg_type_name), True))
+                args.append(wl.Arg.Object(wl.UnresolvedObject(arg_id, arg_type_name), True))
             else:
                 raise RuntimeError('Invalid type code ' + c)
             i += 1
     return wl.Message(time_now(), object, is_sending, message_name, args)
 
-def connection_id_of(connection):
+def connection_id_of(connection) -> str:
     return 'gdb_conn:' + hex(int(connection))
 
-def received_message():
+def received_message() -> tuple[str, wl.Message]:
     frame = gdb.selected_frame()
     closure = frame.read_var('closure')
     wl_object = frame.read_var('target')
@@ -137,11 +137,11 @@ def received_message():
     object_id = int(_fast_access(closure, 'wl_closure.sender_id'))
     # wl_object is not a pointer, so can't use _fast_access() to get interface
     obj_type = _fast_access(wl_object['interface'], 'wl_interface.name').string()
-    object = wl.Object.Unresolved(object_id, obj_type)
+    object = wl.UnresolvedObject(object_id, obj_type)
     message = extract_message(closure, object, False, new_id_is_actually_an_object)
     return connection_id, message
 
-def sent_message():
+def sent_message() -> tuple[str, wl.Message]:
     # We break on serialize_closure() (both wl_closure_send and wl_closure_queue call it, so just breaking on it
     # reduces breakpoints and improves performance). Everything we're interested in is in the parent frame though.
     frame = gdb.selected_frame().older()
@@ -150,6 +150,6 @@ def sent_message():
     connection = frame.read_var('connection')
     connection_id = connection_id_of(connection)
     object_id = int(_fast_access(closure, 'wl_closure.sender_id'))
-    object = wl.Object.Unresolved(object_id, None)
+    object = wl.UnresolvedObject(object_id, None)
     message = extract_message(closure, object, True, False)
     return connection_id, message

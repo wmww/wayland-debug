@@ -1,43 +1,42 @@
+from typing import Optional
+
 from core.util import *
-import interfaces
-from . import object
+from interfaces import ObjectDB
+from .object import ObjectBase, MockObject
 from .arg import Arg
+from core.output import Output
 
 class Message:
     # TODO: figure out a way to remove global time offset
     base_time = None
 
-    def __init__(self, abs_time, obj, sent, name, args):
-        assert isinstance(abs_time, float)
-        assert isinstance(obj, object.Base)
-        assert isinstance(sent, bool)
-        assert isinstance(name, str)
-        for arg in args:
-            assert isinstance(arg, Arg.Base)
-        if Message.base_time == None:
+    def __init__(self, abs_time: float, obj: ObjectBase, sent: bool, name: str, args: list[Arg.Base]) -> None:
+        if Message.base_time is None:
             Message.base_time = abs_time
         self.timestamp = abs_time - Message.base_time
         self.obj = obj
         self.sent = sent
         self.name = name
         self.args = args
-        self.destroyed_obj = None
+        self.destroyed_obj: Optional[ObjectBase] = None
 
-    def resolve(self, db):
-        assert isinstance(db, interfaces.ObjectDB)
+    def resolve(self, db: ObjectDB) -> None:
         if not self.obj.resolved():
             self.obj = self.obj.resolve(db)
         if self.obj.type == 'wl_registry' and self.name == 'bind':
-            if len(self.args) < 4 or not isinstance(self.args[3], Arg.Object):
-                raise RuntimeError(str(self) + ' does not have correct arguments for bind message')
+            assert len(self.args) == 4
+            assert isinstance(self.args[1], Arg.String)
+            assert isinstance(self.args[3], Arg.Object)
             self.args[3].set_type(self.args[1].value)
         if self.obj == db.wl_display() and self.name == 'delete_id' and len(self.args) > 0:
-            self.destroyed_obj = db.retrieve_object(self.args[0].value, -1, None)
+            first_arg = self.args[0]
+            assert isinstance(first_arg, Arg.Int)
+            self.destroyed_obj = db.retrieve_object(first_arg.value, -1, None)
             self.destroyed_obj.destroy(self.timestamp)
         for i, arg in enumerate(self.args):
             arg.resolve(db, self, i)
 
-    def used_objects(self):
+    def used_objects(self) -> list[ObjectBase]:
         result = []
         for i in self.args:
             if isinstance(i, Arg.Object):
@@ -46,14 +45,16 @@ class Message:
             result.append(self.destroyed_obj)
         return result
 
-    def __str__(self):
+    def __str__(self) -> str:
         destroyed = ''
         if self.destroyed_obj:
             destroyed = (
                 color(timestamp_color, ' -- ') +
                 color('1;31', 'destroyed ') +
-                str(self.destroyed_obj) +
-                color(timestamp_color, ' after {:0.4f}s'.format(self.destroyed_obj.lifespan())))
+                str(self.destroyed_obj))
+            lifespan = self.destroyed_obj.lifespan()
+            if lifespan is not None:
+                destroyed += color(timestamp_color, ' after {:0.4f}s'.format(lifespan))
         return (
             (color('37', '→ ') if self.sent else '') +
             str(self.obj) + ' ' +
@@ -62,9 +63,9 @@ class Message:
             destroyed +
             (color(timestamp_color, ' ↲') if not self.sent else ''))
 
-    def show(self, out):
+    def show(self, out: Output) -> None:
         out.show(color('37', '{:7.4f}'.format(self.timestamp)) + ' ' + str(self))
 
 class Mock(Message):
-    def __init__(self):
-        super().__init__(0.0, object.Mock(), False, 'mock', [])
+    def __init__(self) -> None:
+        super().__init__(0.0, MockObject(), False, 'mock', [])
