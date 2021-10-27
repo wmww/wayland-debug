@@ -14,7 +14,7 @@ gdb_char_ptr_type = gdb.lookup_type('char').pointer()
 def _is_null(val) -> bool:
     return int(val) == 0
 
-def lazy_get_wl_resource_ptr_type():
+def lazy_get_wl_resource_ptr_type() -> Any:
     global wl_resource_ptr_type
     if wl_resource_ptr_type is None:
         wl_resource_ptr_type = gdb.lookup_type('struct wl_resource').pointer()
@@ -23,7 +23,7 @@ def lazy_get_wl_resource_ptr_type():
 # Like normal GDB property access, except caches the poitner offset of fields on types to make future much faster.
 # value: pointer to struct
 # key: string containing 'type.property' (I know this is weird)
-def _fast_access(value, key: str):
+def _fast_access(value, key: str) -> Any:
     cached = gdb_fast_access_map.get(key)
     if cached is None:
         offset = None

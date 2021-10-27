@@ -16,10 +16,10 @@ class UIState:
             '''Program should quit'''
             raise NotImplementedError()
 
-    def add_ui_state_listener(self, listener: Listener):
+    def add_ui_state_listener(self, listener: Listener) -> None:
         '''Get notified about state changes'''
         raise NotImplementedError()
 
-    def remove_ui_state_listener(self, listener: Listener):
+    def remove_ui_state_listener(self, listener: Listener) -> None:
         '''Stop being notified'''
         raise NotImplementedError()

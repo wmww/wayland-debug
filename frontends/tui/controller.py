@@ -1,32 +1,30 @@
 import re
 import logging
+from typing import Optional, Callable, List, Tuple
 
-import interfaces
+from interfaces import CommandSink, ConnectionList, Connection, UIState
+from core import wl, matcher
 from core.util import *
-from core import wl
-from core import matcher
 from core.output import Output
 
 help_command_color = '1;37'
 
-logger = logging.getLogger(__name__)
-
-def command_format(cmd):
+def command_format(cmd: str) -> str:
     if check_gdb():
         return '(gdb) ' + color(help_command_color, 'wl' + cmd)
     else:
         return '$ ' + color(help_command_color, cmd)
 
 class Command:
-    def __init__(self, name, arg, func, help_text):
+    def __init__(self, name: str, arg: Optional[str], func: Callable[[str], None], help_text: str) -> None:
         self.name = name
         self.arg = arg
         self.func = func
         self.help = help_text
-    def matches(self, command):
+    def matches(self, command: str) -> bool:
         return self.name.startswith(command.lower())
 
-def _connection_get_type_str(connection):
+def _connection_get_type_str(connection: Connection) -> str:
     if connection.is_server() is None:
         return color('1;31', 'unknown type')
     elif connection.is_server():
@@ -34,21 +32,23 @@ def _connection_get_type_str(connection):
     else:
         return 'client'
 
-class Controller(interfaces.CommandSink,
-                 interfaces.ConnectionList.Listener,
-                 interfaces.Connection.Listener,
-                 interfaces.UIState):
-    def __init__(self, output, connection_list, display_matcher, stop_matcher):
-        assert isinstance(output, Output)
-        assert isinstance(connection_list, interfaces.ConnectionList)
-        assert display_matcher
-        assert stop_matcher
+class Controller(CommandSink,
+                 ConnectionList.Listener,
+                 Connection.Listener,
+                 UIState):
+    def __init__(
+        self,
+        output: Output,
+        connection_list: ConnectionList,
+        display_matcher: matcher.MessageMatcher,
+        stop_matcher: matcher.MessageMatcher
+    ):
         self.out = output
         self.connection_list = connection_list
         connection_list.add_connection_list_listener(self, True)
         self.display_matcher = display_matcher
         self.stop_matcher = stop_matcher
-        self.current_connection = None # The connection that is currently being shown
+        self.current_connection: Optional[Connection] = None # The connection that is currently being shown
         self.connection_explicitly_selected = False # If the current connection was selected by the user
         self.commands = [
             Command('help', '[COMMAND]', self.help_command,
@@ -75,38 +75,36 @@ class Controller(interfaces.CommandSink,
             Command('quit', None, self.quit_command,
                 'Quit the program'),
         ]
-        self.last_shown_timestamp = None
-        self.ui_state_listener = new_disseminator_of_type(interfaces.UIState.Listener)
+        self.last_shown_timestamp: Optional[float] = None
+        self.ui_state_listener = new_disseminator_of_type(UIState.Listener)
 
-    def process_command(self, command):
+    def process_command(self, input_line: str) -> None:
         '''Overrides a method in CommandSink'''
-        assert isinstance(command, str)
-        command = command.strip()
-        args = re.split(r'\s', command, 1)
-        if len(args) == 0:
-            return False
-        cmd = no_color(args[0]).strip()
-        arg = None if len(args) < 2 else no_color(args[1]).strip()
-        if cmd == '':
-            assert not arg
+        input_line = input_line.strip()
+        args = re.split(r'\s', input_line, 1)
+        assert args
+        first = no_color(args[0]).strip()
+        second = '' if len(args) < 2 else no_color(args[1]).strip()
+        if first == '':
+            assert not second
             self.out.error('No command specified')
-            cmd = 'help'
-        if cmd == 'w' or cmd == 'wl': # in case they use GDB style commands when not in GDB
-            return self.command(arg)
-        if cmd.startswith('wl'): # in case they use GDB style commands when not in GDB
-            cmd = cmd[2:]
-        cmd = self._get_command(cmd)
-        if cmd:
-            logger.info('Got ' + cmd.name + ' command' + (' with \'' + arg + '\'' if arg else ''))
-            cmd.func(arg)
+            first = 'help'
+        if first == 'w' or first == 'wl': # in case they use GDB style commands when not in GDB
+            self.process_command(second)
+            return
+        if first.startswith('wl'): # in case they use GDB style commands when not in GDB
+            first = first[2:]
+        command = self._get_command(first)
+        if command is not None:
+            logging.info('Got ' + command.name + ' command' + (' with \'' + second + '\'' if second else ''))
+            command.func(second)
 
-    def toplevel_commands(self):
+    def toplevel_commands(self) -> List[str]:
         '''Overrides method in CommandSink'''
         return [command.name for command in self.commands]
 
-    def connection_opened(self, connection_list, connection):
+    def connection_opened(self, connection_list: ConnectionList, connection: Connection) -> None:
         '''Overrides method in ConnectionList.Listener'''
-        assert isinstance(connection, interfaces.Connection)
         connection.add_connection_listener(self)
         if self.current_connection:
             if self.connection_explicitly_selected:
@@ -127,15 +125,15 @@ class Controller(interfaces.CommandSink,
                 '1;32',
                 'New ' + _connection_get_type_str(connection) + ' connection ' + connection.name()))
 
-    def connection_str_changed(self, connection):
+    def connection_str_changed(self, connection: Connection) -> None:
         '''Overrides method in Connection.Listener'''
         pass
 
-    def connection_app_id_set(self, connection, new_app_id):
+    def connection_app_id_set(self, connection: Connection, new_app_id: str) -> None:
         '''Overrides method in Connection.Listener'''
         pass
 
-    def connection_got_new_message(self, connection, message):
+    def connection_got_new_message(self, connection: Connection, message: wl.Message) -> None:
         '''Overrides method in Connection.Listener'''
         assert isinstance(message, wl.Message)
         if connection == self.current_connection:
@@ -145,21 +143,21 @@ class Controller(interfaces.CommandSink,
                 self.out.show(color('1;37', '    Stopped at ') + str(message).strip())
                 self.ui_state_listener.pause_requested()
 
-    def connection_closed(self, connection):
+    def connection_closed(self, connection: Connection) -> None:
         '''Overrides method in Connection.Listener'''
         self.out.show(color(
             '1;31',
             'Closed ' + _connection_get_type_str(connection) + ' connection ' + connection.name()))
 
-    def add_ui_state_listener(self, listener):
+    def add_ui_state_listener(self, listener: UIState.Listener) -> None:
         '''Overrides method in UIState'''
         self.ui_state_listener.add_listener(listener)
 
-    def remove_ui_state_listener(self, listener):
+    def remove_ui_state_listener(self, listener: UIState.Listener) -> None:
         '''Overrides method in UIState'''
         self.ui_state_listener.remove_listener(listener)
 
-    def show_messages(self, connection, matcher, cap=None):
+    def show_messages(self, connection: Connection, matcher: matcher.MessageMatcher, cap: Optional[int]) -> None:
         msg = 'Messages that match ' + str(matcher)
         if connection != self.current_connection:
             msg += ' on connection ' + connection.name()
@@ -173,7 +171,7 @@ class Controller(interfaces.CommandSink,
             if not self.connection_list.connections():
                 self.out.show(' ╰╴ No messages yet')
             else:
-                assert didnt_match == len(self.messages())
+                assert didnt_match == len(connection.messages())
                 self.out.show(' ╰╴ None of the ' + color('1;31', str(didnt_match)) + ' messages so far')
         else:
             self.last_shown_timestamp = None
@@ -187,14 +185,19 @@ class Controller(interfaces.CommandSink,
                 ')')
             self.last_shown_timestamp = None
 
-    def _show_message(self, message):
-        delta = message.timestamp - self.last_shown_timestamp if self.last_shown_timestamp != None else 0
+    def _show_message(self, message: wl.Message) -> None:
+        delta = message.timestamp - self.last_shown_timestamp if self.last_shown_timestamp is not None else 0
         if delta > 1.0:
             self.out.show(color('37', '    ───┤ {:0.4f}s ├───'.format(delta)))
         self.last_shown_timestamp = message.timestamp
         message.show(self.out)
 
-    def _get_matching(self, connection, matcher, cap=None):
+    def _get_matching(
+        self,
+        connection: Connection,
+        matcher: matcher.MessageMatcher,
+        cap: Optional[int]
+    ) -> Tuple[List[wl.Message], int, int, int]:
         if cap == 0:
             cap = None
         didnt_match = 0
@@ -210,9 +213,9 @@ class Controller(interfaces.CommandSink,
                     break
             else:
                 didnt_match += 1
-        return (reversed(acc), len(acc), didnt_match, len(messages) - len(acc) - didnt_match)
+        return (list(reversed(acc)), len(acc), didnt_match, len(messages) - len(acc) - didnt_match)
 
-    def _get_command(self, command):
+    def _get_command(self, command: str) -> Optional[Command]:
         found = []
         for c in self.commands:
             if c.name.startswith(command):
@@ -226,7 +229,7 @@ class Controller(interfaces.CommandSink,
                 self.out.error('Unknown command \'' + command + '\'')
             return None
 
-    def help_command(self, arg):
+    def help_command(self, arg: str) -> None:
         if arg:
             if arg.startswith('wl'):
                 arg = arg[2:].strip()
@@ -250,33 +253,32 @@ class Controller(interfaces.CommandSink,
                 s += ' ' + c.arg
             self.out.show('  ' + command_format(s))
 
-    # Old can be None
-    def parse_and_join(self, new_unparsed, old):
+    def parse_and_join(self, new_unparsed: str, old: Optional[matcher.MessageMatcher]) -> matcher.MessageMatcher:
         try:
             parsed = matcher.parse(new_unparsed)
-            if old:
+            if old is not None:
                 return matcher.join(parsed, old).simplify()
             else:
                 return parsed.simplify()
         except RuntimeError as e:
             self.out.error('Failed to parse "' + new_unparsed + '":\n    ' + str(e))
-            return old
+            return old if old is not None else matcher.always
 
-    def filter_command(self, arg):
+    def filter_command(self, arg: str) -> None:
         if arg:
             self.display_matcher = self.parse_and_join(arg, self.display_matcher)
             self.out.show('Only showing messages that match ' + str(self.display_matcher))
         else:
             self.out.show('Output filter: ' + str(self.display_matcher))
 
-    def break_point_command(self, arg):
+    def break_point_command(self, arg: str) -> None:
         if arg:
             self.stop_matcher = self.parse_and_join(arg, self.stop_matcher)
             self.out.show('Breaking on messages that match: ' + str(self.stop_matcher))
         else:
             self.out.show('Breakpoint matcher: ' + str(self.stop_matcher))
 
-    def matcher_command(self, arg):
+    def matcher_command(self, arg: str) -> None:
         if arg:
             try:
                 parsed = matcher.parse(arg)
@@ -289,7 +291,7 @@ class Controller(interfaces.CommandSink,
         else:
             self.out.show('No matcher to parse')
 
-    def list_command(self, arg):
+    def list_command(self, arg: str) -> None:
         cap = None
         connection = self.current_connection
         if arg:
@@ -316,21 +318,24 @@ class Controller(interfaces.CommandSink,
                 return
         else:
             m = matcher.always
-        self.show_messages(connection, m, cap)
+        if connection is not None:
+            self.show_messages(connection, m, cap)
+        else:
+            self.out.error('No connection')
 
-    def _get_connection(self, name):
+    def _get_connection(self, name: str) -> Optional[Connection]:
         name = name.lower()
         for connection in self.connection_list.connections():
             if name == connection.name().lower():
                 return connection
         return None
 
-    def connection_command(self, arg):
+    def connection_command(self, arg: str) -> None:
         if arg:
             connection = self._get_connection(arg)
-            if connection:
+            if connection is not None:
                 self.current_connection = connection
-                self.out.show('Switched to connection ' + color('1;37', self.current_connection.name()))
+                self.out.show('Switched to connection ' + color('1;37', connection.name()))
                 self.connection_explicitly_selected = True
                 return
             else:
@@ -353,12 +358,12 @@ class Controller(interfaces.CommandSink,
             line += color('1;34', str(len(connection.messages()))) + ' messages'
             self.out.show(line)
 
-    def resume_command(self, arg):
-        logger.info('Resuming…')
+    def resume_command(self, arg: str) -> None:
+        logging.info('Resuming…')
         self.ui_state_listener.resume_requested()
 
-    def quit_command(self, arg):
-        logger.info('Quiting…')
+    def quit_command(self, arg: str) -> None:
+        logging.info('Quiting…')
         self.ui_state_listener.quit_requested()
 
 if __name__ == '__main__':

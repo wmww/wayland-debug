@@ -171,6 +171,8 @@ class ConstMatcher:
         else:
             return color('1;31', '(^)')
 
+MessageMatcher = ConstMatcher
+
 class TransformMatcher:
     def __init__(self, matcher):
         self.matcher = matcher

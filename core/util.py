@@ -19,6 +19,9 @@ timestamp_color = '37'
 object_color = '1;37'
 message_color = None
 
+good_color = '1;32'
+bad_color = '1;31'
+
 def set_color_output(val: bool) -> None:
     global color_output
     assert isinstance(val, bool)

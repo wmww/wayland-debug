@@ -1,20 +1,20 @@
 import subprocess
 import os
+from typing import List, Optional
 
 from core.util import check_gdb
 
 class Args:
     '''The arguments processed by parse_args() that need to be passed to run_gdb()'''
-    def __init__(self, wldbg_args, gdb_args):
+    def __init__(self, wldbg_args: List[str], gdb_args: List[str]) -> None:
         self.wldbg = wldbg_args
         self.gdb = gdb_args
 
-def run_gdb(args, quiet=False):
+def run_gdb(args: Args, quiet: bool) -> int:
     '''
     Runs GDB, and runs a child instance of this script inside it as a plugin
     Returns GDB's exit status, or -1 for other error
     '''
-    assert isinstance(args, Args)
 
     # Imports will be broken on the new instance, so we need to fix the python import path for the child process
     env = os.environ.copy()
@@ -42,7 +42,7 @@ def run_gdb(args, quiet=False):
             pass
     return -1
 
-def parse_args(args):
+def parse_args(args: List[str]) -> Optional[Args]:
     '''
     Looks for the special -g and --gdb arguements
     Returns None if not found

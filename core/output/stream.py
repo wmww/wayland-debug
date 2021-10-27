@@ -19,7 +19,7 @@ class Base:
 class Std(Base):
     def __init__(self, file: IO[str] = sys.stdout) -> None:
         self.file = file
-    def override_write(self, string):
+    def override_write(self, string: str) -> None:
         print(string, file=self.file)
 
 class String(Base):

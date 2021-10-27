@@ -36,14 +36,12 @@ class Arg:
         def __init__(self, value: int) -> None:
             super().__init__()
             self.value = value
-        def resolve(self, db, message, index):
+        def resolve(self, db: 'ObjectDB', message: 'Message', index: int) -> None:
             super().resolve(db, message, index)
-            try:
+            if message.obj.type is not None:
                 labels = protocol.look_up_enum(message.obj.type, message.name, index, self.value)
                 if labels:
                     self.labels = labels
-            except RuntimeError as e:
-                logging.warning('Unable to resolve int argument ' + str(self) + ': ' + str(e))
         def value_to_str(self) -> str:
             if hasattr(self, 'labels'):
                 return color('1;34', str(self.value)) + color('34', ':') + color('34', '&').join([color('1;34', i) for i in self.labels])

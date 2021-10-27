@@ -87,7 +87,7 @@ def run_in_gdb(wldbg_args, gdb_args, also_run):
     if also_run:
         other_process = subprocess.Popen(also_run, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
-    gdb_plugin.run_gdb(args)
+    gdb_plugin.run_gdb(args, False)
 
     if also_run:
         out, _ = other_process.communicate(timeout=1)

@@ -132,7 +132,7 @@ def file(input_file: IO, out: Output) -> Iterator[Tuple[str, wl.Message]]:
             out.show(traceback.format_exc())
             parse = False
 
-def into_sink(input_file: IO, out: Output, sink: ConnectionIDSink):
+def into_sink(input_file: IO, out: Output, sink: ConnectionIDSink) -> None:
     known_connections: Set[str] = set()
     last_time = 0.0
     for conn_id, msg in file(input_file, out):
