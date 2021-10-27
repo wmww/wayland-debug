@@ -66,6 +66,13 @@ class Message:
     def show(self, out: Output) -> None:
         out.show(color('37', '{:7.4f}'.format(self.timestamp)) + ' ' + str(self))
 
-class Mock(Message):
-    def __init__(self) -> None:
-        super().__init__(0.0, MockObject(), False, 'mock', ())
+class MockMessage(Message):
+    def __init__(
+        self,
+        timestamp: float = 0.0,
+        obj: ObjectBase = MockObject(),
+        sent: bool = False,
+        name: str = 'mock_message',
+        args: Tuple[Arg.Base, ...] = ()
+    ) -> None:
+        super().__init__(timestamp, obj, sent, name, args)

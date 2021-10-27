@@ -1,6 +1,7 @@
 from unittest import TestCase, mock
 import interfaces
 from core import ConnectionManager, wl, output
+from core.wl.message import MockMessage
 
 def mock_listener():
     return mock.Mock(spec=interfaces.ConnectionList.Listener)
@@ -19,17 +20,17 @@ class TestConnectionManager(TestCase):
 
     def test_client_connection(self):
         self.cm.open_connection(0.0, 'foo', False)
-        self.cm.message('foo', wl.message.Mock())
+        self.cm.message('foo', MockMessage())
         self.cm.close_connection(0.0, 'foo')
 
     def test_server_connection(self):
         self.cm.open_connection(0.0, 'foo', True)
-        self.cm.message('foo', wl.message.Mock())
+        self.cm.message('foo', MockMessage())
         self.cm.close_connection(0.0, 'foo')
 
     def test_connection_of_unknown_type(self):
         self.cm.open_connection(0.0, 'foo', None)
-        self.cm.message('foo', wl.message.Mock())
+        self.cm.message('foo', MockMessage())
         self.cm.close_connection(0.0, 'foo')
 
     # TODO: replace test_open_connection_returns_connection with this
@@ -79,13 +80,13 @@ class TestConnectionManager(TestCase):
 
     def test_can_not_send_message_to_nonexistent_connection(self):
         with self.assertRaises(AssertionError):
-            self.cm.message('foo', wl.message.Mock())
+            self.cm.message('foo', MockMessage())
 
     def test_can_not_send_message_to_closed_connection(self):
         self.cm.open_connection(0.0, 'foo', True)
         self.cm.close_connection(1.0, 'foo')
         with self.assertRaises(AssertionError):
-            self.cm.message('foo', wl.message.Mock())
+            self.cm.message('foo', MockMessage())
 
     def test_connections_returns_tuple(self):
         self.assertIsInstance(self.cm.connections(), tuple)

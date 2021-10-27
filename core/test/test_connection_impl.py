@@ -1,6 +1,7 @@
 from unittest import TestCase, expectedFailure, mock, skip
 from core import *
 from core.wl import *
+from core.wl.message import MockMessage
 import interfaces
 from core import output, ConnectionImpl
 
@@ -48,13 +49,13 @@ class TestConnectionImpl(TestCase):
         self.assertNotEqual(self.name, str(self.c))
 
     def test_messages_returns_tuple(self):
-        self.c.message(message.Mock())
-        self.c.message(message.Mock())
+        self.c.message(MockMessage())
+        self.c.message(MockMessage())
         self.assertIsInstance(self.c.messages(), tuple)
 
     def test_messages_are_stored(self):
-        m0 = message.Mock()
-        m1 = message.Mock()
+        m0 = MockMessage()
+        m1 = MockMessage()
         self.c.message(m0)
         self.c.message(m1)
         self.assertEqual(self.c.messages(), (m0, m1))
@@ -67,7 +68,7 @@ class TestConnectionImpl(TestCase):
     @skip('We need to use the standard logging system for this to work')
     def test_warning_on_message_after_close(self):
         self.c.close(0.0)
-        m = message.Mock()
+        m = MockMessage()
         self.c.message(m)
         # TODO: assert that this logs a warning
 
@@ -76,17 +77,13 @@ class TestConnectionImpl(TestCase):
 
     def test_detects_app_id(self):
         app_id = 'some.app.id'
-        m = message.Mock()
-        m.name = 'set_app_id'
-        m.args = [Arg.String(app_id)]
+        m = MockMessage(name='set_app_id', args=[Arg.String(app_id)])
         self.c.message(m)
         self.assertEqual(self.c.app_id(), app_id)
 
     def test_listener_notified_of_app_id_change(self):
         app_id = 'some.app.id'
-        m = message.Mock()
-        m.name = 'set_app_id'
-        m.args = [Arg.String(app_id)]
+        m = MockMessage(name='set_app_id', args=[Arg.String(app_id)])
         self.c.add_connection_listener(self.l)
         self.c.message(m)
         self.l.connection_app_id_set.assert_called_once_with(self.c, app_id)
@@ -98,58 +95,47 @@ class TestConnectionImpl(TestCase):
 
     def test_description_includes_title_from_message(self):
         title = 'some_app_title'
-        m = message.Mock()
-        m.name = 'set_title'
-        m.args = [Arg.String(title)]
+        m = MockMessage(name='set_title', args=[Arg.String(title)])
         self.c.message(m)
         self.assertIn(title, str(self.c))
 
     def test_description_includes_layer_namespace_from_message(self):
         title = 'some_app_title'
-        m = message.Mock()
-        m.name = 'get_layer_surface'
-        m.args = [Arg.Null(), Arg.Null(), Arg.Null(), Arg.Null(), Arg.String(title)]
+        m = MockMessage(
+            name='get_layer_surface',
+            args=[Arg.Null(), Arg.Null(), Arg.Null(), Arg.Null(), Arg.String(title)]
+        )
         self.c.message(m)
         self.assertIn(title, str(self.c))
 
     def test_description_includes_app_id_from_message(self):
         last_part = 'last_part'
         app_id = 'some.app.id.' + last_part
-        m = message.Mock()
-        m.name = 'set_app_id'
-        m.args = [Arg.String(app_id)]
+        m = MockMessage(name='set_app_id', args = [Arg.String(app_id)])
         self.c.message(m)
         self.assertIn(last_part, str(self.c))
 
     def test_description_only_includes_last_part_of_app_id(self):
         last_part = 'last_part'
         app_id = 'some.app.id.' + last_part
-        m = message.Mock()
-        m.name = 'set_app_id'
-        m.args = [Arg.String(app_id)]
+        m = MockMessage(name='set_app_id', args=[Arg.String(app_id)])
         self.c.message(m)
         self.assertNotIn(app_id, str(self.c))
 
     def test_title_does_not_overrite_app_id(self):
         last_part = 'last_part'
         app_id = 'some.app.id.' + last_part
-        m0 = message.Mock()
-        m0.name = 'set_app_id'
-        m0.args = [Arg.String(app_id)]
+        m0 = MockMessage(name='set_app_id', args=[Arg.String(app_id)])
         self.c.message(m0)
         title = 'some_app_title'
-        m1 = message.Mock()
-        m1.name = 'set_title'
-        m1.args = [Arg.String(title)]
+        m1 = MockMessage(name='set_title', args=[Arg.String(title)])
         self.c.message(m1)
         self.assertNotIn(title, str(self.c))
         self.assertIn(last_part, str(self.c))
 
     def test_listener_notified_of_title_description_change(self):
         title = 'some_app_title'
-        m = message.Mock()
-        m.name = 'set_title'
-        m.args = [Arg.String(title)]
+        m = MockMessage(name='set_title', args=[Arg.String(title)])
         self.c.add_connection_listener(self.l)
         self.c.message(m)
         self.l.connection_str_changed.assert_called_once_with(self.c)
@@ -160,21 +146,21 @@ class TestConnectionImpl(TestCase):
         self.l.connection_str_changed.assert_called_once_with(self.c)
 
     def test_listener_not_notified_on_no_description_change(self):
-        m = message.Mock()
+        m = MockMessage()
         self.c.add_connection_listener(self.l)
         self.c.message(m)
         self.l.connection_str_changed.assert_not_called()
 
     def test_listener_notified_of_message(self):
         self.c.add_connection_listener(self.l)
-        m = message.Mock()
+        m = MockMessage()
         self.c.message(m)
         self.l.connection_got_new_message.assert_called_once_with(self.c, m)
 
     def test_remove_listener(self):
         self.c.add_connection_listener(self.l)
         self.c.remove_connection_listener(self.l)
-        m = message.Mock()
+        m = MockMessage()
         self.c.message(m)
         self.l.connection_got_new_message.assert_not_called()
 

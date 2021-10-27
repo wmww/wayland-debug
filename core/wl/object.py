@@ -94,12 +94,12 @@ class MockObject(ObjectBase):
         create_time: float = 0.0,
         obj_id: int = 1,
         generation: int = 0,
-        type_name: Optional[str] = 'mock_type'
+        type: Optional[str] = 'mock_type'
     ) -> None:
         super().__init__(obj_id)
         self.create_time = create_time
         self.generation = generation
-        self.type = type_name
+        self.type = type
 
     def resolved(self) -> bool:
         return True

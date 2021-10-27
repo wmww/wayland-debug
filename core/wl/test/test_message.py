@@ -1,5 +1,6 @@
 from unittest import TestCase, mock
 from core.wl import *
+from core.wl.message import MockMessage
 import interfaces
 
 class TestMessage(TestCase):
@@ -20,7 +21,7 @@ class TestMessage(TestCase):
 
 class TestMockMessage(TestCase):
     def setUp(self):
-        self.m = message.Mock()
+        self.m = MockMessage()
 
     def test_convert_to_str(self):
         self.assertTrue(str(self.m))
