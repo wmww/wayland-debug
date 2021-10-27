@@ -89,13 +89,17 @@ class UnresolvedObject(ObjectBase):
         return False
 
 class MockObject(ObjectBase):
-    def __init__(self) -> None:
-        super().__init__(1)
-        self.create_time = 0.0
-        self.type = 'mock'
-
-    def __str__(self) -> str:
-        return 'mock object'
+    def __init__(
+        self,
+        create_time: float = 0.0,
+        obj_id: int = 1,
+        generation: int = 0,
+        type_name: Optional[str] = 'mock_type'
+    ) -> None:
+        super().__init__(obj_id)
+        self.create_time = create_time
+        self.generation = generation
+        self.type = type_name
 
     def resolved(self) -> bool:
-        return False
+        return True
