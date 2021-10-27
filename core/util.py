@@ -52,12 +52,6 @@ def set_verbose(val: bool) -> None:
     verbose = val
     logging.getLogger().setLevel(logging.DEBUG)
 
-def str_matches(pattern: str, txt: str) -> bool:
-    pattern = re.escape(pattern)
-    pattern = pattern.replace(r'\*', '.*')
-    pattern = r'^' + pattern + r'$'
-    return len(re.findall(pattern, txt)) == 1
-
 cached_project_root = None
 def project_root() -> str:
     global cached_project_root

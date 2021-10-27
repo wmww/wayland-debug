@@ -4,6 +4,7 @@ from typing import Optional, List, Tuple
 from interfaces import Connection, ObjectDB
 from .util import *
 from . import wl
+from .matcher import str_matcher
 
 logger = logging.getLogger(__name__)
 
@@ -142,7 +143,7 @@ class ConnectionImpl(Connection.Sink, Connection, ObjectDB):
             raise RuntimeError('Invalid generation ' + str(generation) + ' for id ' + str(id)) from e
         if ((type_name is not None) and
             (obj.type is not None) and
-            (not str_matches(type_name, obj.type))
+            (not str_matcher(type_name).matches(obj.type))
         ):
             raise RuntimeError(str(obj) + ' expected to be of type ' + type_name)
         return obj
