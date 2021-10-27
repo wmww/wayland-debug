@@ -30,4 +30,4 @@ class TestMockMessage(TestCase):
         self.m.resolve(db)
 
     def test_used_objects(self):
-        self.assertEqual(self.m.used_objects(), [])
+        self.assertEqual(self.m.used_objects(), ())

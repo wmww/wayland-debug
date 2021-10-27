@@ -23,7 +23,7 @@ class TestParseMessage(unittest.TestCase):
         self.assertEqual(m.obj.id, 12)
         self.assertEqual(m.sent, False)
         self.assertEqual(m.name, 'some_message')
-        self.assertEqual(m.args, [])
+        self.assertEqual(m.args, ())
         self.assertEqual(m.destroyed_obj, None)
 
     def test_parse_out_message_no_args(self):
@@ -34,7 +34,7 @@ class TestParseMessage(unittest.TestCase):
         self.assertEqual(m.obj.id, 12)
         self.assertEqual(m.sent, True)
         self.assertEqual(m.name, 'some_message')
-        self.assertEqual(m.args, [])
+        self.assertEqual(m.args, ())
         self.assertEqual(m.destroyed_obj, None)
 
     def test_parse_message_timestamp(self):

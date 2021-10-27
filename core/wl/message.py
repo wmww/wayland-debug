@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional, Tuple
 
 from core.util import *
 from interfaces import ObjectDB
@@ -10,7 +10,7 @@ class Message:
     # TODO: figure out a way to remove global time offset
     base_time = None
 
-    def __init__(self, abs_time: float, obj: ObjectBase, sent: bool, name: str, args: List[Arg.Base]) -> None:
+    def __init__(self, abs_time: float, obj: ObjectBase, sent: bool, name: str, args: Tuple[Arg.Base, ...]) -> None:
         if Message.base_time is None:
             Message.base_time = abs_time
         self.timestamp = abs_time - Message.base_time
@@ -36,14 +36,14 @@ class Message:
         for i, arg in enumerate(self.args):
             arg.resolve(db, self, i)
 
-    def used_objects(self) -> List[ObjectBase]:
+    def used_objects(self) -> Tuple[ObjectBase, ...]:
         result = []
         for i in self.args:
             if isinstance(i, Arg.Object):
                 result.append(i.obj)
         if self.destroyed_obj:
             result.append(self.destroyed_obj)
-        return result
+        return tuple(result)
 
     def __str__(self) -> str:
         destroyed = ''
@@ -68,4 +68,4 @@ class Message:
 
 class Mock(Message):
     def __init__(self) -> None:
-        super().__init__(0.0, MockObject(), False, 'mock', [])
+        super().__init__(0.0, MockObject(), False, 'mock', ())

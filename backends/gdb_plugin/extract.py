@@ -107,7 +107,7 @@ def extract_message(closure, object: wl.ObjectBase, is_sending: bool, new_id_is_
             else:
                 raise RuntimeError('Invalid type code ' + c)
             i += 1
-    return wl.Message(time_now(), object, is_sending, message_name, args)
+    return wl.Message(time_now(), object, is_sending, message_name, tuple(args))
 
 def connection_id_of(connection) -> str:
     return 'gdb_conn:' + hex(int(connection))

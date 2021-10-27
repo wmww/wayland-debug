@@ -87,9 +87,9 @@ def argument_list_strs(args_str: str) -> List[str]:
         result.append(args_str[start:i])
     return result
 
-def argument_list(p: WlPatterns, args_str: str) -> List[wl.Arg.Base]:
+def argument_list(p: WlPatterns, args_str: str) -> Tuple[wl.Arg.Base, ...]:
     str_list = argument_list_strs(args_str)
-    return [argument(p, s) for s in str_list]
+    return tuple(argument(p, s) for s in str_list)
 
 def message(raw: str) -> Tuple[str, wl.Message]:
     p = WlPatterns.lazy_get_instance()
