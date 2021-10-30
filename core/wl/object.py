@@ -92,11 +92,11 @@ class MockObject(ObjectBase):
     def __init__(
         self,
         create_time: float = 0.0,
-        obj_id: int = 1,
+        id: int = 1,
         generation: int = 0,
         type: Optional[str] = 'mock_type'
     ) -> None:
-        super().__init__(obj_id)
+        super().__init__(id)
         self.create_time = create_time
         self.generation = generation
         self.type = type

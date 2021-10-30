@@ -1,5 +1,5 @@
 import re
-from typing import List, Tuple, Generic, TypeVar, Any
+from typing import List, Set, Tuple, Generic, TypeVar, Any, Callable, cast
 
 from core.util import *
 from core import wl
@@ -14,6 +14,9 @@ class Matcher(Generic[T]):
     def simplify(self) -> 'Matcher[T]':
         return self
 
+    def always(self) -> Optional[bool]:
+        return None
+
     def __str__(self) -> str:
         raise NotImplementedError()
 
@@ -24,6 +27,9 @@ class AlwaysMatcher(Matcher[Any]):
         self.result = result
 
     def matches(self, message: T) -> bool:
+        return self.result
+
+    def always(self) -> Optional[bool]:
         return self.result
 
     def __str__(self) -> str:
@@ -66,7 +72,10 @@ class PairMatcher(Matcher[Tuple[T, U]]):
     def simplify(self) -> Matcher[Tuple[T, U]]:
         self.a = self.a.simplify()
         self.b = self.b.simplify()
-        return self
+        if isinstance(self.a, AlwaysMatcher) and self.a.always() is self.b.always():
+            return self.a
+        else:
+            return self
 
     def __str__(self) -> str:
         return str(self.a) + self.delimiter + str(self.b)
@@ -95,19 +104,14 @@ class MatcherList(Generic[T], Matcher[T]):
         self.positive = [pattern.simplify() for pattern in self.positive]
         self.negative = [pattern.simplify() for pattern in self.negative]
         for pattern in self.negative:
-            if isinstance(pattern, AlwaysMatcher) and pattern.result:
+            if pattern.always() is True:
                 return AlwaysMatcher(False)
         for pattern in self.positive:
-            if isinstance(pattern, AlwaysMatcher):
-                if pattern.result:
-                    self.positive = [pattern]
+            if pattern.always() is True:
+                self.positive = [pattern]
         # Filter out AlwaysMatcher(False) from both
-        self.positive = [
-            pattern for pattern in self.positive if
-                not isinstance(pattern, AlwaysMatcher) or pattern.result]
-        self.negative = [
-            pattern for pattern in self.negative if
-                not isinstance(pattern, AlwaysMatcher) or pattern.result]
+        self.positive = [pattern for pattern in self.positive if not pattern.always() is False]
+        self.negative = [pattern for pattern in self.negative if not pattern.always() is False]
         if len(self.positive) == 0:
             return AlwaysMatcher(False)
         elif len(self.positive) == 1 and len(self.negative) == 0:
@@ -154,6 +158,18 @@ class MessagePattern(Matcher[wl.Message]):
         self.id_matcher = self.id_matcher.simplify()
         self.name_matcher = self.name_matcher.simplify()
         self.args_matcher = self.args_matcher.simplify()
+        if (self.type_matcher.always() is False or
+            self.id_matcher.always() is False or
+            self.name_matcher.always() is False or
+            self.args_matcher.always() is False
+        ):
+            return AlwaysMatcher(False)
+        if (self.type_matcher.always() is True and
+            self.id_matcher.always() is True and
+            self.name_matcher.always() is True and
+            self.args_matcher.always() is True
+        ):
+            return AlwaysMatcher(True)
         return self
 
     def __str__(self) -> str:
@@ -178,30 +194,159 @@ def str_matcher(pattern: str) -> Matcher[str]:
 def print_help():
     pass
 
-closing_chars = {
+_brace_pairs = {
     '(' : ')',
     '[' : ']',
+    '"' : '"',
 }
-def find_matching(text: str, start: int) -> int:
+def _find_closing_brace(text: str, start: int) -> int:
     opening = text[start]
-    closing = closing_chars[opening]
+    closing = _brace_pairs[opening]
     i = start
-    level = 0
-    for i in range(start, len(text)):
-        if text[i] == opening:
-            level += 1
-        elif text[i] == closing:
+    level = 1
+    for i in range(start + 1, len(text)):
+        if text[i] == closing:
             level -= 1
+        elif text[i] == opening:
+            level += 1
         if level == 0:
             return i
-    raise RuntimeError('Unmatched "' + opening + '" at position ' + str(start))
+    raise RuntimeError(
+        text[:start] + color(bad_color, opening) + text[start + 1:] +
+        ' contains unmatched "' + opening + '"'
+    )
+
+def _split_on(text: str, delimiter: str) -> Tuple[str, ...]:
+    section_start = 0
+    result = []
+    i = 0
+    while i <= len(text):
+        c = text[i] if i < len(text) else ''
+        if c == '' or c == delimiter:
+            result.append(text[section_start:i].strip())
+            section_start = i + 1
+        if c in _brace_pairs:
+            i = _find_closing_brace(text, i)
+        i += 1
+    return tuple(result)
+
+def _split_pair(text: str, delimiter: str) -> Optional[Tuple[str, str]]:
+    results = _split_on(text, delimiter)
+    if len(results) == 2:
+        return cast(Tuple[str, str], results)
+    elif len(results) <= 1:
+        return None
+    else:
+        raise RuntimeError(
+            color(bad_color, delimiter).join(results) +
+            ' contains too many "' + delimiter + '"s'
+        )
+
+def _split_peren_at_end(text: str) -> Optional[Tuple[str, str]]:
+    pair = _split_pair(text, '(')
+    if pair is not None:
+        if not pair[1].endswith(')'):
+            raise RuntimeError(text + ' has trailing characters after ")"')
+        return (pair[0], pair[1][:-1])
+    else:
+        return pair
+
+def _parse_matcher_list(text: str, sub_parser: Callable[[str], Matcher[T]]) -> Matcher[T]:
+    bang_split = _split_pair(text, '!')
+    if bang_split is not None:
+        return MatcherList(
+            [sub_parser(i) for i in _split_on(bang_split[0], ',')],
+            [sub_parser(i) for i in _split_on(bang_split[1], ',')],
+        )
+    else:
+        positive = [sub_parser(i) for i in _split_on(text, ',')]
+        if len(positive) > 1:
+            return MatcherList(positive, [])
+        else:
+            return positive[0]
+
+def _parse_text_matcher(text: str) -> Matcher[str]:
+    if text.startswith('[') and text.endswith(']'):
+        text = text[1:-1]
+        return _parse_matcher_list(text, _parse_text_matcher)
+    elif text == '':
+        return AlwaysMatcher(True)
+    else:
+        return str_matcher(text)
+
+def _parse_int_matcher(text: str) -> Matcher[int]:
+    if text == '*' or text == '':
+        return AlwaysMatcher(True)
+    else:
+        try:
+            return EqMatcher(int(text))
+        except ValueError:
+            raise RuntimeError(text + ' is not a valid int')
+
+def _parse_obj_id_matcher(text: str) -> Matcher[Tuple[int, int]]:
+    if text.startswith('[') and text.endswith(']'):
+        text = text[1:-1]
+        return _parse_matcher_list(text, _parse_obj_id_matcher)
+    hash_split = _split_pair(text, '#')
+    if hash_split is not None:
+        return PairMatcher(
+            _parse_int_matcher(hash_split[0]),
+            '#',
+            _parse_int_matcher(hash_split[1]),
+        )
+    else:
+        return PairMatcher(
+            _parse_int_matcher(text),
+            '',
+            AlwaysMatcher(True)
+        )
+
+def _parse_message_pattern(text: str) -> MessagePattern:
+    type_m: Matcher[str] = AlwaysMatcher(True)
+    id_m: Matcher[Tuple[int, int]] = AlwaysMatcher(True)
+    name_m: Matcher[str] = AlwaysMatcher(True)
+    args_m: Matcher[Tuple[wl.Arg.Base, ...]] = AlwaysMatcher(True)
+    dot_split = _split_pair(text, '.')
+    if dot_split is not None:
+        obj_text, name_and_arg_text = dot_split
+        peren_split = _split_peren_at_end(text)
+        if peren_split is not None:
+            name_text, arg_text = peren_split
+        else:
+            name_text = name_and_arg_text
+            arg_text = ''
+    else:
+        peren_split = _split_peren_at_end(text)
+        if peren_split is not None:
+            obj_text, arg_text = peren_split
+        else:
+            obj_text = text
+            arg_text = ''
+        name_text = ''
+    at_split = _split_pair(obj_text, '@')
+    if at_split is not None:
+        obj_name_text, obj_id_text = at_split
+    elif obj_text and ord(obj_text[0]) >= ord('0') and ord(obj_text[0]) <= ord('9'):
+        obj_name_text = ''
+        obj_id_text = obj_text
+    else:
+        obj_name_text = obj_text
+        obj_id_text = ''
+    if arg_text:
+        raise RuntimeError(text + ' has argument matcher component, this is not yet implemented')
+    return MessagePattern(
+        _parse_text_matcher(obj_name_text),
+        _parse_obj_id_matcher(obj_id_text),
+        _parse_text_matcher(name_text),
+        AlwaysMatcher(True)
+    )
 
 # Raises a RuntimeError if text is an invalid matcher
 def parse(text: str) -> MessageMatcher:
     text = no_color(text).strip()
     if text == '':
         raise RuntimeError('No matcher given')
-    return AlwaysMatcher(True)
+    return _parse_matcher_list(text, _parse_message_pattern)
 
 def _as_list(matcher: Matcher[T]) -> MatcherList[T]:
     if isinstance(matcher, MatcherList):
