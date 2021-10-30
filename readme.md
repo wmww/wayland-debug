@@ -71,29 +71,21 @@ $ quit                       Quit the program
 ```
 
 ## Matchers
-Matchers are used through out the program to show and hide messages. A matcher consists of a comma seporated list of objects. An object is a type name, and/or an object ID (in which case a generation can also be specified). An @ goes inbetween the name and ID, and is optional if both are not specified. A * can be used as a wildcard in type names.
+Matchers are used through out the program to show and hide messages. A matcher looks similar to how a Wayland message is displayed by this program and libwayland's `WAYLAND_DEBUG=1` output. Matchers can drop components of a message to leave them unspecified, and use wildcards.
 
 Examples of objects:
 
 | Matcher | Description |
 | --- | --- |
-| `wl_surface`   | Matches any wl_surface |
-| `5`            | Matches the object with ID 5 |
-| `4.12`         | Matches the 12th object with ID 4 |
-| `wl_surface@6` | Matches the object with ID 7, which is asserted to be a wl_surface |
-| `xdg_*@3.2`    | Matches the 2nd object with ID 3, which is some sort of XDG type |
+| `wl_surface`   | Matches any message on a `wl_surface` |
+| `xdg_*`        | Matches any message on an XDG type (using a wildcard) |
+| `5`            | Matches any message on objects with ID `5` |
+| `4#12`         | Matches any message on the `12`th object with ID `4` |
+| `.commit`      | Matches any `commit` message |
+| `wl_surface.commit`   | Matches `commit` messages on `wl_surface`s |
+| `.[motion, button]`   | Matches both `motion` and `button` messages |
 
-Matchers can optionally be accompanied by a brace enclosed, comma seporated list of messages. Messages can have wildcards too. Messages before the object require the object to be on argument, and messages after require the message to be called on the object.
-
-Examples of messages:
-
-| Matcher | Description |
-| --- | --- |
-| `wl_surface[commit]`   | Matches commit messages on wl_surfaces |
-| `6.2[motion,button]`   | Matches motion or button messages on the 2nd object with ID 6 |
-| `[delete_id]*_surface` | Matches delete_id messages on any sort of surface (this works even though the messages themselves are called on the wl_display) |
-
-If the matcher list (or a message list) starts with '^', it matches everything but what's given.
+TODO: document ! logic
 
 ## More examples
 ```bash

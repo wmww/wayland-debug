@@ -339,6 +339,8 @@ def _parse_message_pattern(text: str) -> MessagePattern:
         obj_id_text = ''
     if arg_text:
         raise RuntimeError(text + ' has argument matcher component, this is not yet implemented')
+    if obj_name_text and obj_id_text:
+        raise RuntimeError(text + ' specifies both object type and ID, should only have one')
     return MessagePattern(
         _parse_text_matcher(obj_name_text),
         _parse_obj_id_matcher(obj_id_text),

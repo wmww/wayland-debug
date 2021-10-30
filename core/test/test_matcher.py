@@ -104,19 +104,16 @@ class TestParsedMessageMatcher(TestCase):
         self.assertFalse(m.matches(MockMessage(obj=MockObject(type='wl_touch'), name='motion')))
         self.assertFalse(m.matches(MockMessage(obj=MockObject(type='wl_pointer'), name='axis')))
 
-    def test_obj_type_and_id(self):
-        m = parse('wl_pointer@5')
-        self.assertTrue(m.matches(MockMessage(obj=MockObject(type='wl_pointer', id=5))))
-        self.assertFalse(m.matches(MockMessage(obj=MockObject(type='wl_touch', id=5))))
-        self.assertFalse(m.matches(MockMessage(obj=MockObject(type='wl_pointer', id=8))))
+    def test_obj_type_and_id_raises(self):
+        with self.assertRaises(RuntimeError):
+            parse('wl_pointer@5')
 
     def test_obj_id_generation_and_message_name(self):
-        m = parse('wl_pointer@5#3.motion')
-        self.assertTrue(m.matches(MockMessage(obj=MockObject(type='wl_pointer', id=5, generation=3), name='motion')))
-        self.assertFalse(m.matches(MockMessage(obj=MockObject(type='wl_touch', id=5, generation=3), name='motion')))
-        self.assertFalse(m.matches(MockMessage(obj=MockObject(type='wl_pointer', id=12, generation=3), name='motion')))
-        self.assertFalse(m.matches(MockMessage(obj=MockObject(type='wl_pointer', id=5, generation=12), name='motion')))
-        self.assertFalse(m.matches(MockMessage(obj=MockObject(type='wl_pointer', id=5, generation=3), name='axis')))
+        m = parse('@5#3.motion')
+        self.assertTrue(m.matches(MockMessage(obj=MockObject(id=5, generation=3), name='motion')))
+        self.assertFalse(m.matches(MockMessage(obj=MockObject(id=12, generation=3), name='motion')))
+        self.assertFalse(m.matches(MockMessage(obj=MockObject(id=5, generation=12), name='motion')))
+        self.assertFalse(m.matches(MockMessage(obj=MockObject(id=5, generation=3), name='axis')))
         self.assertFalse(m.matches(MockMessage(name='3.motion')))
 
     def test_multiple_obj_types(self):
@@ -137,6 +134,9 @@ class TestParsedMessageMatcher(TestCase):
         self.assertTrue(m.matches(MockMessage(obj=MockObject(type='wl_pointer'), name='axis')))
         self.assertFalse(m.matches(MockMessage(obj=MockObject(type='wl_pointer'), name='frame')))
         self.assertFalse(m.matches(MockMessage(obj=MockObject(type='wl_touch'), name='motion')))
+
+    def test_delete_id_can_be_matched(self):
+        assert False, 'TODO'
 
 class TestJoinMatchers(TestCase):
     def test_join_lists_with_negative(self):
