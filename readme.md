@@ -99,15 +99,15 @@ If the matcher list (or a message list) starts with '^', it matches everything b
 ```bash
 # Spin up an instance of GDB, and run the program inside it.
 # Show all messages, but break when an XDG thing is configured or when object ID 12 is used
-./main.py -b 'xdg_*[configure], 12' -g program
+./main.py -b 'xdg_*.configure, 12' -g program
 ...
 (gdb) run
 
 # Run with piped input only showing pointer, surface.commit and surface.destroy messages
-WAYLAND_DEBUG=1 program 2>&1 1>/dev/null | ./main.py -f 'wl_pointer, wl_surface[commit, destroy]'
+WAYLAND_DEBUG=1 program 2>&1 1>/dev/null | ./main.py -f 'wl_pointer, wl_surface.[commit, destroy]'
 
 # Load a file showing everything but callbacks and frame messages
-./main.py -l dir/file.log -f '^ wl_callback, *[frame]'
+./main.py -l dir/file.log -f '! wl_callback, .frame'
 ```
 
 ## Running the tests

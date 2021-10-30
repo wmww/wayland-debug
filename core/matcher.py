@@ -7,6 +7,9 @@ from core import wl
 T = TypeVar('T')
 U = TypeVar('U')
 
+def print_help():
+    pass
+
 class Matcher(Generic[T]):
     def matches(self, message: T) -> bool:
         raise NotImplementedError()
@@ -36,7 +39,7 @@ class AlwaysMatcher(Matcher[Any]):
         if self.result:
             return color(good_color, '*')
         else:
-            return color(bad_color, '!')
+            return color(bad_color, '<none>')
 
 class WildcardMatcher(Matcher[str]):
     def __init__(self, pattern: str) -> None:
@@ -120,11 +123,16 @@ class MatcherList(Generic[T], Matcher[T]):
             return self
 
     def __str__(self) -> str:
-        return (
-            ', '.join(str(i) for i in self.positive) +
-            color(bad_color, ' ! ') +
-            ', '.join(str(i) for i in self.negative)
-        )
+        if len(self.negative) == 0:
+            return '[' + ', '.join(str(i) for i in self.positive) + ']'
+        elif len(self.positive) == 1 and self.positive[0].always() is True:
+            return '[' + color(bad_color, ' ! ') + ', '.join(str(i) for i in self.negative) + ']'
+        else:
+            return '[' + (
+                ', '.join(str(i) for i in self.positive) +
+                color(bad_color, ' ! ') +
+                ', '.join(str(i) for i in self.negative)
+            ) + ']'
 
 class MessagePattern(Matcher[wl.Message]):
     def __init__(
@@ -190,9 +198,6 @@ def str_matcher(pattern: str) -> Matcher[str]:
         return WildcardMatcher(pattern)
     else:
         return EqMatcher(pattern)
-
-def print_help():
-    pass
 
 _brace_pairs = {
     '(' : ')',
@@ -361,6 +366,9 @@ def join(new: Matcher[T], old: Matcher[T]) -> Matcher[T]:
     new_list = _as_list(new)
     new_list.positive += old_list.positive
     new_list.negative += old_list.negative
+    new_list.positive = [i for i in new_list.positive if i.always() is not True]
+    if len(new_list.positive) == 0:
+        new_list.positive.append(AlwaysMatcher(True))
     return new_list
 
 if __name__ == '__main__':

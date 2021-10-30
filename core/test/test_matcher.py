@@ -137,3 +137,22 @@ class TestParsedMessageMatcher(TestCase):
         self.assertTrue(m.matches(MockMessage(obj=MockObject(type='wl_pointer'), name='axis')))
         self.assertFalse(m.matches(MockMessage(obj=MockObject(type='wl_pointer'), name='frame')))
         self.assertFalse(m.matches(MockMessage(obj=MockObject(type='wl_touch'), name='motion')))
+
+class TestJoinMatchers(TestCase):
+    def test_join_lists_with_negative(self):
+        a = MatcherList([AlwaysMatcher(True)], [EqMatcher(5)])
+        b = MatcherList([AlwaysMatcher(True)], [EqMatcher(2)])
+        c = join(a, b).simplify()
+        self.assertEqual(no_color(str(c)), '[ ! 5, 2]')
+
+    def test_join_lists_with_positive(self):
+        a = MatcherList([EqMatcher(5)], [])
+        b = MatcherList([EqMatcher(2)], [])
+        c = join(a, b).simplify()
+        self.assertEqual(no_color(str(c)), '[5, 2]')
+
+    def test_join_lists_with_negative_and_positive_positive(self):
+        a = MatcherList([EqMatcher(5)], [])
+        b = MatcherList([AlwaysMatcher(True)], [EqMatcher(2)])
+        c = join(a, b).simplify()
+        self.assertEqual(no_color(str(c)), '[5 ! 2]')
