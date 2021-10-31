@@ -11,7 +11,18 @@ U = TypeVar('U')
 def show_help(out: Output) -> None:
     path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'matchers.md')
     text = open(path, 'r').read()
-    out.show(text)
+    text = text.replace('| Matcher | Description |\n', '')
+    text = text.replace('| --- | --- |\n', '')
+    matches = re.findall(r'^\|\s*`(.*)`\s*\|(.*)\|$', text, flags=re.MULTILINE)
+    parts = re.split(r'^\|.*\|$', text, flags=re.MULTILINE)
+    assert len(matches) + 1 == len(parts)
+    result = parts[0]
+    for i, match in enumerate(matches):
+        result += color(object_type_color, match[0])
+        result += ' ' * (32 - len(match[0]))
+        result += color(object_id_color, match[1])
+        result += parts[i + 1]
+    out.show(result)
 
 class Matcher(Generic[T]):
     def matches(self, message: T) -> bool:
