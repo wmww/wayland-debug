@@ -179,8 +179,14 @@ class MessagePattern(Matcher[wl.Message]):
         self.obj_matcher = obj_matcher
         self.name_matcher = name_matcher
         self.args_matcher = args_matcher
+        self.match_destroyed = self.name_matcher.matches('destroyed')
 
     def matches(self, message: wl.Message) -> bool:
+        if (self.match_destroyed and
+            message.destroyed_obj is not None and
+            self.obj_matcher.matches(message.destroyed_obj)
+        ):
+            return True
         if not self.obj_matcher.matches(message.obj):
             return False
         if not self.name_matcher.matches(message.name):
