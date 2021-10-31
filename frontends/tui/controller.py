@@ -7,7 +7,7 @@ from core import wl, matcher
 from core.util import *
 from core.output import Output
 
-help_command_color = '1;37'
+help_command_color = alert_color
 
 def command_format(cmd: str) -> str:
     if check_gdb():
@@ -26,7 +26,7 @@ class Command:
 
 def _connection_get_type_str(connection: Connection) -> str:
     if connection.is_server() is None:
-        return color('1;31', 'unknown type')
+        return color(bad_color, 'unknown type')
     elif connection.is_server():
         return 'server'
     else:
@@ -50,6 +50,7 @@ class Controller(CommandSink,
         self.stop_matcher = stop_matcher
         self.current_connection: Optional[Connection] = None # The connection that is currently being shown
         self.connection_explicitly_selected = False # If the current connection was selected by the user
+        # NOTE: remember to also update the readme when command help text changes
         self.commands = [
             Command('help', '[COMMAND]', self.help_command,
                 'Show this help message, or get help for a specific command'),
@@ -63,7 +64,7 @@ class Controller(CommandSink,
                 'See ' + command_format('help matcher') + ' for matcher syntax'),
             Command('breakpoint', '[MATCHER]', self.break_point_command,
                 'Show the current breakpoint matcher, or add a new one\n' +
-                'Use an inverse matcher (^) to disable existing breakpoints\n' +
+                'Use the matcher ! to disable existing breakpoints\n' +
                 'See ' + command_format('help matcher') + ' for matcher syntax'),
             Command('matcher', '[MATCHER]', self.matcher_command,
                 'Parse a matcher, and show it unsimplified'),
@@ -118,11 +119,11 @@ class Controller(CommandSink,
         if switch_current:
             self.current_connection = connection
             self.out.show(color(
-                '1;32',
+                good_color,
                 'Switching to new ' + _connection_get_type_str(connection) + ' connection ' + connection.name()))
         else:
             self.out.show(color(
-                '1;32',
+                good_color,
                 'New ' + _connection_get_type_str(connection) + ' connection ' + connection.name()))
 
     def connection_str_changed(self, connection: Connection) -> None:
@@ -140,13 +141,13 @@ class Controller(CommandSink,
             if self.display_matcher.matches(message):
                 self._show_message(message)
             if self.stop_matcher.matches(message):
-                self.out.show(color('1;37', '    Stopped at ') + str(message).strip())
+                self.out.show(color(alert_color, '    Stopped at ') + str(message).strip())
                 self.ui_state_listener.pause_requested()
 
     def connection_closed(self, connection: Connection) -> None:
         '''Overrides method in Connection.Listener'''
         self.out.show(color(
-            '1;31',
+            bad_color,
             'Closed ' + _connection_get_type_str(connection) + ' connection ' + connection.name()))
 
     def add_ui_state_listener(self, listener: UIState.Listener) -> None:
@@ -172,23 +173,23 @@ class Controller(CommandSink,
                 self.out.show(' ╰╴ No messages yet')
             else:
                 assert didnt_match == len(connection.messages())
-                self.out.show(' ╰╴ None of the ' + color('1;31', str(didnt_match)) + ' messages so far')
+                self.out.show(' ╰╴ None of the ' + color(bad_color, str(didnt_match)) + ' messages so far')
         else:
             self.last_shown_timestamp = None
             for message in matching:
                 self._show_message(message)
             self.out.show(
                 '(' +
-                color(('1;32' if matched > 0 else '37'), str(matched)) + ' matched, ' +
-                color(('1;31' if didnt_match > 0 else '37'), str(didnt_match)) + ' didn\'t' +
-                (', ' + color(('37'), str(not_searched)) + ' not checked' if not_searched != 0 else '') +
+                color((good_color if matched > 0 else symbol_color), str(matched)) + ' matched, ' +
+                color((good_color if didnt_match > 0 else symbol_color), str(didnt_match)) + ' didn\'t' +
+                (', ' + color((symbol_color), str(not_searched)) + ' not checked' if not_searched != 0 else '') +
                 ')')
             self.last_shown_timestamp = None
 
     def _show_message(self, message: wl.Message) -> None:
         delta = message.timestamp - self.last_shown_timestamp if self.last_shown_timestamp is not None else 0
         if delta > 1.0:
-            self.out.show(color('37', '    ───┤ {:0.4f}s ├───'.format(delta)))
+            self.out.show(color(timestamp_color, '    ───┤ {:0.4f}s ├───'.format(delta)))
         self.last_shown_timestamp = message.timestamp
         message.show(self.out)
 
@@ -234,7 +235,7 @@ class Controller(CommandSink,
             if arg.startswith('wl'):
                 arg = arg[2:].strip()
             if arg == 'matcher':
-                matcher.print_help()
+                matcher.show_help(self.out)
                 return
             else:
                 cmd = self._get_command(arg)
@@ -343,19 +344,19 @@ class Controller(CommandSink,
         for connection in self.connection_list.connections():
             delim = ', '
             if connection == self.current_connection:
-                clr = '1;37'
+                clr: Optional[str] = alert_color
                 line = ' => '
             else:
-                clr = '37'
+                clr = symbol_color
                 line = '    '
             line += str(connection) + ': '
             line = color(clr, line)
             if connection.is_open():
-                line += color('1;32', 'open')
+                line += color(good_color, 'open')
             else:
-                line += color('1;31', 'closed')
+                line += color(bad_color, 'closed')
             line += delim
-            line += color('1;34', str(len(connection.messages()))) + ' messages'
+            line += color(int_color, str(len(connection.messages()))) + ' messages'
             self.out.show(line)
 
     def resume_command(self, arg: str) -> None:

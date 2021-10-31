@@ -15,12 +15,24 @@ verbose = False
 
 # if we print with colors and such
 color_output = False
-timestamp_color = '37'
-object_color = '1;37'
-message_color = None
+timestamp_color = '2;37'
+object_type_color = '1;96'
+object_id_color = '36'
+object_id_symbol_color = '36'
+message_color = '1;94'
+symbol_color = None
 
-good_color = '1;32'
-bad_color = '1;31'
+int_color = '95'
+int_symbol_color = '2;35'
+float_color = '93'
+string_color = '1;33'
+fd_color = '35'
+array_color = '1;37'
+null_color = '1;37'
+
+good_color = '1;92'
+bad_color = '1;91'
+alert_color = '93'
 
 def set_color_output(val: bool) -> None:
     global color_output
@@ -51,12 +63,6 @@ def set_verbose(val: bool) -> None:
     global verbose
     verbose = val
     logging.getLogger().setLevel(logging.DEBUG)
-
-def str_matches(pattern: str, txt: str) -> bool:
-    pattern = re.escape(pattern)
-    pattern = pattern.replace(r'\*', '.*')
-    pattern = r'^' + pattern + r'$'
-    return len(re.findall(pattern, txt)) == 1
 
 cached_project_root = None
 def project_root() -> str:

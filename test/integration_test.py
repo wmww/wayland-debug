@@ -24,7 +24,7 @@ class FileLoadTests(TestCase):
 
     def test_load_file_with_comma_numbers(self):
         result = helpers.run_main(['-l', helpers.log_file_with_comma_numbers()])
-        self.assertIn('2690.6303 wl_pointer@19.0 motion(time=4491984, surface_x=561.15625, surface_y=501.382812)', result)
+        self.assertIn('2690.6303 wl_pointer@19#0.motion(time=4491984, surface_x=561.15625, surface_y=501.382812)', result)
 
     # see https://github.com/wmww/wayland-debug/issues/35
     @expectedFailure
@@ -101,10 +101,10 @@ class MockProgramInGDBTests(TestCase):
             self.assertAlmostEqual(match, expected, places = 5)
 
     def check_result_of_server_created_obj(self, result):
-        matches = re.findall(r'new wl_data_offer@(.*)\.\d+', result)
+        matches = re.findall(r'new wl_data_offer@(.*)#\d+', result)
         self.assertEqual(len(matches), 1)
         data_offer_id = matches[0]
-        matches = re.findall(r'.*wl_data_offer@(.*)\..*mock-meme-type', result)
+        matches = re.findall(r'.*wl_data_offer@(.*)#.*mock-meme-type', result)
         self.assertEqual(len(matches), 1)
         self.assertEqual(matches[0], data_offer_id)
 

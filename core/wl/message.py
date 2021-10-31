@@ -49,22 +49,22 @@ class Message:
         destroyed = ''
         if self.destroyed_obj:
             destroyed = (
-                color(timestamp_color, ' -- ') +
-                color('1;31', 'destroyed ') +
-                str(self.destroyed_obj))
+                color(symbol_color, ' -- ') +
+                str(self.destroyed_obj) +
+                color(bad_color, '.destroyed'))
             lifespan = self.destroyed_obj.lifespan()
             if lifespan is not None:
                 destroyed += color(timestamp_color, ' after {:0.4f}s'.format(lifespan))
         return (
-            (color('37', '→ ') if self.sent else '') +
-            str(self.obj) + ' ' +
-            color(message_color, self.name) + color(timestamp_color, '(') +
-            color(timestamp_color, ', ').join([str(i) for i in self.args]) + color(timestamp_color, ')') +
+            (color(symbol_color, '→ ') if self.sent else '') +
+            str(self.obj) +
+            color(message_color, '.' + self.name) + color(symbol_color, '(') +
+            color(symbol_color, ', ').join([str(i) for i in self.args]) + color(symbol_color, ')') +
             destroyed +
-            (color(timestamp_color, ' ↲') if not self.sent else ''))
+            (color(symbol_color, ' ↲') if not self.sent else ''))
 
     def show(self, out: Output) -> None:
-        out.show(color('37', '{:7.4f}'.format(self.timestamp)) + ' ' + str(self))
+        out.show(color(timestamp_color, '{:7.4f}'.format(self.timestamp)) + ' ' + str(self))
 
 class MockMessage(Message):
     def __init__(
@@ -73,6 +73,8 @@ class MockMessage(Message):
         obj: ObjectBase = MockObject(),
         sent: bool = False,
         name: str = 'mock_message',
-        args: Tuple[Arg.Base, ...] = ()
+        args: Tuple[Arg.Base, ...] = (),
+        destroyed_obj: Optional[ObjectBase] = None
     ) -> None:
         super().__init__(timestamp, obj, sent, name, args)
+        self.destroyed_obj = destroyed_obj
