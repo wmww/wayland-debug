@@ -2,13 +2,16 @@ import re
 from typing import List, Set, Tuple, Generic, TypeVar, Any, Callable, cast
 
 from core.util import *
+from core.output import Output
 from core import wl
 
 T = TypeVar('T')
 U = TypeVar('U')
 
-def print_help():
-    pass
+def show_help(out: Output) -> None:
+    path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'matchers.md')
+    text = open(path, 'r').read()
+    out.show(text)
 
 class Matcher(Generic[T]):
     def matches(self, message: T) -> bool:

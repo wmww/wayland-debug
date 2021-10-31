@@ -106,7 +106,7 @@ def main(out_stream: stream.Base, err_stream: stream.Base, argv: List[str], inpu
         logger.info('Showing unparsable output')
 
     if args.matcher_help:
-        matcher.print_help()
+        matcher.show_help(output)
         return
 
     filter_matcher = matcher.always
