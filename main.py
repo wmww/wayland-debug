@@ -17,6 +17,8 @@ from core.output import stream, Output
 logging.basicConfig()
 
 logger = logging.getLogger(__name__)
+if sys.version_info[0] < 3 or sys.version_info[1] < 8:
+    logger.error('Needs at least Python 3.8!')
 
 example_usage = 'WAYLAND_DEBUG=1 program 2>&1 1>/dev/null | ' + sys.argv[0]
 
