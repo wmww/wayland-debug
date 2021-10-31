@@ -23,18 +23,18 @@ class ObjectBase:
         if self.type:
             return self.type
         else:
-            return color('1;31', '???')
+            return color(bad_color, '???')
 
     def id_str(self) -> str:
-        ret = str(self.id)
+        ret = color(object_id_symbol_color, '@') + color(object_id_color, str(self.id))
         if self.generation == None:
-            ret += '.' + color('1;31', '?')
+            ret += color(object_id_symbol_color, '#') + color(bad_color, '?')
         else:
-            ret += '.' + str(self.generation)
+            ret += color(object_id_symbol_color, '#') + color(object_id_color, str(self.generation))
         return ret
 
     def to_str(self) -> str:
-        return color('1;36' if self.type else '1;31', self.type_str()) + color('37', '@') + color('1;37', self.id_str())
+        return color(object_type_color if self.type else bad_color, self.type_str()) + self.id_str()
 
     def __str__(self) -> str:
         return self.to_str()
@@ -83,7 +83,7 @@ class UnresolvedObject(ObjectBase):
             return self
 
     def __str__(self) -> str:
-        return color('1;31', 'unresolved ') + self.to_str()
+        return color(bad_color, 'unresolved ') + self.to_str()
 
     def resolved(self) -> bool:
         return False

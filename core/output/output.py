@@ -1,4 +1,4 @@
-from core.util import color
+from core.util import *
 from . import stream
 
 class Output:
@@ -15,13 +15,13 @@ class Output:
     # Used when parsing WAYLAND_DEBUG lines and we come across output we can't parse
     def unprocessed(self, *msg) -> None:
         if self.show_unprocessed:
-            self.show(color('37', ' ' * 6 + ' |  ' + ' '.join(map(lambda m: str(m), msg))))
+            self.show(color(symbol_color, ' ' * 6 + ' |  ' + ' '.join(map(lambda m: str(m), msg))))
 
     def warn(self, *msg) -> None:
-        self.err.write(color('1;33', 'Warning: ') + ' '.join(map(lambda m: str(m), msg)))
+        self.err.write(color(alert_color, 'Warning: ') + ' '.join(map(lambda m: str(m), msg)))
 
     def error(self, *msg) -> None:
-        self.err.write(color('1;31', 'Error: ') + ' '.join(map(lambda m: str(m), msg)))
+        self.err.write(color(bad_color, 'Error: ') + ' '.join(map(lambda m: str(m), msg)))
 
 class Null(Output):
     '''Null output that does nothging'''

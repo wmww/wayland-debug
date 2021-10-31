@@ -9,8 +9,6 @@ if TYPE_CHECKING:
     from . import Message, ObjectBase
 
 class Arg:
-    error_color = '1;31'
-
     class Base:
         def __init__(self) -> None:
             self.name: Optional[str] = None
@@ -24,7 +22,7 @@ class Arg:
 
         def __str__(self) -> str:
             if self.name is not None:
-                return color('37', self.name + '=') + self.value_to_str()
+                return color(symbol_color, self.name + '=') + self.value_to_str()
             else:
                 return self.value_to_str()
 
@@ -44,23 +42,26 @@ class Arg:
                     self.labels = labels
         def value_to_str(self) -> str:
             if hasattr(self, 'labels'):
-                return color('1;34', str(self.value)) + color('34', ':') + color('34', '&').join([color('1;34', i) for i in self.labels])
+                return (color(int_color, str(self.value)) +
+                        color(int_symbol_color, ':') +
+                        color(int_symbol_color, '&').join([color(int_color, i) for i in self.labels])
+                )
             else:
-                return color('1;34', str(self.value))
+                return color(int_color, str(self.value))
 
     class Float(Primitive):
         def __init__(self, value: float) -> None:
             super().__init__()
             self.value = value
         def value_to_str(self) -> str:
-            return color('1;35', str(self.value))
+            return color(float_color, str(self.value))
 
     class String(Primitive):
         def __init__(self, value: str) -> None:
             super().__init__()
             self.value = value
         def value_to_str(self) -> str:
-            return color('1;33', repr(self.value))
+            return color(string_color, repr(self.value))
 
     class Null(Base):
         def __init__(self, type_: Optional[str] = None) -> None:
@@ -72,7 +73,7 @@ class Arg:
                 self.type = protocol.look_up_interface(message.obj.type, message.name, index)
 
         def value_to_str(self) -> str:
-            return color('1;37', 'null ' + (self.type if self.type else '??'))
+            return color(null_color, 'null ' + (self.type if self.type else '??'))
 
     class Object(Base):
         def __init__(self, obj: 'ObjectBase', is_new: bool) -> None:
@@ -98,14 +99,14 @@ class Arg:
                 self.obj = self.obj.resolve(db)
 
         def value_to_str(self) -> str:
-            return (color('1;32', 'new ') if self.is_new else '') + str(self.obj)
+            return (color(good_color, 'new ') if self.is_new else '') + str(self.obj)
 
     class Fd(Base):
         def __init__(self, value: int) -> None:
             super().__init__()
             self.value = value
         def value_to_str(self) -> str:
-            return color('36', 'fd ' + str(self.value))
+            return color(fd_color, 'fd ' + str(self.value))
 
     class Array(Base):
         def __init__(self, values: Optional[List['Arg.Base']] = None) -> None:
@@ -120,9 +121,12 @@ class Arg:
                         del v.name # hack to stop names appearing in every array element
         def value_to_str(self) -> str:
             if self.values is not None:
-                return color('1;37', '[') + color('1;37', ', ').join([str(v) for v in self.values]) + color('1;37', ']')
+                return (color(array_color, '[') +
+                        color(array_color, ', ').join([str(v) for v in self.values]) +
+                        color(array_color, ']')
+                )
             else:
-                return color('1;37', '[...]')
+                return color(array_color, '[...]')
 
     class Unknown(Base):
         def __init__(self, string: Optional[str] = None) -> None:
@@ -130,7 +134,7 @@ class Arg:
             self.string = string
         def value_to_str(self) -> str:
             if self.string is None:
-                return color(Arg.error_color, '?')
+                return color(bad_color, '?')
             else:
-                return color(Arg.error_color, 'Unknown: ' + repr(self.string))
+                return color(bad_color, 'Unknown: ' + repr(self.string))
 
