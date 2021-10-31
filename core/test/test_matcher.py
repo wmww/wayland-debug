@@ -135,8 +135,56 @@ class TestParsedMessageMatcher(TestCase):
         self.assertFalse(m.matches(MockMessage(obj=MockObject(type='wl_pointer'), name='frame')))
         self.assertFalse(m.matches(MockMessage(obj=MockObject(type='wl_touch'), name='motion')))
 
+    def test_multiple_object_types(self):
+        m = parse('[wl_pointer, wl_touch]')
+        self.assertTrue(m.matches(MockMessage(obj=MockObject(type='wl_pointer'))))
+        self.assertTrue(m.matches(MockMessage(obj=MockObject(type='wl_touch'))))
+        self.assertFalse(m.matches(MockMessage(obj=MockObject(type='wl_keyboard'))))
+
+    def test_object_type_and_id_with_message(self):
+        m = parse('[wl_pointer, 12].motion')
+        self.assertTrue(m.matches(MockMessage(obj=MockObject(type='wl_pointer', id=6), name='motion')))
+        self.assertTrue(m.matches(MockMessage(obj=MockObject(type='wl_touch', id=12), name='motion')))
+        self.assertFalse(m.matches(MockMessage(obj=MockObject(type='wl_touch', id=6), name='motion')))
+        self.assertFalse(m.matches(MockMessage(obj=MockObject(type='wl_pointer', id=6), name='frame')))
+        self.assertFalse(m.matches(MockMessage(obj=MockObject(type='wl_touch', id=12), name='frame')))
+
+    def test_object_wildcard_not_type_or_message_name(self):
+        m = parse('xdg_* ! xdg_popup, .get_popup')
+        self.assertTrue(m.matches(MockMessage(obj=MockObject(type='xdg_surface'), name='commit')))
+        self.assertFalse(m.matches(MockMessage(obj=MockObject(type='xdg_surface'), name='get_popup')))
+        self.assertFalse(m.matches(MockMessage(obj=MockObject(type='xdg_popup'), name='commit')))
+        self.assertFalse(m.matches(MockMessage(obj=MockObject(type='wl_surface'), name='commit')))
+
+    def test_object_id_with_multiple_messages(self):
+        m = parse('55#0.[motion, axis]')
+        self.assertTrue(m.matches(MockMessage(obj=MockObject(id=55, generation=0), name='motion')))
+        self.assertTrue(m.matches(MockMessage(obj=MockObject(id=55, generation=0), name='axis')))
+        self.assertFalse(m.matches(MockMessage(obj=MockObject(id=55, generation=0), name='frame')))
+        self.assertFalse(m.matches(MockMessage(obj=MockObject(id=55, generation=9), name='motion')))
+        self.assertFalse(m.matches(MockMessage(obj=MockObject(id=54, generation=0), name='axis')))
+
+    def test_object_name_but_not_ids_with_messages(self):
+        m = parse('[wl_pointer ! 55, 62].motion')
+        self.assertTrue(m.matches(MockMessage(obj=MockObject(type='wl_pointer', id=12), name='motion')))
+        self.assertFalse(m.matches(MockMessage(obj=MockObject(type='wl_pointer', id=12), name='axis')))
+        self.assertFalse(m.matches(MockMessage(obj=MockObject(type='wl_pointer', id=55), name='motion')))
+        self.assertFalse(m.matches(MockMessage(obj=MockObject(type='wl_pointer', id=62), name='motion')))
+        self.assertFalse(m.matches(MockMessage(obj=MockObject(type='wl_touch', id=12), name='motion')))
+
     def test_delete_id_can_be_matched(self):
-        assert False, 'TODO'
+        m = parse('wl_surface.destroyed')
+        self.assertTrue(m.matches(MockMessage(
+            obj=MockObject(type='wl_display', id=1),
+            name='delete_id',
+            destroyed_obj=MockObject(type='wl_surface'))))
+        self.assertFalse(m.matches(MockMessage(
+            obj=MockObject(type='wl_display', id=1),
+            name='delete_id',
+            destroyed_obj=MockObject(type='wl_touch'))))
+        self.assertFalse(m.matches(MockMessage(
+            obj=MockObject(type='wl_display', id=1),
+            name='delete_id')))
 
 class TestJoinMatchers(TestCase):
     def test_join_lists_with_negative(self):
@@ -156,3 +204,15 @@ class TestJoinMatchers(TestCase):
         b = MatcherList([AlwaysMatcher(True)], [EqMatcher(2)])
         c = join(a, b).simplify()
         self.assertEqual(no_color(str(c)), '[5 ! 2]')
+
+    def test_join_with_bang_results_in_always_false(self):
+        a = MatcherList([EqMatcher(5)], [])
+        b = parse('!')
+        c = join(a, b).simplify()
+        self.assertEqual(no_color(str(c)), '!')
+
+    def test_join_with_star_results_in_always_false(self):
+        a = MatcherList([EqMatcher(5)], [])
+        b = parse('*')
+        c = join(a, b).simplify()
+        self.assertEqual(no_color(str(c)), '*')

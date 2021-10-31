@@ -73,6 +73,8 @@ class MockMessage(Message):
         obj: ObjectBase = MockObject(),
         sent: bool = False,
         name: str = 'mock_message',
-        args: Tuple[Arg.Base, ...] = ()
+        args: Tuple[Arg.Base, ...] = (),
+        destroyed_obj: Optional[ObjectBase] = None
     ) -> None:
         super().__init__(timestamp, obj, sent, name, args)
+        self.destroyed_obj = destroyed_obj
