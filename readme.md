@@ -30,62 +30,27 @@ WAYLAND_DEBUG=1 program 2>path/to/file.log
 
 ## Options
 (for a complete list, run `wayland-debug -h`)
-```
--h, --help            show this help message and exit
-
---matcher-help        show how to write matchers and exit
-
 -l ..., --load ...    load Wayland events from a file instead of stdin
-
 -f ..., --filter ...  only show these objects/messages (see --matcher-help for syntax)
-
 -b ..., --break ...   stop on these objects/messages (see --matcher-help for syntax)
+-g, --gdb             run inside gdb, all subsequent arguments are sent to gdb, when inside gdb start commands with 'wl'
 
--g, --gdb             run as a GDB extension, all subsequent arguments are sent to gdb
-```
 
 ## Commands
 When execution is paused (ie you've hit a breakpoint in GDB), you can issue a number of commands. If you're in GDB, wayland debug commands must be prefixed with 'wl'. When loading from a file, the wl can be dropped.
-```
-$ help COMMAND               Show this help message, or get help for a specific command
 
-$ show MATCHER [~COUNT]      Show messages matching given matcher (or show all messages, if no matcher provided)
-                             Append "~ COUNT" to show at most the last COUNT messages that match
-                             See help matcher for matcher syntax
+See [matchers.md](matchers.md) for matcher syntax.
 
-$ filter MATCHER             Show the current output filter matcher, or add a new one
-                             See help matcher for matcher syntax
-
-$ breakpoint MATCHER         Show the current breakpoint matcher, or add a new one
-                             Use an inverse matcher (^) to disable existing breakpoints
-                             See help matcher for matcher syntax
-
-$ matcher MATCHER            Parse a matcher, and show it unsimplified
-
-$ connection CONNECTION      Show Wayland connections, or switch to another connection
-
-$ resume                     Resume processing events
-                             In GDB you can also use the continue gdb command
-
-$ quit                       Quit the program
-```
-
-## Matchers
-Matchers are used through out the program to show and hide messages. A matcher looks similar to how a Wayland message is displayed by this program and libwayland's `WAYLAND_DEBUG=1` output. Matchers can drop components of a message to leave them unspecified, and use wildcards.
-
-Examples of objects:
-
-| Matcher | Description |
+| Command | Description |
 | --- | --- |
-| `wl_surface`   | Matches any message on a `wl_surface` |
-| `xdg_*`        | Matches any message on an XDG type (using a wildcard) |
-| `5`            | Matches any message on objects with ID `5` |
-| `4#12`         | Matches any message on the `12`th object with ID `4` |
-| `.commit`      | Matches any `commit` message |
-| `wl_surface.commit`   | Matches `commit` messages on `wl_surface`s |
-| `.[motion, button]`   | Matches both `motion` and `button` messages |
-
-TODO: document ! logic
+| `$ help [COMMAND]` | Show this help message, or get help for a specific command |
+| `$ list [CONN:] [MATCHER] [~ COUNT]` | List messages matching given matcher (or list all messages, if no matcher provided). Prepend "CONN:" to show messages from a different connection than the one currently active. Append "~ COUNT" to show at most the last COUNT messages that match. |
+| `$ filter [MATCHER]` | Show the current output filter matcher, or add a new one. |
+| `$ breakpoint [MATCHER]` | Show the current breakpoint matcher, or add a new one. Use the matcher `!` to disable existing breakpoints. |
+| `$ matcher [MATCHER]` | Just parse a matcher, and show it unsimplified. |
+| `$ connection [CONNECTION]` | Show Wayland connections, or switch to another connection. |
+| `$ resume` | Resume processing events. In GDB you can also use the continue gdb command. |
+| `$ quit` | Quit the program. |
 
 ## More examples
 ```bash

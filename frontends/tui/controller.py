@@ -344,7 +344,7 @@ class Controller(CommandSink,
         for connection in self.connection_list.connections():
             delim = ', '
             if connection == self.current_connection:
-                clr = alert_color
+                clr: Optional[str] = alert_color
                 line = ' => '
             else:
                 clr = symbol_color
