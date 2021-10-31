@@ -39,7 +39,7 @@ class AlwaysMatcher(Matcher[Any]):
         if self.result:
             return color(good_color, '*')
         else:
-            return color(bad_color, '<none>')
+            return color(bad_color, '!')
 
 class WildcardMatcher(Matcher[str]):
     def __init__(self, pattern: str) -> None:
@@ -134,26 +134,54 @@ class MatcherList(Generic[T], Matcher[T]):
                 ', '.join(str(i) for i in self.negative)
             ) + ']'
 
+class ObjectIdMatcher(Matcher[wl.ObjectBase]):
+    def __init__(self, pair_matcher: Matcher[Tuple[int, int]]) -> None:
+        self.pair_matcher = pair_matcher
+
+    def matches(self, obj: wl.ObjectBase) -> bool:
+        generation = obj.generation if obj.generation is not None else 0
+        return self.pair_matcher.matches((obj.id, generation))
+
+    def simplify(self) -> Matcher[wl.ObjectBase]:
+        self.pair_matcher = self.pair_matcher.simplify()
+        if isinstance(self.pair_matcher, AlwaysMatcher):
+            return self.pair_matcher
+        else:
+            return self
+
+    def __str__(self) -> str:
+        return str(self.pair_matcher)
+
+class ObjectNameMatcher(Matcher[wl.ObjectBase]):
+    def __init__(self, str_matcher: Matcher[str]) -> None:
+        self.str_matcher = str_matcher
+
+    def matches(self, obj: wl.ObjectBase) -> bool:
+        return obj.type is not None and self.str_matcher.matches(obj.type)
+
+    def simplify(self) -> Matcher[wl.ObjectBase]:
+        self.str_matcher = self.str_matcher.simplify()
+        if isinstance(self.str_matcher, AlwaysMatcher):
+            return self.str_matcher
+        else:
+            return self
+
+    def __str__(self) -> str:
+        return str(self.str_matcher)
+
 class MessagePattern(Matcher[wl.Message]):
     def __init__(
         self,
-        type_matcher: Matcher[str],
-        id_matcher: Matcher[Tuple[int, int]],
+        obj_matcher: Matcher[wl.ObjectBase],
         name_matcher: Matcher[str],
         args_matcher: Matcher[Tuple[wl.Arg.Base, ...]]
     ) -> None:
-        self.type_matcher = type_matcher
-        self.id_matcher = id_matcher
+        self.obj_matcher = obj_matcher
         self.name_matcher = name_matcher
         self.args_matcher = args_matcher
 
     def matches(self, message: wl.Message) -> bool:
-        type_name = message.obj.type
-        if type_name is None or not self.type_matcher.matches(type_name):
-            return False
-        id = message.obj.id
-        generation = message.obj.generation if message.obj.generation is not None else 0
-        if not self.id_matcher.matches((id, generation)):
+        if not self.obj_matcher.matches(message.obj):
             return False
         if not self.name_matcher.matches(message.name):
             return False
@@ -162,18 +190,15 @@ class MessagePattern(Matcher[wl.Message]):
         return True
 
     def simplify(self) -> Matcher[wl.Message]:
-        self.type_matcher = self.type_matcher.simplify()
-        self.id_matcher = self.id_matcher.simplify()
+        self.obj_matcher = self.obj_matcher.simplify()
         self.name_matcher = self.name_matcher.simplify()
         self.args_matcher = self.args_matcher.simplify()
-        if (self.type_matcher.always() is False or
-            self.id_matcher.always() is False or
+        if (self.obj_matcher.always() is False or
             self.name_matcher.always() is False or
             self.args_matcher.always() is False
         ):
             return AlwaysMatcher(False)
-        if (self.type_matcher.always() is True and
-            self.id_matcher.always() is True and
+        if (self.obj_matcher.always() is True and
             self.name_matcher.always() is True and
             self.args_matcher.always() is True
         ):
@@ -182,8 +207,7 @@ class MessagePattern(Matcher[wl.Message]):
 
     def __str__(self) -> str:
         return (
-            str(self.type_matcher) +
-            '@' + str(self.id_matcher) +
+            str(self.obj_matcher) +
             '.' + str(self.name_matcher) +
             '(' + str(self.args_matcher) + ')'
         )
@@ -289,9 +313,6 @@ def _parse_int_matcher(text: str) -> Matcher[int]:
             raise RuntimeError(text + ' is not a valid int')
 
 def _parse_obj_id_matcher(text: str) -> Matcher[Tuple[int, int]]:
-    if text.startswith('[') and text.endswith(']'):
-        text = text[1:-1]
-        return _parse_matcher_list(text, _parse_obj_id_matcher)
     hash_split = _split_pair(text, '#')
     if hash_split is not None:
         return PairMatcher(
@@ -305,6 +326,28 @@ def _parse_obj_id_matcher(text: str) -> Matcher[Tuple[int, int]]:
             '',
             AlwaysMatcher(True)
         )
+
+def _parse_obj_matcher(text: str) -> Matcher[wl.ObjectBase]:
+    if text.startswith('[') and text.endswith(']'):
+        text = text[1:-1]
+        return _parse_matcher_list(text, _parse_obj_matcher)
+    at_split = _split_pair(text, '@')
+    if at_split is not None:
+        obj_name_text, obj_id_text = at_split
+    elif text and ord(text[0]) >= ord('0') and ord(text[0]) <= ord('9'):
+        obj_name_text = ''
+        obj_id_text = text
+    else:
+        obj_name_text = text
+        obj_id_text = ''
+    if obj_name_text and obj_id_text:
+        raise RuntimeError(text + ' specifies both object type and ID, should only have one')
+    if obj_name_text:
+        return ObjectNameMatcher(_parse_text_matcher(obj_name_text))
+    elif obj_id_text:
+        return ObjectIdMatcher(_parse_obj_id_matcher(obj_id_text))
+    else:
+        return AlwaysMatcher(True)
 
 def _parse_message_pattern(text: str) -> MessagePattern:
     type_m: Matcher[str] = AlwaysMatcher(True)
@@ -328,22 +371,10 @@ def _parse_message_pattern(text: str) -> MessagePattern:
             obj_text = text
             arg_text = ''
         name_text = ''
-    at_split = _split_pair(obj_text, '@')
-    if at_split is not None:
-        obj_name_text, obj_id_text = at_split
-    elif obj_text and ord(obj_text[0]) >= ord('0') and ord(obj_text[0]) <= ord('9'):
-        obj_name_text = ''
-        obj_id_text = obj_text
-    else:
-        obj_name_text = obj_text
-        obj_id_text = ''
     if arg_text:
         raise RuntimeError(text + ' has argument matcher component, this is not yet implemented')
-    if obj_name_text and obj_id_text:
-        raise RuntimeError(text + ' specifies both object type and ID, should only have one')
     return MessagePattern(
-        _parse_text_matcher(obj_name_text),
-        _parse_obj_id_matcher(obj_id_text),
+        _parse_obj_matcher(obj_text),
         _parse_text_matcher(name_text),
         AlwaysMatcher(True)
     )
