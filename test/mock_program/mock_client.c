@@ -13,6 +13,7 @@ static struct wl_output* output;
 static struct wl_surface* surface;
 static struct wl_seat* seat;
 static struct wl_pointer* pointer;
+static struct wl_keyboard* keyboard;
 static struct wl_data_device_manager* data_device_manager;
 static struct wl_data_device* data_device;
 
@@ -93,15 +94,24 @@ static void registry_global(
     else if (strcmp(wl_seat_interface.name, name) == 0)
     {
         seat = wl_registry_bind(registry, id, &wl_seat_interface, version);
-        if (mode == MODE_POINTER_MOVE)
-        {
-            pointer = wl_seat_get_pointer(seat);
-            wl_pointer_add_listener(pointer, &pointer_listener, NULL);
-        }
     }
     else if (strcmp(wl_data_device_manager_interface.name, name) == 0)
     {
         data_device_manager = wl_registry_bind(registry, id, &wl_data_device_manager_interface, version);
+    }
+
+    if (mode == MODE_POINTER_MOVE && seat && !pointer)
+    {
+        pointer = wl_seat_get_pointer(seat);
+        wl_pointer_add_listener(pointer, &pointer_listener, NULL);
+        wl_display_roundtrip(display);
+    }
+
+    if (mode == MODE_KEYBOARD_ENTER && seat && compositor && output && !keyboard)
+    {
+        surface = wl_compositor_create_surface(compositor);
+        keyboard = wl_seat_get_keyboard(seat);
+        wl_display_roundtrip(display);
     }
 
     if (mode == MODE_SERVER_CREATED_OBJ && data_device_manager && seat && !data_device)
