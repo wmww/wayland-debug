@@ -78,7 +78,7 @@ class MockProgramInGDBTests(TestCase):
 
     def test_extracts_enum_values(self):
         result = self.run_server_in_gdb('simple-client')
-        self.assertIn('capabilities=5:pointer&touch', result)
+        self.assertIn('capabilities=3:pointer&keyboard', result)
 
     def test_extracts_fixed_point_numbers_with_low_accuracy(self):
         result = self.run_server_in_gdb('pointer-move')
@@ -125,3 +125,8 @@ class MockProgramInGDBTests(TestCase):
         result = self.run_server_in_gdb('dispatcher')
         self.assertIn('attach', result)
         self.assertIn('enter', result)
+
+    def test_handles_array_of_ints_argument(self):
+        result = self.run_server_in_gdb('keyboard-enter')
+        # The keys the server provides to wl_keybaord.enter()
+        self.assertIn('keys=[69, 420]', result)

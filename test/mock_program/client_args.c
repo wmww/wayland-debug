@@ -26,6 +26,10 @@ struct {
         .mode = MODE_SERVER_CREATED_OBJ,
         .arg = "server-created-obj",
     },
+    {
+        .mode = MODE_KEYBOARD_ENTER,
+        .arg = "keyboard-enter",
+    },
 };
 
 void parse_args(int argc, const char** argv)

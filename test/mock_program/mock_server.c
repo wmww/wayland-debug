@@ -14,6 +14,7 @@ static struct wl_resource* compositor = NULL;
 static struct wl_resource* seat = NULL;
 static struct wl_resource* data_device_manager = NULL;
 static struct wl_resource* output = NULL;
+static struct wl_resource* surface = NULL;
 
 static const double test_fixed_sequence[] = {0.0, 1.0, 0.5, -1.0, 280.0, -12.5, 16.3, 425.87, -100000.0, 0.001};
 
@@ -50,7 +51,7 @@ static void compositor_create_surface(struct wl_client* client, struct wl_resour
         printf("Client should not have created surface without binding to output");
         exit(1);
     }
-    struct wl_resource* surface = wl_resource_create(
+    surface = wl_resource_create(
         client,
         &wl_surface_interface,
         wl_resource_get_version(resource),
@@ -90,7 +91,22 @@ void seat_get_pointer(struct wl_client *client, struct wl_resource *resource, ui
 
 void seat_get_keyboard(struct wl_client *client, struct wl_resource *resource, uint32_t id)
 {
-    FATAL_NOT_IMPL;
+    struct wl_resource* keyboard = wl_resource_create(
+        client,
+        &wl_keyboard_interface,
+        wl_resource_get_version(resource),
+        id);
+    if (surface)
+    {
+        struct wl_array keys;
+        wl_array_init(&keys);
+        uint32_t* data = wl_array_add(&keys, 2 * sizeof(uint32_t));
+        data[0] = 69;
+        data[1] = 420;
+        wl_keyboard_send_enter(keyboard, wl_display_next_serial(display), surface, &keys);
+        wl_array_release(&keys);
+
+    }
 }
 
 void seat_get_touch(struct wl_client *client, struct wl_resource *resource, uint32_t id)
@@ -114,7 +130,7 @@ static void seat_bind(struct wl_client* client, void* data, uint32_t version, ui
 {
     seat = wl_resource_create(client, &wl_seat_interface, version, id);
     wl_resource_set_implementation(seat, &seat_interface, NULL, NULL);
-    wl_seat_send_capabilities(seat, WL_SEAT_CAPABILITY_POINTER | WL_SEAT_CAPABILITY_TOUCH);
+    wl_seat_send_capabilities(seat, WL_SEAT_CAPABILITY_POINTER | WL_SEAT_CAPABILITY_KEYBOARD);
 };
 
 void data_device_manager_create_data_source(struct wl_client *client, struct wl_resource *resource, uint32_t id)

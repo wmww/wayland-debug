@@ -9,6 +9,7 @@ enum Mode
     MODE_POINTER_MOVE,
     MODE_DISPATCHER,
     MODE_SERVER_CREATED_OBJ,
+    MODE_KEYBOARD_ENTER,
 };
 
 extern enum Mode mode;

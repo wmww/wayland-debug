@@ -117,8 +117,7 @@ class Arg:
             if self.values is not None:
                 for v in self.values:
                     v.resolve(db, message, index)
-                    if hasattr(v, 'name'):
-                        del v.name # hack to stop names appearing in every array element
+                    v.name = None # hack to stop names appearing in every array element
         def value_to_str(self) -> str:
             if self.values is not None:
                 return (color(array_color, '[') +
