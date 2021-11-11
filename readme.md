@@ -44,7 +44,7 @@ See [matchers.md](matchers.md) for matcher syntax.
 | Command | Description |
 | --- | --- |
 | `$ help [COMMAND]` | Show this help message, or get help for a specific command |
-| `$ list [CONN:] [MATCHER] [~ COUNT]` | List messages matching given matcher (or list all messages, if no matcher provided). Prepend "CONN:" to show messages from a different connection than the one currently active. Append "~ COUNT" to show at most the last COUNT messages that match. |
+| `$ list [CONN:] [MATCHER] [~ COUNT]` | List messages matching given matcher (or use the current filter matcher if none provided). Prepend "CONN:" to show messages from a different connection than the one currently active. Append "~ COUNT" to show at most the last COUNT messages that match. |
 | `$ filter [MATCHER]` | Show the current output filter matcher, or add a new one. |
 | `$ breakpoint [MATCHER]` | Show the current breakpoint matcher, or add a new one. Use the matcher `!` to disable existing breakpoints. |
 | `$ matcher [MATCHER]` | Just parse a matcher, and show it unsimplified. |

@@ -55,7 +55,7 @@ class Controller(CommandSink,
             Command('help', '[COMMAND]', self.help_command,
                 'Show this help message, or get help for a specific command'),
             Command('list', '[CONN:] [MATCHER] [~ COUNT]', self.list_command,
-                'List messages matching given matcher (or list all messages, if no matcher provided)\n' +
+                'List messages matching given matcher (or use the current filter matcher if none provided)\n' +
                 'Prepend "CONN:" to show messages from a different connection than the one currently active\n' +
                 'Append "~ COUNT" to show at most the last COUNT messages that match\n' +
                 'See ' + command_format('help matcher') + ' for matcher syntax'),
@@ -181,7 +181,7 @@ class Controller(CommandSink,
             self.out.show(
                 '(' +
                 color((good_color if matched > 0 else symbol_color), str(matched)) + ' matched, ' +
-                color((good_color if didnt_match > 0 else symbol_color), str(didnt_match)) + ' didn\'t' +
+                color((bad_color if didnt_match > 0 else symbol_color), str(didnt_match)) + ' didn\'t' +
                 (', ' + color((symbol_color), str(not_searched)) + ' not checked' if not_searched != 0 else '') +
                 ')')
             self.last_shown_timestamp = None
@@ -295,30 +295,27 @@ class Controller(CommandSink,
     def list_command(self, arg: str) -> None:
         cap = None
         connection = self.current_connection
-        if arg:
-            args = arg.split('~')
-            if len(args) == 2:
-                try:
-                    cap = int(args[1])
-                except ValueError:
-                    self.out.error('Expected number after \'~\', got \'' + args[1] + '\'')
-                    return
-            arg = args[0]
-            args = arg.split(':')
-            if len(args) == 2:
-                c = self._get_connection(args[0])
-                if c == None:
-                    self.out.error('"' + args[0] + '" does not name a connection')
-                    return
-                connection = c
-                arg = args[1]
-            else:
-                arg = args[0]
-            m = self.parse_and_join(arg, None)
-            if not m:
+        tilde_split = arg.split('~')
+        if len(tilde_split) == 2:
+            try:
+                cap = int(tilde_split[1])
+            except ValueError:
+                self.out.error('Expected number after \'~\', got \'' + tilde_split[1] + '\'')
                 return
+        arg = tilde_split[0]
+        m = self.display_matcher
+        colon_split = arg.split(':')
+        if len(colon_split) == 2:
+            c = self._get_connection(colon_split[0])
+            if c == None:
+                self.out.error('"' + colon_split[0] + '" does not name a connection')
+                return
+            connection = c
+            arg = colon_split[1]
         else:
-            m = matcher.always
+            arg = colon_split[0]
+        if arg:
+            m = self.parse_and_join(arg, None)
         if connection is not None:
             self.show_messages(connection, m, cap)
         else:
