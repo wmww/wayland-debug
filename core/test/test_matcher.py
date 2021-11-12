@@ -164,6 +164,11 @@ class TestParsedMessageMatcher(TestCase):
         self.assertFalse(m.matches(MockMessage(obj=MockObject(type='xdg_popup'), name='commit')))
         self.assertFalse(m.matches(MockMessage(obj=MockObject(type='wl_surface'), name='commit')))
 
+    def test_not_message(self):
+        m = parse('!.get_popup')
+        self.assertTrue(m.matches(MockMessage(obj=MockObject(type='xdg_surface'), name='commit')))
+        self.assertFalse(m.matches(MockMessage(obj=MockObject(type='xdg_surface'), name='get_popup')))
+
     def test_object_id_with_multiple_messages(self):
         m = parse('55#0.[motion, axis]')
         self.assertTrue(m.matches(MockMessage(obj=MockObject(id=55, generation=0), name='motion')))
@@ -224,3 +229,9 @@ class TestJoinMatchers(TestCase):
         b = parse('*')
         c = join(a, b).simplify()
         self.assertEqual(no_color(str(c)), '*')
+
+    def test_join_positive_matcher_with_negative(self):
+        a = parse('wl_pointer')
+        b = parse('! .motion')
+        c = join(a, b).simplify()
+        self.assertEqual(no_color(str(c)), '[wl_pointer.*(*) ! *.motion(*)]')
