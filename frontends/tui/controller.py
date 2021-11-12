@@ -326,6 +326,10 @@ class Controller(CommandSink,
         for connection in self.connection_list.connections():
             if name == connection.name().lower():
                 return connection
+        for connection in self.connection_list.connections():
+            app_id = connection.app_id()
+            if app_id is not None and name == app_id.lower():
+                return connection
         return None
 
     def connection_command(self, arg: str) -> None:
