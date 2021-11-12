@@ -403,7 +403,9 @@ def _parse_obj_matcher(text: str) -> Matcher[wl.ObjectBase]:
     else:
         return AlwaysMatcher(True)
 
-def _parse_message_pattern(text: str) -> MessagePattern:
+def _parse_message_pattern(text: str) -> Matcher[wl.Message]:
+    if not text:
+        return AlwaysMatcher(True)
     type_m: Matcher[str] = AlwaysMatcher(True)
     id_m: Matcher[Tuple[int, int]] = AlwaysMatcher(True)
     name_m: Matcher[str] = AlwaysMatcher(True)
