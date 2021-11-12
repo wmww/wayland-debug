@@ -37,6 +37,9 @@ class Matcher(Generic[T]):
     def __str__(self) -> str:
         raise NotImplementedError()
 
+    def __repr__(self) -> str:
+        raise NotImplementedError()
+
 MessageMatcher = Matcher[wl.Message]
 
 class AlwaysMatcher(Matcher[Any]):
@@ -55,6 +58,12 @@ class AlwaysMatcher(Matcher[Any]):
         else:
             return color(bad_color, '!')
 
+    def __repr__(self) -> str:
+        if self.result:
+            return '<always>'
+        else:
+            return '<never>'
+
 class WildcardMatcher(Matcher[str]):
     def __init__(self, pattern: str) -> None:
         self.pattern = pattern
@@ -67,6 +76,9 @@ class WildcardMatcher(Matcher[str]):
     def __str__(self) -> str:
         return self.pattern
 
+    def __repr__(self) -> str:
+        return 'Wildcard(' + self.pattern + ')'
+
 class EqMatcher(Matcher[T]):
     def __init__(self, expected: T) -> None:
         self.expected = expected
@@ -76,6 +88,9 @@ class EqMatcher(Matcher[T]):
 
     def __str__(self) -> str:
         return str(self.expected)
+
+    def __repr__(self) -> str:
+        return 'Eq(' + repr(self.expected) + ')'
 
 class PairMatcher(Matcher[Tuple[T, U]]):
     def __init__(self, a: Matcher[T], delimiter: str, b: Matcher[U]) -> None:
@@ -96,6 +111,9 @@ class PairMatcher(Matcher[Tuple[T, U]]):
 
     def __str__(self) -> str:
         return str(self.a) + self.delimiter + str(self.b)
+
+    def __repr__(self) -> str:
+        return 'Pair(' + repr(self.a) + ', ' + self.delimiter.strip() + ', ' + repr(self.b) + ')'
 
 class MatcherList(Generic[T], Matcher[T]):
     def __init__(self, positive: List[Matcher], negative: List[Matcher]) -> None:
@@ -148,6 +166,9 @@ class MatcherList(Generic[T], Matcher[T]):
                 ', '.join(str(i) for i in self.negative)
             ) + ']'
 
+    def __repr__(self) -> str:
+        return 'List(positive=' + repr(self.positive) + ', negative=' + repr(self.negative) + ')'
+
 class ObjectIdMatcher(Matcher[wl.ObjectBase]):
     def __init__(self, pair_matcher: Matcher[Tuple[int, int]]) -> None:
         self.pair_matcher = pair_matcher
@@ -166,6 +187,9 @@ class ObjectIdMatcher(Matcher[wl.ObjectBase]):
     def __str__(self) -> str:
         return str(self.pair_matcher)
 
+    def __repr__(self) -> str:
+        return 'Object(' + repr(self.pair_matcher) + ')'
+
 class ObjectNameMatcher(Matcher[wl.ObjectBase]):
     def __init__(self, str_matcher: Matcher[str]) -> None:
         self.str_matcher = str_matcher
@@ -182,6 +206,9 @@ class ObjectNameMatcher(Matcher[wl.ObjectBase]):
 
     def __str__(self) -> str:
         return str(self.str_matcher)
+
+    def __repr__(self) -> str:
+        return 'ObjectName(' + repr(self.str_matcher) + ')'
 
 class MessagePattern(Matcher[wl.Message]):
     def __init__(
@@ -230,6 +257,13 @@ class MessagePattern(Matcher[wl.Message]):
             str(self.obj_matcher) +
             '.' + str(self.name_matcher) +
             '(' + str(self.args_matcher) + ')'
+        )
+
+    def __repr__(self) -> str:
+        return ('Message(' +
+            repr(self.obj_matcher) + ', ' +
+            repr(self.name_matcher) + ', ' +
+            repr(self.args_matcher) + ')'
         )
 
 always: Matcher[Any] = AlwaysMatcher(True)
