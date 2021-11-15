@@ -27,7 +27,7 @@ class ObjectBase:
             return color(bad_color, '???')
 
     def id_str(self) -> str:
-        if self.generation == None:
+        if self.generation is None:
             return color(object_id_color, '@' + str(self.id)) + color(bad_color, '?')
         else:
             return color(
