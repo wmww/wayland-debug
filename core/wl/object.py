@@ -3,6 +3,7 @@ from typing import Optional
 
 from interfaces import ObjectDB
 from core.util import *
+from core.letter_id_generator import number_to_letter_id
 
 logger = logging.getLogger(__name__)
 
@@ -26,12 +27,13 @@ class ObjectBase:
             return color(bad_color, '???')
 
     def id_str(self) -> str:
-        ret = color(object_id_symbol_color, '@') + color(object_id_color, str(self.id))
-        if self.generation == None:
-            ret += color(object_id_symbol_color, '#') + color(bad_color, '?')
+        if self.generation is None:
+            return color(object_id_color, '@' + str(self.id)) + color(bad_color, '?')
         else:
-            ret += color(object_id_symbol_color, '#') + color(object_id_color, str(self.generation))
-        return ret
+            return color(
+                object_id_color,
+                '@' + str(self.id) + number_to_letter_id(self.generation, False)
+            )
 
     def to_str(self) -> str:
         return color(object_type_color if self.type else bad_color, self.type_str()) + self.id_str()

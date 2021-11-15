@@ -79,7 +79,7 @@ class TestParsedMessageMatcher(TestCase):
         self.assertFalse(m.matches(MockMessage(obj=MockObject(type='7'))))
 
     def test_obj_id_and_generation(self):
-        m = parse('5#3')
+        m = parse('5d')
         self.assertTrue(m.matches(MockMessage(obj=MockObject(id=5, generation=3))))
         self.assertFalse(m.matches(MockMessage(obj=MockObject(id=5, generation=None))))
         self.assertFalse(m.matches(MockMessage(obj=MockObject(id=5, generation=12))))
@@ -87,7 +87,7 @@ class TestParsedMessageMatcher(TestCase):
         self.assertFalse(m.matches(MockMessage(obj=MockObject(type='5'))))
 
     def test_obj_id_and_generation_with_at(self):
-        m = parse('@5#3')
+        m = parse('@5d')
         self.assertTrue(m.matches(MockMessage(obj=MockObject(id=5, generation=3))))
         self.assertFalse(m.matches(MockMessage(obj=MockObject(id=5, generation=None))))
         self.assertFalse(m.matches(MockMessage(obj=MockObject(id=5, generation=12))))
@@ -117,7 +117,7 @@ class TestParsedMessageMatcher(TestCase):
             parse('wl_pointer@5')
 
     def test_obj_id_generation_and_message_name(self):
-        m = parse('@5#3.motion')
+        m = parse('@5d.motion')
         self.assertTrue(m.matches(MockMessage(obj=MockObject(id=5, generation=3), name='motion')))
         self.assertFalse(m.matches(MockMessage(obj=MockObject(id=12, generation=3), name='motion')))
         self.assertFalse(m.matches(MockMessage(obj=MockObject(id=5, generation=12), name='motion')))
@@ -170,7 +170,7 @@ class TestParsedMessageMatcher(TestCase):
         self.assertFalse(m.matches(MockMessage(obj=MockObject(type='xdg_surface'), name='get_popup')))
 
     def test_object_id_with_multiple_messages(self):
-        m = parse('55#0.[motion, axis]')
+        m = parse('55a.[motion, axis]')
         self.assertTrue(m.matches(MockMessage(obj=MockObject(id=55, generation=0), name='motion')))
         self.assertTrue(m.matches(MockMessage(obj=MockObject(id=55, generation=0), name='axis')))
         self.assertFalse(m.matches(MockMessage(obj=MockObject(id=55, generation=0), name='frame')))

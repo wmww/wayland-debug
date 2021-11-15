@@ -18,7 +18,6 @@ color_output = False
 timestamp_color = '2;37'
 object_type_color = '1;96'
 object_id_color = '36'
-object_id_symbol_color = '36'
 message_color = '1;94'
 symbol_color = None
 

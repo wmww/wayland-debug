@@ -1,7 +1,7 @@
 from typing import Optional, List, Dict, Tuple
 from interfaces import ConnectionIDSink, ConnectionList, Connection
 from .connection_impl import ConnectionImpl
-from .name_generator import NameGenerator
+from .letter_id_generator import LetterIdGenerator
 from . import wl
 from .util import new_disseminator_of_type
 
@@ -11,7 +11,7 @@ class ConnectionManager(ConnectionIDSink, ConnectionList):
     def __init__(self) -> None:
         self.connection_list: List[ConnectionImpl] = [] # List of all connections (open and closed) in the order they were created
         self.open_connections: Dict[str, ConnectionImpl] = {} # Maps open connection ids to connection objects
-        self.connection_name_generator = NameGenerator()
+        self.connection_name_generator = LetterIdGenerator()
         self.listener = new_disseminator_of_type(ConnectionList.Listener)
 
     def open_connection(self, time: float, connection_id: str, is_server: Optional[bool]) -> Connection:
