@@ -3,6 +3,7 @@ from typing import List, Set, Tuple, Generic, TypeVar, Any, Callable, cast
 
 from core.util import *
 from core.output import Output
+from core.letter_id_generator import letter_id_to_number
 from core import wl
 
 T = TypeVar('T')
@@ -80,17 +81,21 @@ class WildcardMatcher(Matcher[str]):
         return 'Wildcard(' + self.pattern + ')'
 
 class EqMatcher(Matcher[T]):
-    def __init__(self, expected: T) -> None:
+    def __init__(self, expected: T, text: Optional[str] = None) -> None:
         self.expected = expected
+        if text is None:
+            self.text = str(self.expected)
+        else:
+            self.text = text
 
     def matches(self, value: T) -> bool:
         return self.expected == value
 
     def __str__(self) -> str:
-        return str(self.expected)
+        return self.text
 
     def __repr__(self) -> str:
-        return 'Eq(' + repr(self.expected) + ')'
+        return 'Eq(' + self.text + ', ' + repr(self.expected) + ')'
 
 class PairMatcher(Matcher[Tuple[T, U]]):
     def __init__(self, a: Matcher[T], delimiter: str, b: Matcher[U]) -> None:
@@ -366,13 +371,25 @@ def _parse_int_matcher(text: str) -> Matcher[int]:
         except ValueError:
             raise RuntimeError(text + ' is not a valid int')
 
+def _parse_generation_matcher(text: str) -> Matcher[int]:
+    return EqMatcher(letter_id_to_number(text), text)
+
+def _is_letter(a: str) -> bool:
+    val = ord(a)
+    return (
+        (val >= ord('a') and val <= ord('z')) or
+        (val >= ord('A') and val <= ord('Z'))
+    )
+
 def _parse_obj_id_matcher(text: str) -> Matcher[Tuple[int, int]]:
-    hash_split = _split_pair(text, '#')
-    if hash_split is not None:
+    i = len(text)
+    while i > 0 and _is_letter(text[i - 1]):
+        i -= 1
+    if i < len(text):
         return PairMatcher(
-            _parse_int_matcher(hash_split[0]),
-            '#',
-            _parse_int_matcher(hash_split[1]),
+            _parse_int_matcher(text[:i]),
+            '',
+            _parse_generation_matcher(text[i:]),
         )
     else:
         return PairMatcher(
