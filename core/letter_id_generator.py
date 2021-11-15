@@ -10,7 +10,7 @@ def number_to_letter_id(value: int, caps: bool) -> str:
         value //= 26
     return result
 
-class NameGenerator:
+class LetterIdGenerator:
     def __init__(self) -> None:
         self.index = 0
 

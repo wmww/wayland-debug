@@ -1,15 +1,15 @@
 import unittest
-from core import NameGenerator
+from core import LetterIdGenerator
 
-class TestNameGenerator(unittest.TestCase):
+class TestLetterIdGenerator(unittest.TestCase):
     def test_name_generator(self):
-        gen = NameGenerator()
+        gen = LetterIdGenerator()
         self.assertEqual(gen.next(), 'A')
         self.assertEqual(gen.next(), 'B')
         self.assertEqual(gen.next(), 'C')
 
     def test_name_generator_big(self):
-        gen = NameGenerator()
+        gen = LetterIdGenerator()
         self.assertEqual(gen.next(), 'A')
         for i in range(22):
             gen.next()

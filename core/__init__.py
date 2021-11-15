@@ -4,7 +4,7 @@ such as representations of Wayland types and connections
 '''
 from .connection_manager import ConnectionManager
 from .connection_impl import ConnectionImpl
-from .name_generator import NameGenerator
+from .letter_id_generator import LetterIdGenerator
 from .persistent_ui_state import PersistentUIState
 from . import wl
 from . import output
