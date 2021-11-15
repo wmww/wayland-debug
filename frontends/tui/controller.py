@@ -263,7 +263,7 @@ class Controller(CommandSink,
                 return parsed.simplify()
         except RuntimeError as e:
             self.out.error('Failed to parse "' + new_unparsed + '":\n    ' + str(e))
-            return old if old is not None else matcher.always
+            return old if old is not None else matcher.never
 
     def filter_command(self, arg: str) -> None:
         if arg:
