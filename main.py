@@ -67,7 +67,8 @@ def main(out_stream: stream.Base, err_stream: stream.Base, argv: List[str], inpu
     parser = argparse.ArgumentParser(description='Debug Wayland protocol messages, see https://github.com/wmww/wayland-debug for additional info')
     parser.add_argument('--matcher-help', action='store_true', help='show how to write matchers and exit')
     parser.add_argument('-v', '--verbose', action='store_true', help='verbose output, mostly used for debugging this program')
-    parser.add_argument('-l', '--load', dest='path', type=str, help='load Wayland events from a file instead of stdin')
+    parser.add_argument('-l', '--load', dest='path', type=str, help='load WAYLAND_DEBUG=1 messages from a file')
+    parser.add_argument('-p', '--pipe', action='store_true', help='receive WAYLAND_DEBUG=1 messages from stdin (note: messages are printed to stderr so you may want to redirect using 2>&1 before piping)')
     parser.add_argument('-s', '--supress', action='store_true', help='supress non-wayland output of the program')
     parser.add_argument('-c', '--color', action='store_true', help='force color output (default for interactive sessions)')
     parser.add_argument('-C', '--no-color', action='store_true', help='disable color output (default for non-interactive sessions)')
@@ -133,21 +134,27 @@ def main(out_stream: stream.Base, err_stream: stream.Base, argv: List[str], inpu
     ui_controller = Controller(output, connection_list, filter_matcher, stop_matcher)
 
     file_path = args.path
+    input_from_pipe = args.pipe
 
     if check_gdb():
         try:
-            if file_path:
-                output.warn('Ignoring load file because we\'re inside GDB')
+            if file_path is not None or input_from_pipe:
+                output.warn('Ignoring load/pipe argument because we\'re inside GDB')
             gdb_plugin.plugin.Plugin(output, connection_list, ui_controller, ui_controller)
         except:
             import traceback
             traceback.print_exc()
-    elif file_path:
+    elif file_path is not None:
+        if input_from_pipe:
+            output.warn('Ignoring piped input because load file is specified')
         file_input_main(file_path, output, connection_list, ui_controller, ui_controller, input_func)
-    else:
+    elif input_from_pipe:
         if args.b:
             output.warn('Ignoring stop matcher when stdin is used for messages')
         piped_input_main(output, connection_list)
+    else:
+        output.warn('No action specified')
+        parser.print_help()
 
 def premain() -> None:
     # If isatty() is false, we might be redirecting to a file (or in another non-interactive context)
