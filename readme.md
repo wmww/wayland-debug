@@ -18,7 +18,7 @@ In the resulting GDB prompt, just enter `run` to run the program
 ### Piping messages from stdin
 This parses libwayland's default debugging output
 ```bash
-WAYLAND_DEBUG=1 program 2>&1 | ./main.py
+WAYLAND_DEBUG=1 program 2>&1 | ./main.py -p
 ```
 
 ### Loading from a file
@@ -30,7 +30,8 @@ WAYLAND_DEBUG=1 program 2>path/to/file.log
 
 ## Options
 (for a complete list, run `wayland-debug -h`)
--l ..., --load ...    load Wayland events from a file instead of stdin
+-l ..., --load ...    load WAYLAND_DEBUG=1 messages from a file
+-p, --pipe            receive WAYLAND_DEBUG=1 messages from stdin
 -f ..., --filter ...  only show these objects/messages (see --matcher-help for syntax)
 -b ..., --break ...   stop on these objects/messages (see --matcher-help for syntax)
 -g, --gdb             run inside gdb, all subsequent arguments are sent to gdb, when inside gdb start commands with 'wl'
@@ -61,7 +62,7 @@ See [matchers.md](matchers.md) for matcher syntax.
 (gdb) run
 
 # Run with piped input only showing pointer, surface.commit and surface.destroy messages
-WAYLAND_DEBUG=1 program 2>&1 1>/dev/null | ./main.py -f 'wl_pointer, wl_surface.[commit, destroy]'
+WAYLAND_DEBUG=1 program 2>&1 1>/dev/null | ./main.py -p -f 'wl_pointer, wl_surface.[commit, destroy]'
 
 # Load a file showing everything but callbacks and frame messages
 ./main.py -l dir/file.log -f '! wl_callback, .frame'
