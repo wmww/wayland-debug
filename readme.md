@@ -30,11 +30,13 @@ WAYLAND_DEBUG=1 program 2>path/to/file.log
 
 ## Options
 (for a complete list, run `wayland-debug -h`)
--l ..., --load ...    load WAYLAND_DEBUG=1 messages from a file
--p, --pipe            receive WAYLAND_DEBUG=1 messages from stdin
--f ..., --filter ...  only show these objects/messages (see --matcher-help for syntax)
--b ..., --break ...   stop on these objects/messages (see --matcher-help for syntax)
--g, --gdb             run inside gdb, all subsequent arguments are sent to gdb, when inside gdb start commands with 'wl'
+| Option                | Description |
+| ---                   | --- |
+| `-l …`, `--load …`    | load WAYLAND_DEBUG=1 messages from a file |
+| `-p`, `--pipe`        | receive WAYLAND_DEBUG=1 messages from stdin |
+| `-g`, `--gdb`         | run inside gdb, all subsequent arguments are sent to gdb, when inside gdb start commands with 'wl' |
+| `-f …`, `--filter …`  | only show these objects/messages (see --matcher-help for syntax) |
+| `-b …`, `--break …`   | stop on these objects/messages (see --matcher-help for syntax) |
 
 
 ## Commands
@@ -42,16 +44,16 @@ When execution is paused (ie you've hit a breakpoint in GDB), you can issue a nu
 
 See [matchers.md](matchers.md) for matcher syntax.
 
-| Command | Description |
-| --- | --- |
-| `$ help [COMMAND]` | Show this help message, or get help for a specific command |
-| `$ list [CONN:] [MATCHER] [~ COUNT]` | List messages matching given matcher (or use the current filter matcher if none provided). Prepend "CONN:" to show messages from a different connection than the one currently active. Append "~ COUNT" to show at most the last COUNT messages that match. |
-| `$ filter [MATCHER]` | Show the current output filter matcher, or add a new one. |
-| `$ breakpoint [MATCHER]` | Show the current breakpoint matcher, or add a new one. Use the matcher `!` to disable existing breakpoints. |
-| `$ matcher [MATCHER]` | Just parse a matcher, and show it unsimplified. |
-| `$ connection [CONNECTION]` | Show Wayland connections, or switch to another connection. |
-| `$ resume` | Resume processing events. In GDB you can also use the continue gdb command. |
-| `$ quit` | Quit the program. |
+| Command                               | Description |
+| ---                                   | --- |
+| `$ help [COMMAND]`                    | Show this help message, or get help for a specific command |
+| `$ list [CONN:] [MATCHER] [~ COUNT]`  | List messages matching given matcher (or use the current filter matcher if none provided). Prepend "CONN:" to show messages from a different connection than the one currently active. Append "~ COUNT" to show at most the last COUNT messages that match. |
+| `$ filter [MATCHER]`                  | Show the current output filter matcher, or add a new one. |
+| `$ breakpoint [MATCHER]`              | Show the current breakpoint matcher, or add a new one. Use the matcher `!` to disable existing breakpoints. |
+| `$ matcher [MATCHER]`                 | Just parse a matcher, and show it unsimplified. |
+| `$ connection [CONNECTION]`           | Show Wayland connections, or switch to another connection. |
+| `$ resume`                            | Resume processing events. In GDB you can also use the continue gdb command. |
+| `$ quit`                              | Quit the program. |
 
 ## More examples
 ```bash
