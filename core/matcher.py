@@ -283,6 +283,13 @@ def str_matcher(pattern: str) -> Matcher[str]:
     else:
         return EqMatcher(pattern)
 
+identifier_re = re.compile(r'^[\*\-_A-Za-z0-9]*$')
+
+def identifier_matcher(pattern: str) -> Matcher[str]:
+    if not identifier_re.match(pattern):
+        raise RuntimeError(pattern + ' is not a valid identifier')
+    return str_matcher(pattern)
+
 _brace_pairs = {
     '(' : ')',
     '[' : ']',
@@ -361,7 +368,7 @@ def _parse_text_matcher(text: str) -> Matcher[str]:
     elif text == '':
         return AlwaysMatcher(True)
     else:
-        return str_matcher(text)
+        return identifier_matcher(text)
 
 def _parse_int_matcher(text: str) -> Matcher[int]:
     if text == '*' or text == '':
