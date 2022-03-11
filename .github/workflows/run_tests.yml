@@ -20,7 +20,12 @@ jobs:
         gdb meson ninja-build
     - name: Get debug libwayland
       run: >-
-        resources/get-libwayland.sh
+        cd resources &&
+        git clone https://gitlab.freedesktop.org/wayland/wayland.git &&
+        git checkout "$(apt search '^libwayland-client0$' | grep -Po '\d+\.\d+\.\d+')" &&
+        cd wayland &&
+        meson --buildtype=debug build &&
+        ninja -C build
     - name: Run tests
       run: pytest-3
       timeout-minutes: 5
