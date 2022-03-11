@@ -39,6 +39,15 @@ def _get_preload_libs(args: List[str]) -> List[str]:
         raise RuntimeError('Wayland server library does not exist at ' + server)
     return [client, server]
 
+def verify_has_debug_symbols(lib: str) -> None:
+    reallib = os.path.realpath(lib)
+    result = subprocess.run(['file', reallib], check=True, capture_output=True, encoding='utf-8')
+    if 'with debug_info' not in result.stdout:
+        raise RuntimeError(
+            lib + ' does not appear to have debug symbols. ' +
+            'See https://github.com/wmww/wayland-debug/blob/master/libwayland_debug_symbols.md ' +
+            'for more information')
+
 class Args:
     '''The arguments processed by parse_args() that need to be passed to run_gdb()'''
     def __init__(self, wldbg_args: List[str], gdb_args: List[str]) -> None:
@@ -62,6 +71,8 @@ def run_gdb(args: Args, quiet: bool) -> int:
 
     # Get libwayland libs and make sure they have debug symbols
     preload_libs = _get_preload_libs(args.wldbg)
+    for lib in preload_libs:
+        verify_has_debug_symbols(lib)
 
     # Add libwayland libs to LD_PRELOAD
     env['LD_PRELOAD'] = ':'.join([env.get('LD_PRELOAD', '')] + preload_libs)

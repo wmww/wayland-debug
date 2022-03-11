@@ -6,7 +6,6 @@ from interfaces import ConnectionIDSink, CommandSink, UIState
 from core import wl, PersistentUIState
 from core.util import time_now
 from core.output import Output, stream
-from . import libwayland_symbols
 from . import extract
 
 class Stream(stream.Base):
@@ -113,13 +112,6 @@ class Plugin:
         if not self.out.show_unprocessed:
             # Suppress GDB output
             gdb.execute('set inferior-tty /dev/null')
-        try:
-            # GDB will automatically load the symbols when needed, but if we do it first we get to detect problems
-            libwayland_symbols.verify()
-        except RuntimeError as e:
-            self.out.warn('Loading libwayland symbols failed: ' + str(e))
-            self.out.warn('libwayland debug symbols were not found, so Wayland messages may not be detected in GDB mode')
-            self.out.warn('See https://github.com/wmww/wayland-debug/blob/master/libwayland_debug_symbols.md for more information')
         #WlConnectionCreateBreakpoint(self)
         WlConnectionDestroyBreakpoint(self)
         WlClosureCallBreakpoint(self, 'wl_closure_invoke', extract.received_message)
