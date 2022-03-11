@@ -22,8 +22,8 @@ jobs:
       run: >-
         cd resources &&
         git clone https://gitlab.freedesktop.org/wayland/wayland.git &&
-        git checkout "$(apt search '^libwayland-client0$' | grep -Po '\d+\.\d+\.\d+')" &&
         cd wayland &&
+        git checkout "$(apt search '^libwayland-client0$' | grep -Po '\d+\.\d+\.\d+')" &&
         meson --buildtype=debug build &&
         ninja -C build
     - name: Run tests
