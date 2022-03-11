@@ -11,22 +11,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - name: Add debug symbols
-      run: |
-        sudo apt update && \
-        sudo apt install ubuntu-dbgsym-keyring && \
-        echo "deb http://ddebs.ubuntu.com $(lsb_release -cs) main restricted universe multiverse
-        deb http://ddebs.ubuntu.com $(lsb_release -cs)-updates main restricted universe multiverse
-        deb http://ddebs.ubuntu.com $(lsb_release -cs)-proposed main restricted universe multiverse" | \
-        sudo tee -a /etc/apt/sources.list.d/ddebs.list && \
-        sudo apt update
     - name: Install dependencies
       run: >-
+        sudo apt update &&
         sudo apt install
         python3 python3-pytest mypy
         libwayland-dev wayland-protocols
         libwayland-server0-dbgsym libwayland-client0-dbgsym
         gdb meson ninja-build
+    - name: Get debug libwayland
+      run: >-
+        resources/get-libwayland.sh
     - name: Run tests
       run: pytest-3
       timeout-minutes: 5
