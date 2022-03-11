@@ -4,6 +4,50 @@ from typing import List, Optional
 
 from core.util import check_gdb
 
+def _get_preload_libs(args: List[str]) -> List[str]:
+    # We need to parse --libwayland arg here because we need to add LD_PRELOAD before the instance
+    # that parses the args starts up
+    path = os.path.join(
+        os.path.dirname(__file__),
+        '..',
+        '..',
+        'resources',
+        'wayland',
+        'build',
+        'src')
+    path_explicit = False
+    for i in range(len(args)):
+        if args[i] == '--libwayland':
+            assert i + 1 < len(args), '--libwayland requires an argument'
+            path = args[i + 1]
+            path_explicit = True
+            break;
+    path = os.path.realpath(path)
+    if not os.path.isdir(path):
+        if path_explicit:
+            raise RuntimeError(path + ' is not a directory')
+        else:
+            raise RuntimeError(
+                path +
+                ' is not a directory, ' +
+                'consider running resources/get-libwayland.sh or specifying --libwayland')
+    client = os.path.join(path, 'libwayland-client.so')
+    if not os.path.exists(client):
+        raise RuntimeError('Wayland client library does not exist at ' + client)
+    server = os.path.join(path, 'libwayland-server.so')
+    if not os.path.exists(server):
+        raise RuntimeError('Wayland server library does not exist at ' + server)
+    return [client, server]
+
+def verify_has_debug_symbols(lib: str) -> None:
+    reallib = os.path.realpath(lib)
+    result = subprocess.run(['file', reallib], check=True, capture_output=True, encoding='utf-8')
+    if 'with debug_info' not in result.stdout:
+        raise RuntimeError(
+            lib + ' does not appear to have debug symbols. ' +
+            'See https://github.com/wmww/wayland-debug/blob/master/libwayland_debug_symbols.md ' +
+            'for more information')
+
 class Args:
     '''The arguments processed by parse_args() that need to be passed to run_gdb()'''
     def __init__(self, wldbg_args: List[str], gdb_args: List[str]) -> None:
@@ -24,6 +68,14 @@ def run_gdb(args: Args, quiet: bool) -> int:
         prev = ':' + env[python_path_var]
     # Add the directeory the running file is located in to the path
     env[python_path_var] = os.path.dirname(os.path.realpath(args.wldbg[0])) + prev
+
+    # Get libwayland libs and make sure they have debug symbols
+    preload_libs = _get_preload_libs(args.wldbg)
+    for lib in preload_libs:
+        verify_has_debug_symbols(lib)
+
+    # Add libwayland libs to LD_PRELOAD
+    env['LD_PRELOAD'] = ':'.join([env.get('LD_PRELOAD', '')] + preload_libs)
 
     # All the args before the GDB option need to be sent along to the child instance
     # Since we run the child instance from the GDB command, we need to pack them all in there
@@ -54,7 +106,7 @@ def parse_args(args: List[str]) -> Optional[Args]:
     if check_gdb():
         return None
 
-    # Look for the -d or --gdb arguments, and split the argument list based on where they are
+    # Look for the -g or --gdb arguments, and split the argument list based on where they are
     for i in range(len(args)):
         if args[i] == '-g' or args[i] == '--gdb':
             return Args(args[:i], args[i+1:])

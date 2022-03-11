@@ -58,9 +58,14 @@ def main(out_stream: stream.Base, err_stream: stream.Base, argv: List[str], inpu
     # If we want to run inside GDB, the rest of main does not get called in this instance of the script
     # Instead GDB is run, an instance of wayland-debug is run inside it and main() is run in that
     # gdb_plugin.runner.parse_args() will check if this needs to happen, and gdb_plugin.run_gdb() will do it
-    gdb_runner_args = gdb_plugin.runner.parse_args(argv)
-    if gdb_runner_args:
-        gdb_plugin.run_gdb(gdb_runner_args, False)
+    try:
+        gdb_runner_args = gdb_plugin.runner.parse_args(argv)
+        if gdb_runner_args:
+            gdb_plugin.run_gdb(gdb_runner_args, False)
+            return
+    except RuntimeError as e:
+        output = Output(False, False, out_stream, err_stream)
+        output.error(e)
         return
 
     import argparse
@@ -74,8 +79,9 @@ def main(out_stream: stream.Base, err_stream: stream.Base, argv: List[str], inpu
     parser.add_argument('-C', '--no-color', action='store_true', help='disable color output (default for non-interactive sessions)')
     parser.add_argument('-f', '--filter', dest='f', type=str, help='only show these objects/messages (see --matcher-help for syntax)')
     parser.add_argument('-b', '--break', dest='b', type=str, help='stop on these objects/messages (see --matcher-help for syntax)')
+    parser.add_argument('--libwayland', type=str, help='path to directory that contains libwayland-client.so and libwayland-server.so. Only applies to GDB mode. Must come before --gdb argument')
     parser.add_argument('-g', '--gdb', action='store_true', help='run inside gdb, all subsequent arguments are sent to gdb, when inside gdb start commands with \'wl\'')
-    # NOTE: -g/--gdb is here only for the help text, it is processed without argparse in gdb_runner.main()
+    # NOTE: -g/--gdb and --libwayland are here only for the help text, they are processed without argparse in gdb_runner.main()
 
     args = parser.parse_args(args=argv[1:]) # chop off the first argument (program name)
 

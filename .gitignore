@@ -1,6 +1,7 @@
 __pycache__
 *.pyc
 test/mock_program/build
+resources/wayland
 
 # KDevelop project
 *.kdev4
