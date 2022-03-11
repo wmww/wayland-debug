@@ -18,6 +18,7 @@ jobs:
         python3 python3-pytest mypy
         libwayland-dev wayland-protocols
         gdb meson ninja-build
+        debhelper quilt libexpat1-dev libffi-dev libxml2-dev doxygen graphviz xmlto xsltproc docbook-xsl
     - name: Get debug libwayland
       run: >-
         cd resources &&
