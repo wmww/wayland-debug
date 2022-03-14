@@ -1,76 +1,86 @@
 # Wayland debug
 
-![Wayland Debug sample output](https://i.imgur.com/CliJAqn.png)
+![Wayland Debug sample output](https://imgur.com/a/3NhX15Q)
 
-A tool for debugging Wayland protocol messages. It integrates directly with with GDB, or can parse the output of a wayland app/compositor run with `WAYLAND_DEBUG=1`
+A CLI for viewing, filtering, and setting breakpoints on Wayland protocol messages.
+
+## Quickstart
+```
+$ sudo snap install wayland-debug
+$ wayland-debug -g gedit
+(gdb) r
+Starting program: /usr/bin/gedit
+Switching to new client connection A
+ 0.0000 → wl_display@1a.get_registry(registry=new wl_registry@2a)
+ 0.0008 → wl_display@1a.sync(callback=new wl_callback@3a)
+ 0.0015 wl_display@1a.delete_id(id=3) -- wl_callback@3a.destroyed after 0.0007s ↲
+…
+```
+
+[![Install from the Snap store](https://raw.githubusercontent.com/snapcore/snap-store-badges/master/EN/%5BEN%5D-snap-store-black.png)](https://snapcraft.io/wayland-debug)
+
+## GDB mode (recomended)
+Enabled with `-g`/`--gdb`. All subsequent command line arguments are sent directly to a new GDB instance with `wayland-debug` running as a plugin. GDB mode supports setting breakpoints on Wayland messages and handling a single process that creates multiple Wayland connections.
+
+GDB mode requires a libwayland that is built with debug symbols and no inlining (ie a debug build). The `wayland-debug` snap comes with such a libwayland, however if you're using `wayland-debug` some other way or on a system with an older libc, you may need to build libwayland yourself to use GDB mode.
+
+## Pipe/file modes
+libwayland has native support for dumping a simplified version of protocol messages. This is enabled by running a Wayland application with the `WAYLAND_DEBUG` environment variable set to `1` (or `client` or `server`). `wayland-debug` can parse these messages (either by loading them from a file, or receiving them via stdin). Note that if a program opens multiple Wayland connections the information becomes ambiguous and `wayland-debug` can't process it (see [#5](https://github.com/wmww/wayland-debug/issues/5)).
+
+## Further info
+For a list of command line arguments, run:
+```
+$ wayland-debug -h
+```
+
+Message matchers are used to filter messages and set breakpoints. For matcher syntax documentation, run:
+```
+$ wayland-debug --matcher-help
+```
+
+For a list of GDB mode commands, start GDB mode and run:
+```
+(gdb) wlh
+```
+
+[Building and using a debug version of libwayland](https://github.com/wmww/wayland-debug/blob/master/libwayland_debug_symbols.md) (if the one that comes in the snap doesn't work)
 
 ## Examples
-
-### Using GDB (recomended)
-This will spin up an instance of GDB with your program
-```bash
-./main.py -g program
-```
-In the resulting GDB prompt, just enter `run` to run the program
-
-> Note: to use this mode, you need libwayland debug symbols installed. See [libwayland_debug_symbols.md](libwayland_debug_symbols.md)
+In these examples `program` can be any native Wayland app or server, such as `gedit`, `weston-terminal` or `sway`. `wayland-debug` can be replaced with `./main.py` if you're not using the snap.
 
 ### Piping messages from stdin
-This parses libwayland's default debugging output
+This parses libwayland's default debugging output.
 ```bash
-WAYLAND_DEBUG=1 program 2>&1 | ./main.py -p
+WAYLAND_DEBUG=1 program 2>&1 | wayland-debug -p
 ```
 
 ### Loading from a file
-Similar to the last example, but loads libwayland output from a file
+Similar to the last example, but loads libwayland output from a file.
 ```bash
 WAYLAND_DEBUG=1 program 2>path/to/file.log
-./main.py -l path/to/file.log
+wayland-debug -l path/to/file.log
 ```
 
-## Options
-(for a complete list, run `wayland-debug -h`)
-| Option                | Description |
-| ---                   | --- |
-| `-l …`, `--load …`    | load WAYLAND_DEBUG=1 messages from a file |
-| `-p`, `--pipe`        | receive WAYLAND_DEBUG=1 messages from stdin |
-| `-g`, `--gdb`         | run inside gdb, all subsequent arguments are sent to gdb, when inside gdb start commands with 'wl' |
-| `-f …`, `--filter …`  | only show these objects/messages (see --matcher-help for syntax) |
-| `-b …`, `--break …`   | stop on these objects/messages (see --matcher-help for syntax) |
-
-
-## Commands
-When execution is paused (ie you've hit a breakpoint in GDB), you can issue a number of commands. If you're in GDB, wayland debug commands must be prefixed with 'wl'. When loading from a file, the wl can be dropped.
-
-See [matchers.md](matchers.md) for matcher syntax.
-
-| Command                               | Description |
-| ---                                   | --- |
-| `$ help [COMMAND]`                    | Show this help message, or get help for a specific command |
-| `$ list [CONN:] [MATCHER] [~ COUNT]`  | List messages matching given matcher (or use the current filter matcher if none provided). Prepend "CONN:" to show messages from a different connection than the one currently active. Append "~ COUNT" to show at most the last COUNT messages that match. |
-| `$ filter [MATCHER]`                  | Show the current output filter matcher, or add a new one. |
-| `$ breakpoint [MATCHER]`              | Show the current breakpoint matcher, or add a new one. Use the matcher `!` to disable existing breakpoints. |
-| `$ matcher [MATCHER]`                 | Just parse a matcher, and show it unsimplified. |
-| `$ connection [CONNECTION]`           | Show Wayland connections, or switch to another connection. |
-| `$ resume`                            | Resume processing events. In GDB you can also use the continue gdb command. |
-| `$ quit`                              | Quit the program. |
-
-## More examples
+### GDB breakpoint
+Spin up an instance of GDB, and run the program inside it. Show all messages, but break when an XDG thing is configured or when object ID 12 is used.
 ```bash
-# Spin up an instance of GDB, and run the program inside it.
-# Show all messages, but break when an XDG thing is configured or when object ID 12 is used
-./main.py -b 'xdg_*.configure, 12' -g program
-...
+wayland-debug -b 'xdg_*.configure, 12' -g program
 (gdb) run
+```
 
-# Run with piped input only showing pointer, surface.commit and surface.destroy messages
-WAYLAND_DEBUG=1 program 2>&1 1>/dev/null | ./main.py -p -f 'wl_pointer, wl_surface.[commit, destroy]'
+### Filtering piped input
+Run with piped input only showing pointer, surface.commit and surface.destroy messages.
+```bash
+WAYLAND_DEBUG=1 program 2>&1 1>/dev/null | wayland-debug -p -f 'wl_pointer, wl_surface.[commit, destroy]'
+```
 
-# Load a file showing everything but callbacks and frame messages
-./main.py -l dir/file.log -f '! wl_callback, .frame'
+### Negative filter
+Load a file showing everything but callbacks and frame messages.
+```bash
+wayland-debug -l dir/file.log -f '! wl_callback, .frame'
 ```
 
 ## Running the tests
 Run the python3 version of pytest (`pytest-3` on Ubuntu) in the project's root directory. The integration tests will attempt to build a Wayland C program, so you'll need the Wayland development libraries as well as meson and ninja.
 
-To install all test dependencies on Ubuntu, run `sudo apt install python3-pytest libwayland-dev wayland-protocols libwayland-server0-dbgsym libwayland-client0-dbgsym gdb meson ninja-build`. If you haven't enabled [debug symbols](libwayland_debug_symbols.md), you'll need to do that first.
+To install all test dependencies on Ubuntu, run `sudo apt install python3-pytest libwayland-dev wayland-protocols gdb meson ninja-build`. You'll also need your [debug libwayland](libwayland_debug_symbols.md) built (`./resources/get-libwayland.sh`).

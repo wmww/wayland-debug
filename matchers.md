@@ -1,16 +1,14 @@
 # Matchers
 
-Matchers are used throughout the program to show and hide messages. A matcher looks similar to how a Wayland message is displayed by this program and libwayland's `WAYLAND_DEBUG=1` output.
-
-Simple matchers are single patterns that match messages. They can drop components of a message to leave them unspecified. They and use wildcards.
+Matchers are used throughout wayland-debug to filter messages and set breakpoints. Matchers can leave components of messages unspecified, and use wildcards.
 
 | Matcher               | Description |
 | ---                   | --- |
-| `wl_surface`          | Messages on a `wl_surface` |
-| `xdg_*`               | Messages on an XDG type (using a wildcard) |
+| `wl_surface`          | All events and requests on `wl_surface`s |
+| `xdg_*`               | Messages on any XDG type (using a wildcard) |
 | `5`                   | Messages on objects with ID `5` |
 | `4#12`                | Messages on the `12`th object with ID `4` |
-| `.commit`             | `commit` Message on any object |
+| `.commit`             | `commit` messages on any object |
 | `wl_surface.commit`   | `commit` messages on `wl_surface`s |
 
 When objects are destroyed the `wl_display` gets a `.delete_id` message with the object ID of the destroyed object. To make matching these easier, you can also match to `object.destroyed`.

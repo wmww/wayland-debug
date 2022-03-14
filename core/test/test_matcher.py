@@ -10,7 +10,7 @@ class TestShowMatcherHelp(TestCase):
         ss = stream.String()
         out = Output(False, False, ss, stream.Null())
         show_help(out)
-        self.assertIn('show and hide messages', ss.buffer)
+        self.assertIn('Matchers are used throughout wayland-debug', ss.buffer)
 
 class TestStrMatcher(TestCase):
     def test_plain_string(self):
