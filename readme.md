@@ -1,6 +1,6 @@
 # Wayland debug
 
-![Wayland Debug sample output](https://imgur.com/a/3NhX15Q)
+![Wayland Debug sample output](https://i.imgur.com/x95mkA8.png)
 
 A CLI for viewing, filtering, and setting breakpoints on Wayland protocol messages.
 
