@@ -48,6 +48,11 @@ def verify_has_debug_symbols(lib: str) -> None:
             'See https://github.com/wmww/wayland-debug/blob/master/libwayland_debug_symbols.md ' +
             'for more information')
 
+def verify_gdb_available() -> None:
+    result = subprocess.run(['which', 'gdb'], capture_output=True)
+    if result.returncode != 0:
+        raise RuntimeError('gdb not found, install gdb to use gdb mode')
+
 class Args:
     '''The arguments processed by parse_args() that need to be passed to run_gdb()'''
     def __init__(self, wldbg_args: List[str], gdb_args: List[str]) -> None:
@@ -59,7 +64,7 @@ def run_gdb(args: Args, quiet: bool) -> int:
     Runs GDB, and runs a child instance of this script inside it as a plugin
     Returns GDB's exit status, or -1 for other error
     '''
-
+    verify_gdb_available()
     # Imports will be broken on the new instance, so we need to fix the python import path for the child process
     env = os.environ.copy()
     python_path_var = 'PYTHONPATH'
