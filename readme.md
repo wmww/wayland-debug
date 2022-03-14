@@ -43,7 +43,7 @@ For a list of GDB mode commands, start GDB mode and run:
 (gdb) wlh
 ```
 
-[Building and using a debug version of libwayland](https://github.com/wmww/wayland-debug/blob/master/libwayland_debug_symbols.md) (if the one that comes in the snap doesn't work)
+To run in GDB mode without using the snap, or if the libwayland from the snap doesn't work for some reason, you need to [build libwayland from source](https://github.com/wmww/wayland-debug/blob/master/libwayland_debug_symbols.md).
 
 ## Examples
 In these examples `program` can be any native Wayland app or server, such as `gedit`, `weston-terminal` or `sway`. `wayland-debug` can be replaced with `./main.py` if you're not using the snap.
