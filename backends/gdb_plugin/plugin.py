@@ -2,7 +2,7 @@ import logging
 from typing import Tuple, Callable, Dict, Optional
 import gdb # type: ignore
 
-from interfaces import ConnectionIDSink, CommandSink, UIState
+from interfaces import ConnectionIDSink, CommandSink, UIState, Connection
 from core import wl, PersistentUIState
 from core.util import time_now
 from core.output import Output, stream
@@ -105,8 +105,8 @@ class Plugin:
         self.connection_id_sink = connection_id_sink
         self.command_sink = command_sink
         self.state = PersistentUIState(ui_state)
-        # maps connection ids to thread numbers
-        self.connection_threads: Dict[str, int] = {}
+        # maps connection ids to thread numbers and connections
+        self.connections: Dict[str, Tuple[int, Connection]] = {}
         # Show full error messages in the case of a crash
         gdb.execute('set python print-stack full')
         if not self.out.show_unprocessed:
@@ -125,28 +125,30 @@ class Plugin:
         logging.info('Breakpoints: ' + repr(gdb.breakpoints()))
 
     def open_connection(self, connection_id: str, is_server: Optional[bool]) -> None:
-        self.connection_threads[connection_id] = gdb.selected_thread().global_num
-        self.connection_id_sink.open_connection(time_now(), connection_id, is_server)
+        thread_id = gdb.selected_thread().global_num
+        connection = self.connection_id_sink.open_connection(time_now(), connection_id, is_server)
+        self.connections[connection_id] = (thread_id, connection)
 
     def close_connection(self, connection_id: str) -> None:
-        del self.connection_threads[connection_id]
+        del self.connections[connection_id]
         self.connection_id_sink.close_connection(time_now(), connection_id)
 
     def process_message(self, connection_id: str, message: wl.Message) -> None:
         if self.state.paused():
             self.state.resume_requested()
-        current_thread_num = gdb.selected_thread().global_num
-        connection_thread_num = self.connection_threads.get(connection_id)
-        if connection_thread_num is None:
+        if not connection_id in self.connections:
             is_server = None
             if message.name == 'get_registry':
                 is_server = not message.sent
             self.open_connection(connection_id, is_server)
-        elif connection_thread_num != current_thread_num:
-            self.out.warn(
-                'Got message ' + str(message) +
-                ' on thread ' + str(current_thread_num) +
-                ' instead of connection\'s main thread ' + str(connection_thread_num))
+        connection_thread_num, connection = self.connections[connection_id]
+        if connection.is_server() is not False:
+            current_thread_num = gdb.selected_thread().global_num
+            if connection_thread_num != current_thread_num:
+                self.out.warn(
+                    'Got message ' + str(message) +
+                    ' on thread ' + str(current_thread_num) +
+                    ' instead of connection\'s main thread ' + str(connection_thread_num))
         self.connection_id_sink.message(connection_id, message)
 
     def invoke_command(self, command: str) -> None:
