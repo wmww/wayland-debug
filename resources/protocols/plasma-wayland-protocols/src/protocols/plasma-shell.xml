@@ -6,7 +6,7 @@
     SPDX-License-Identifier: LGPL-2.1-or-later
   ]]></copyright>
 
-  <interface name="org_kde_plasma_shell" version="6">
+  <interface name="org_kde_plasma_shell" version="7">
     <description summary="create shell windows and helpers">
       This interface is used by KF5 powered Wayland shells to communicate with
       the compositor and can only be bound one time.
@@ -119,7 +119,7 @@
     -->
   </interface>
 
-  <interface name="org_kde_plasma_surface" version="6">
+  <interface name="org_kde_plasma_surface" version="7">
     <description summary="metadata interface">
       An interface that may be implemented by a wl_surface, for
       implementations that provide the shell user interface.
@@ -180,6 +180,7 @@
       <entry name="notification" value="4"/>
       <entry name="tooltip" value="5"/>
       <entry name="criticalnotification" value="6" since="6"/>
+      <entry name="appletpopup" value="7" since="7"/>
 <!--
       <entry name="splash" value="1"/>
       <entry name="dashboard" value="3"/>
@@ -389,5 +390,11 @@
         <arg name="skip" type="uint" summary="Boolean value that sets whether to skip the window switcher."/>
      </request>
 
+    <request name="open_under_cursor" since="7">
+      <description summary="open under cursor">
+        Request the initial position of this surface to be under the current
+        cursor position. Has to be called before attaching any buffer to this surface.
+      </description>
+    </request>
   </interface>
 </protocol>

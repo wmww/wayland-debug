@@ -11,7 +11,7 @@
     ]]></copyright>
 
 
-  <interface name="kde_output_device_v2" version="1">
+  <interface name="kde_output_device_v2" version="2">
     <description summary="output configuration representation">
       An output device describes a display device available to the compositor.
       output_device is similar to wl_output, but focuses on output
@@ -265,6 +265,13 @@
         What rgb range the compositor is using for this output
       </description>
       <arg name="rgb_range" type="uint" enum="rgb_range"/>
+    </event>
+
+    <event name="name" since="2">
+      <description summary="Output's name">
+        Name of the output, it's useful to cross-reference to an zxdg_output_v1 and ultimately QScreen
+      </description>
+      <arg name="name" type="string"/>
     </event>
   
   </interface>

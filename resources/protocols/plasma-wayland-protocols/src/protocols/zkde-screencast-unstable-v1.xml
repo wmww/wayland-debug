@@ -5,7 +5,7 @@
 
     SPDX-License-Identifier: LGPL-2.1-or-later
   ]]></copyright>
-    <interface name="zkde_screencast_unstable_v1" version="2">
+    <interface name="zkde_screencast_unstable_v1" version="3">
         <description summary="Protocol for managing PipeWire feeds of the different displays and windows."/>
 
         <enum name="pointer">
@@ -43,9 +43,21 @@
             <arg name="scale" type="fixed" summary="Scaling factor of the display where it's to be displayed"/>
             <arg name="pointer" type="uint" summary="Requested pointer mode"/>
         </request>
+
+        <request name="stream_region" since="3">
+            <description summary="requests a feed from region in the workspace"/>
+            <arg name="stream" type="new_id" interface="zkde_screencast_stream_unstable_v1"/>
+
+            <arg name="x" type="int" summary="Logical left position"/>
+            <arg name="y" type="int" summary="Logical top position"/>
+            <arg name="width" type="uint" summary="Logical width resolution"/>
+            <arg name="height" type="uint" summary="Logical height resolution"/>
+            <arg name="scale" type="fixed" summary="Scaling factor of the output recording"/>
+            <arg name="pointer" type="uint" summary="Requested pointer mode"/>
+        </request>
     </interface>
 
-    <interface name="zkde_screencast_stream_unstable_v1" version="2">
+    <interface name="zkde_screencast_stream_unstable_v1" version="3">
         <request name="close" type="destructor">
             <description summary="Indicates we are done with the stream and the communication is over."/>
         </request>

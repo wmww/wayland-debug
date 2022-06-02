@@ -10,7 +10,7 @@
     SPDX-License-Identifier: MIT-CMU
     ]]></copyright>
 
-<interface name="kde_output_management_v2" version="1">
+<interface name="kde_output_management_v2" version="2">
   <description summary="configuration of server outputs through clients">
     This interface enables clients to set properties of output devices for screen
     configuration purposes via the server. To this end output devices are referenced
@@ -62,7 +62,7 @@
 
 </interface>
 
-<interface name="kde_output_configuration_v2" version="1">
+<interface name="kde_output_configuration_v2" version="2">
   <description summary="configure single output devices">
     outputconfiguration is a client-specific resource that can be used to ask
     the server to apply changes to available output devices.
@@ -192,6 +192,10 @@
     <arg name="rgb_range" type="uint" enum="rgb_range"/>
   </request>
 
+  <request name="set_primary_output" since="2">
+    <description summary="Select which primary output to use" />
+    <arg name="output" type="object" interface="kde_output_device_v2" allow-null="false"/>
+  </request>
 </interface>
 
 </protocol>

@@ -120,7 +120,7 @@
       </description>
     </event>
 
-    <event name="released">
+    <event name="released" type="destructor">
       <description summary="the compositor has finished using the device">
         This event is sent in response to the release request and indicates
         that the compositor is done sending connector events.

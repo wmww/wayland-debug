@@ -101,7 +101,7 @@
     </event>
   </interface>
 
-  <interface name="org_kde_plasma_window" version="15">
+  <interface name="org_kde_plasma_window" version="16">
     <description summary="interface to control application windows">
       Manages and control an application window.
 
@@ -372,6 +372,14 @@
       </description>
       <arg name="output" type="object" interface="wl_output"/>
     </request>
+
+    <event name="resource_name_changed" since="16">
+      <description summary="X11 resource name has changed">
+        This event will be sent when the X11 resource name of the window has changed.
+        This is only set for XWayland windows.
+      </description>
+      <arg name="resource_name" type="string" summary="resource name"/>
+    </event>
   </interface>
 
   <interface name="org_kde_plasma_activation_feedback" version="1">
