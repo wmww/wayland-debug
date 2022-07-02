@@ -140,9 +140,15 @@ class Controller(CommandSink,
         if connection == self.current_connection:
             if self.display_matcher.matches(message):
                 self._show_message(message)
-            if self.stop_matcher.matches(message):
-                self.out.show(color(alert_color, '    Stopped at ') + str(message).strip())
-                self.ui_state_listener.pause_requested()
+        if self.stop_matcher.matches(message):
+            self.out.show(color(alert_color, '    Stopped at ') + str(message).strip())
+            if connection != self.current_connection:
+                self.current_connection = connection
+                self.out.show(color(
+                    alert_color,
+                    '    and switched to ' + _connection_get_type_str(connection) + ' connection ' + connection.name() +
+                    ' where message happened'))
+            self.ui_state_listener.pause_requested()
 
     def connection_closed(self, connection: Connection) -> None:
         '''Overrides method in Connection.Listener'''
