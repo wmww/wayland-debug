@@ -111,41 +111,53 @@ def message(raw: str) -> Tuple[str, wl.Message]:
     message_args = argument_list(p, message_args_str)
     return conn_id, wl.Message(abs_timestamp, wl.UnresolvedObject(obj_id, type_name), sent, message_name, message_args)
 
-def file(input_file: IO, out: Output) -> Iterator[Tuple[str, wl.Message]]:
-    parse = True
-    while True:
-        try:
-            line = input_file.readline()
-        except KeyboardInterrupt:
-            break
-        if line == '':
-            break
-        line = line.strip() # be sure to strip after the empty check
-        try:
-            conn_id, msg = message(line)
-            if parse:
-                yield conn_id, msg
-        except RuntimeError as e:
-            out.unprocessed(str(e))
-        except:
-            import traceback
-            out.show(traceback.format_exc())
-            parse = False
+class Parser:
+    def __init__(self, out: Output, sink: ConnectionIDSink):
+        self.out = out
+        self.sink = sink
+        self.known_connections: Set[str] = set()
+        self.last_time = 0.0
 
-def into_sink(input_file: IO, out: Output, sink: ConnectionIDSink) -> None:
-    known_connections: Set[str] = set()
-    last_time = 0.0
-    for conn_id, msg in file(input_file, out):
-        last_time = msg.timestamp
-        if not conn_id in known_connections:
-            known_connections.add(conn_id)
+    def handle_message(self, conn_id: str, msg: wl.Message):
+        self.last_time = msg.timestamp
+        if not conn_id in self.known_connections:
+            self.known_connections.add(conn_id)
             is_server = None
             if msg.name ==  'get_registry':
                 is_server = not msg.sent
-            sink.open_connection(last_time, conn_id, is_server)
-        sink.message(conn_id, msg)
-    for conn_id in known_connections:
-        sink.close_connection(last_time, conn_id)
+            self.sink.open_connection(self.last_time, conn_id, is_server)
+        self.sink.message(conn_id, msg)
+
+    def parse_all(self, input_file: IO):
+        parse = True
+        while True:
+            try:
+                line = input_file.readline()
+            except KeyboardInterrupt:
+                break
+            if line == '':
+                break
+            line = line.strip() # be sure to strip after the empty check
+            try:
+                conn_id, msg = message(line)
+                if parse:
+                    self.handle_message(conn_id, msg)
+            except RuntimeError as e:
+                self.out.unprocessed(str(e))
+            except Exception as e:
+                import traceback
+                self.out.show(traceback.format_exc())
+                self.out.error(e)
+                parse = False
+
+    def cleanup(self):
+        for conn_id in self.known_connections:
+            self.sink.close_connection(self.last_time, conn_id)
+
+def into_sink(input_file: IO, out: Output, sink: ConnectionIDSink) -> None:
+    parser = Parser(out, sink)
+    parser.parse_all(input_file)
+    parser.cleanup()
 
 if __name__ == '__main__':
     print('File meant to be imported, not run')
