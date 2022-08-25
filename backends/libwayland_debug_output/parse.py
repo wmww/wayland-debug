@@ -29,7 +29,7 @@ class WlPatterns:
             array_re + '|' +
             fd_re + r')$')
         self.arg_re = re.compile(all_args_re)
-        timestamp_regex = r'\[(\d+[\.,]\d+)\]'
+        timestamp_regex = r'\[\s*(\d+[\.,]\d+)\s*\]'
         message_regex = r'(\w+)@(\d+)\.(\w+)\((.*)\)$'
         self.out_msg_re = re.compile(timestamp_regex + '  -> ' + message_regex)
         self.in_msg_re = re.compile(timestamp_regex + ' ' + message_regex)
