@@ -4,7 +4,6 @@
 
 # Put bash into unofficial safe mode
 set -euo pipefail
-IFS=$'\n\t'
 
 # Move into the directory where this script is located
 cd "$( dirname "${BASH_SOURCE[0]}" )"
@@ -16,7 +15,11 @@ then
 fi
 
 cd wayland
+git reset --hard origin/main
 git pull
+
+# Apply patches
+git apply ../libwayland_patches/*.patch
 
 if ! test -d build
 then

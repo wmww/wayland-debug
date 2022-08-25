@@ -1,0 +1,103 @@
+From 76731b05bb37cac77f10dc7e0a6fba327c03bd09 Mon Sep 17 00:00:00 2001
+From: Sophie Winter <wm@wmww.sh>
+Date: Wed, 24 Aug 2022 18:49:31 -0700
+Subject: [PATCH] Show connection address in wayland-debug output
+
+---
+ src/connection.c      | 5 +++--
+ src/wayland-client.c  | 8 ++++----
+ src/wayland-private.h | 2 +-
+ src/wayland-server.c  | 2 +-
+ 4 files changed, 9 insertions(+), 8 deletions(-)
+
+diff --git a/src/connection.c b/src/connection.c
+index ceaeac1..8b46adc 100644
+--- a/src/connection.c
++++ b/src/connection.c
+@@ -1263,7 +1263,7 @@ wl_closure_queue(struct wl_closure *closure, struct wl_connection *connection)
+ }
+ 
+ void
+-wl_closure_print(struct wl_closure *closure, struct wl_object *target,
++wl_closure_print(struct wl_connection *connection, struct wl_closure *closure, struct wl_object *target,
+ 		 int send, int discarded, uint32_t (*n_parse)(union wl_argument *arg))
+ {
+ 	int i;
+@@ -1283,8 +1283,9 @@ wl_closure_print(struct wl_closure *closure, struct wl_object *target,
+ 	clock_gettime(CLOCK_REALTIME, &tp);
+ 	time = (tp.tv_sec * 1000000L) + (tp.tv_nsec / 1000);
+ 
+-	fprintf(f, "[%7u.%03u] %s%s%s@%u.%s(",
++	fprintf(f, "[%7u.%03u] |%p| %s%s%s@%u.%s(",
+ 		time / 1000, time % 1000,
++		connection,
+ 		discarded ? "discarded " : "",
+ 		send ? " -> " : "",
+ 		target->interface->name, target->id,
+diff --git a/src/wayland-client.c b/src/wayland-client.c
+index 90fb9c7..0997491 100644
+--- a/src/wayland-client.c
++++ b/src/wayland-client.c
+@@ -854,7 +854,7 @@ wl_proxy_marshal_array_flags(struct wl_proxy *proxy, uint32_t opcode,
+ 	}
+ 
+ 	if (debug_client)
+-		wl_closure_print(closure, &proxy->object, true, false, NULL);
++		wl_closure_print(proxy->display->connection, closure, &proxy->object, true, false, NULL);
+ 
+ 	if (wl_closure_send(closure, proxy->display->connection)) {
+ 		wl_log("Error sending request: %s\n", strerror(errno));
+@@ -1575,7 +1575,7 @@ dispatch_event(struct wl_display *display, struct wl_event_queue *queue)
+ 	proxy_destroyed = !!(proxy->flags & WL_PROXY_FLAG_DESTROYED);
+ 	if (proxy_destroyed) {
+ 		if (debug_client)
+-			wl_closure_print(closure, &proxy->object, false, true, id_from_object);
++			wl_closure_print(display->connection, closure, &proxy->object, false, true, id_from_object);
+ 		destroy_queued_closure(closure);
+ 		return;
+ 	}
+@@ -1584,13 +1584,13 @@ dispatch_event(struct wl_display *display, struct wl_event_queue *queue)
+ 
+ 	if (proxy->dispatcher) {
+ 		if (debug_client)
+-			wl_closure_print(closure, &proxy->object, false, false, id_from_object);
++			wl_closure_print(display->connection, closure, &proxy->object, false, false, id_from_object);
+ 
+ 		wl_closure_dispatch(closure, proxy->dispatcher,
+ 				    &proxy->object, opcode);
+ 	} else if (proxy->object.implementation) {
+ 		if (debug_client)
+-			wl_closure_print(closure, &proxy->object, false, false, id_from_object);
++			wl_closure_print(display->connection, closure, &proxy->object, false, false, id_from_object);
+ 
+ 		wl_closure_invoke(closure, WL_CLOSURE_INVOKE_CLIENT,
+ 				  &proxy->object, opcode, proxy->user_data);
+diff --git a/src/wayland-private.h b/src/wayland-private.h
+index 9274f1b..6764e08 100644
+--- a/src/wayland-private.h
++++ b/src/wayland-private.h
+@@ -211,7 +211,7 @@ int
+ wl_closure_queue(struct wl_closure *closure, struct wl_connection *connection);
+ 
+ void
+-wl_closure_print(struct wl_closure *closure,
++wl_closure_print(struct wl_connection *connection, struct wl_closure *closure,
+ 		 struct wl_object *target, int send, int discarded,
+ 		 uint32_t (*n_parse)(union wl_argument *arg));
+ 
+diff --git a/src/wayland-server.c b/src/wayland-server.c
+index a44982f..5b4e0df 100644
+--- a/src/wayland-server.c
++++ b/src/wayland-server.c
+@@ -156,7 +156,7 @@ log_closure(struct wl_resource *resource,
+ 	struct wl_protocol_logger_message message;
+ 
+ 	if (debug_server)
+-		wl_closure_print(closure, object, send, false, NULL);
++		wl_closure_print(resource->client->connection, closure, object, send, false, NULL);
+ 
+ 	if (!wl_list_empty(&display->protocol_loggers)) {
+ 		message.resource = resource;
+-- 
+2.34.1
+
