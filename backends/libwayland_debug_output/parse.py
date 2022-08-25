@@ -30,9 +30,10 @@ class WlPatterns:
             fd_re + r')$')
         self.arg_re = re.compile(all_args_re)
         timestamp_regex = r'\[\s*(?P<timestamp>\d+[\.,]\d+)\s*\]'
+        conn_re = r'( \|(?P<conn>\w+)\|)?'
         message_regex = r'(?P<type>\w+)@(?P<id>\d+)\.(?P<message>\w+)\((?P<args>.*)\)$'
-        self.out_msg_re = re.compile(timestamp_regex + '  -> ' + message_regex)
-        self.in_msg_re = re.compile(timestamp_regex + ' ' + message_regex)
+        self.out_msg_re = re.compile(timestamp_regex + conn_re + '  -> ' + message_regex)
+        self.in_msg_re = re.compile(timestamp_regex + conn_re + ' ' + message_regex)
 
     @staticmethod
     def lazy_get_instance() -> 'WlPatterns':
@@ -94,7 +95,6 @@ def argument_list(p: WlPatterns, args_str: str) -> Tuple[wl.Arg.Base, ...]:
 def message(raw: str) -> Tuple[str, wl.Message]:
     p = WlPatterns.lazy_get_instance()
     sent = True
-    conn_id = 'PARSED'
     match = p.out_msg_re.search(raw)
     if not match:
         sent = False
@@ -102,6 +102,9 @@ def message(raw: str) -> Tuple[str, wl.Message]:
     if not match:
         raise RuntimeError(raw)
     abs_timestamp = float(match.group('timestamp').replace(',', '.')) / 1000.0
+    conn_id = match.group('conn')
+    if not conn_id:
+        conn_id = 'PARSED'
     type_name = match.group('type')
     obj_id = int(match.group('id'))
     message_name = match.group('message')
