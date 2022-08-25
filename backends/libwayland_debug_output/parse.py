@@ -30,7 +30,7 @@ class WlPatterns:
             fd_re + r')$')
         self.arg_re = re.compile(all_args_re)
         timestamp_regex = r'\[\s*(?P<timestamp>\d+[\.,]\d+)\s*\]'
-        conn_re = r'( \|(?P<conn>\w+)\|)?'
+        conn_re = r'( \<(?P<conn>\w+)\>)?'
         message_regex = r'(?P<type>\w+)@(?P<id>\d+)\.(?P<message>\w+)\((?P<args>.*)\)$'
         self.out_msg_re = re.compile(timestamp_regex + conn_re + '  -> ' + message_regex)
         self.in_msg_re = re.compile(timestamp_regex + conn_re + ' ' + message_regex)

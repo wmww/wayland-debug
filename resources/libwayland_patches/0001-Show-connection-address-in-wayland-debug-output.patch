@@ -28,7 +28,7 @@ index ceaeac1..8b46adc 100644
  	time = (tp.tv_sec * 1000000L) + (tp.tv_nsec / 1000);
  
 -	fprintf(f, "[%7u.%03u] %s%s%s@%u.%s(",
-+	fprintf(f, "[%7u.%03u] |%p| %s%s%s@%u.%s(",
++	fprintf(f, "[%7u.%03u] <%p> %s%s%s@%u.%s(",
  		time / 1000, time % 1000,
 +		connection,
  		discarded ? "discarded " : "",
