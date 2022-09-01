@@ -19,7 +19,7 @@ git reset --hard origin/main
 git pull
 
 # Apply patches
-git apply ../libwayland_patches/*.patch
+git apply ../libwayland-patches/*.patch
 
 if ! test -d build
 then
