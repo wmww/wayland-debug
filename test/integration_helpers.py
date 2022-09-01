@@ -80,14 +80,13 @@ def run_in_gdb(wldbg_args, gdb_args, also_run):
         os.remove(wayland_display_path + '.lock')
 
     gdb_args = ['-ex', 'set logging file ' + gdb_log_path, '-ex', 'set logging on'] + gdb_args
-    args = gdb_plugin.runner.Args([get_main_path()] + wldbg_args, gdb_args)
     if os.path.exists(gdb_log_path):
         os.remove(gdb_log_path)
 
     if also_run:
         other_process = subprocess.Popen(also_run, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
-    gdb_plugin.run_gdb(args, False)
+    gdb_plugin.run_gdb([get_main_path()] + wldbg_args, gdb_args, False)
 
     if also_run:
         out, _ = other_process.communicate(timeout=1)

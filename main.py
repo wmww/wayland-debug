@@ -9,7 +9,7 @@ from interfaces import UIState, ConnectionIDSink, CommandSink
 from core import matcher, ConnectionManager
 from core.util import check_gdb, set_color_output, set_verbose, color
 from core.wl import protocol
-from frontends.tui import Controller, TerminalUI
+from frontends.tui import Controller, TerminalUI, parse_command, ParsedCommand
 from backends.libwayland_debug_output import parse
 from backends import gdb_plugin
 from core.output import stream, Output
@@ -55,23 +55,25 @@ def main(out_stream: stream.Base, err_stream: stream.Base, argv: List[str], inpu
     input_func: the input builtin, or a mock function that behaves the same
     '''
 
+    parsed_command = parse_command(argv, [
+        ['-g', '--gdb'],
+    ])
+
     # If we want to run inside GDB, the rest of main does not get called in this instance of the script
     # Instead GDB is run, an instance of wayland-debug is run inside it and main() is run in that
-    # gdb_plugin.runner.parse_args() will check if this needs to happen, and gdb_plugin.run_gdb() will do it
-    try:
-        gdb_runner_args = gdb_plugin.runner.parse_args(argv)
-        if gdb_runner_args:
-            gdb_plugin.run_gdb(gdb_runner_args, False)
+    if parsed_command.command == 'g':
+        try:
+            gdb_plugin.run_gdb(parsed_command.wayland_debug_args, parsed_command.command_args, False)
+        except RuntimeError as e:
+            output = Output(False, False, out_stream, err_stream)
+            output.error(e)
             return
-    except RuntimeError as e:
-        output = Output(False, False, out_stream, err_stream)
-        output.error(e)
-        return
 
     import argparse
     parser = argparse.ArgumentParser(description='Debug Wayland protocol messages, see https://github.com/wmww/wayland-debug for additional info')
     parser.add_argument('--matcher-help', action='store_true', help='show how to write matchers and exit')
     parser.add_argument('-v', '--verbose', action='store_true', help='verbose output, mostly used for debugging this program')
+    parser.add_argument('-g', '--gdb', action='store_true', help='run inside gdb, all subsequent arguments are sent to gdb, when inside gdb start commands with \'wl\'')
     parser.add_argument('-l', '--load', dest='path', type=str, help='load WAYLAND_DEBUG=1 messages from a file')
     parser.add_argument('-p', '--pipe', action='store_true', help='receive WAYLAND_DEBUG=1 messages from stdin (note: messages are printed to stderr so you may want to redirect using 2>&1 before piping)')
     parser.add_argument('-s', '--supress', action='store_true', help='supress non-wayland output of the program')
@@ -80,8 +82,7 @@ def main(out_stream: stream.Base, err_stream: stream.Base, argv: List[str], inpu
     parser.add_argument('-f', '--filter', dest='f', type=str, help='only show these objects/messages (see --matcher-help for syntax)')
     parser.add_argument('-b', '--break', dest='b', type=str, help='stop on these objects/messages (see --matcher-help for syntax)')
     parser.add_argument('--libwayland', type=str, help='path to directory that contains libwayland-client.so and libwayland-server.so. Only applies to GDB mode. Must come before --gdb argument')
-    parser.add_argument('-g', '--gdb', action='store_true', help='run inside gdb, all subsequent arguments are sent to gdb, when inside gdb start commands with \'wl\'')
-    # NOTE: -g/--gdb and --libwayland are here only for the help text, they are processed without argparse in gdb_runner.main()
+    # NOTE: -g/--gdb and --libwayland are here only for the help text, they are processed without argparse
 
     args = parser.parse_args(args=argv[1:]) # chop off the first argument (program name)
 
