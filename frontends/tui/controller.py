@@ -241,7 +241,7 @@ class Controller(CommandSink,
             if arg.startswith('wl'):
                 arg = arg[2:].strip()
             if arg == 'matcher':
-                matcher.show_help(self.out)
+                self.out.show(matcher.help_text())
                 return
             else:
                 cmd = self._get_command(arg)

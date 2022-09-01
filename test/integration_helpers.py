@@ -2,6 +2,9 @@ import os
 import subprocess
 import shutil
 
+from frontends.tui import parse_args
+from core.output import Output
+
 gdb_log_path = '/tmp/gdb_log.txt'
 
 def get_project_path() -> str:
@@ -52,7 +55,7 @@ def run_main(args):
     out = stream.String()
     err = stream.String()
     input_func = lambda msg: 'q'
-    main.main(out, err, args, input_func)
+    main.main(parse_args(args), Output(False, False, out, err), input_func)
     assert err.buffer == '', err.buffer
     return out.buffer
 

@@ -3,14 +3,10 @@ from core.matcher import *
 from core.wl.object import MockObject
 from core.wl.message import MockMessage
 from core.wl import Arg
-from core.output import stream, Output
 
 class TestShowMatcherHelp(TestCase):
     def test_shows_matcher_help(self):
-        ss = stream.String()
-        out = Output(False, False, ss, stream.Null())
-        show_help(out)
-        self.assertIn('Matchers are used throughout wayland-debug', ss.buffer)
+        self.assertIn('Matchers are used throughout wayland-debug', help_text())
 
 class TestStrMatcher(TestCase):
     def test_plain_string(self):

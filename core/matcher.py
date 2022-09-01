@@ -2,14 +2,13 @@ import re
 from typing import List, Set, Tuple, Generic, TypeVar, Any, Callable, cast
 
 from core.util import *
-from core.output import Output
 from core.letter_id_generator import letter_id_to_number
 from core import wl
 
 T = TypeVar('T')
 U = TypeVar('U')
 
-def show_help(out: Output) -> None:
+def help_text() -> str:
     path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'matchers.md')
     text = open(path, 'r').read()
     text = re.sub(r'# Matchers\n\n', '', text, flags=re.MULTILINE)
@@ -24,7 +23,7 @@ def show_help(out: Output) -> None:
         result += ' ' * (32 - len(match[0]))
         result += color(object_id_color, match[1])
         result += parts[i + 1]
-    out.show(result)
+    return result
 
 class Matcher(Generic[T]):
     def matches(self, message: T) -> bool:
