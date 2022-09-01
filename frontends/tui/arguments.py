@@ -116,14 +116,14 @@ def parse_args(argv: List[str]) -> Arguments:
     parser.add_argument('--matcher-help', action='store_true', help='show how to write matchers and exit')
     parser.add_argument('-r', '--run', action='store_true', help='run the following program and parse it\'s libwayland debugging messages. All subsequent command line arguments are sent to the program')
     parser.add_argument('-g', '--gdb', action='store_true', help='run inside gdb. All subsequent arguments are sent to gdb. When inside gdb start commands with \'wl\'')
-    parser.add_argument('-v', '--verbose', action='store_true', help='verbose output, mostly used for debugging this program')
     parser.add_argument('-l', '--load', dest='path', type=str, help='load WAYLAND_DEBUG=1 messages from a file')
     parser.add_argument('-p', '--pipe', action='store_true', help='receive WAYLAND_DEBUG=1 messages from stdin (note: messages are printed to stderr so you may want to redirect using 2>&1 before piping)')
-    parser.add_argument('-s', '--supress', action='store_true', help='supress non-wayland output of the program')
-    parser.add_argument('-c', '--color', action='store_true', help='force color output (default for interactive sessions)')
-    parser.add_argument('-C', '--no-color', action='store_true', help='disable color output (default for non-interactive sessions)')
     parser.add_argument('-f', '--filter', dest='f', type=str, help='only show these objects/messages (see --matcher-help for syntax)')
     parser.add_argument('-b', '--break', dest='b', type=str, help='stop on these objects/messages (see --matcher-help for syntax)')
+    parser.add_argument('-C', '--no-color', action='store_true', help='disable color output (default for non-interactive sessions)')
+    parser.add_argument('--color', action='store_true', help='force color output (default for interactive sessions)')
+    parser.add_argument('--supress', action='store_true', help='supress non-wayland output of the program')
+    parser.add_argument('--verbose', action='store_true', help='verbose output, mostly used for debugging this program')
     parser.add_argument('--libwayland', type=str, help='path to directory that contains libwayland-client.so and libwayland-server.so. Only applies to GDB and run mode. Must come before --gdb/--run argument')
     # NOTE: -g/--gdb, -r/--run and --libwayland are here only for the help text, they are processed without argparse
 
