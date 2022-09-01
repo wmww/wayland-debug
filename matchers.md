@@ -6,8 +6,8 @@ Matchers are used throughout wayland-debug to filter messages and set breakpoint
 | ---                   | --- |
 | `wl_surface`          | All events and requests on `wl_surface`s |
 | `xdg_*`               | Messages on any XDG type (using a wildcard) |
-| `5`                   | Messages on objects with ID `5` |
-| `4#12`                | Messages on the `12`th object with ID `4` |
+| `5`                   | Messages on all objects with ID `5` |
+| `4b`                  | Messages on object `4b` |
 | `.commit`             | `commit` messages on any object |
 | `wl_surface.commit`   | `commit` messages on `wl_surface`s |
 
@@ -30,7 +30,7 @@ Components of a pattern can be surrounded by braces and use the `positive ! nega
 
 | Matcher                           | Description |
 | ---                               | --- |
-| `55#0.[motion, axis]`             | Matches `.motion` and `.axis` events on the `0`th object with ID `55` |
+| `55a.[motion, axis]`              | Matches `.motion` and `.axis` events on object `55a` |
 | `[wl_pointer ! 55, 62].motion`    | Matches `.motion` events on `wl_pointer`s that do not have object ID `55` or `62` |
 
 The special matchers `*` and `!` match anything and nothing respectively.
