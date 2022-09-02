@@ -1,5 +1,6 @@
 from typing import List, Optional, Tuple
 import sys
+import os
 from enum import Enum
 import logging
 
@@ -22,6 +23,7 @@ class Arguments:
     load_path: file path to load protocol messages from (if mode is LOAD_FROM_FILE, empty string otherwise)
     filter_matcher: only messages matching this matcher will be shown by default
     stop_matcher: messages matching this matcher will be treated as a breakpoint (if the mode supports that)
+    wayland_libs: libraries to LD_PRELOAD to get a patched and debugable libwayland
     wayland_debug_args: raw arguments, excluding command_args and argument specifying command
     command_args: arguments after command that should be forwarded, or empty if none
     '''
@@ -34,6 +36,7 @@ class Arguments:
         load_path: str,
         filter_matcher: matcher.Matcher,
         stop_matcher: matcher.Matcher,
+        wayland_libs: List[str],
         wayland_debug_args: List[str],
         command_args: List[str]
     ) -> None:
@@ -44,8 +47,24 @@ class Arguments:
         self.load_path = load_path
         self.filter_matcher = filter_matcher
         self.stop_matcher = stop_matcher
+        self.wayland_libs = wayland_libs
         self.wayland_debug_args = wayland_debug_args
         self.command_args = command_args
+
+    @staticmethod
+    def default() -> 'Arguments':
+        return Arguments(
+            False,
+            False,
+            False,
+            Mode.RUN,
+            '',
+            matcher.always,
+            matcher.never,
+            _get_libwayland_libs(None),
+            ['main.py'],
+            [],
+        )
 
 def _strip_dashes(s: str) -> str:
     while s.startswith('-'):
@@ -99,6 +118,36 @@ def _select_mode(command_id: str, args) -> Optional[Mode]:
         return None
     else:
         return modes[0]
+
+def _get_libwayland_libs(explicit_path: Optional[str]) -> List[str]:
+    if explicit_path:
+        path = explicit_path
+        if not os.path.isdir(path):
+            raise RuntimeError(path + ' is not a directory')
+    else:
+        path = os.path.join(
+            os.path.dirname(__file__),
+            '..',
+            '..',
+            'resources',
+            'wayland',
+            'build',
+            'src')
+        if not os.path.isdir(path):
+            logging.warning(path + ' is not a directory, will use the system\'s libwayland. ' +
+                'consider running resources/get-libwayland.sh or specifying --libwayland')
+    client = os.path.join(path, 'libwayland-client.so')
+    result = []
+    if os.path.exists(client):
+        result.append(client)
+    else:
+        logging.warning('Wayland client library does not exist at ' + client)
+    server = os.path.join(path, 'libwayland-server.so')
+    if os.path.exists(server):
+        result.append(server)
+    else:
+        logging.warning('Wayland server library does not exist at ' + server)
+    return result
 
 def parse_args(argv: List[str]) -> Arguments:
     '''
@@ -184,6 +233,8 @@ def parse_args(argv: List[str]) -> Arguments:
         except RuntimeError as e:
             raise RuntimeError('invalid break matcher: ' + str(e))
 
+    libwayland_libs = _get_libwayland_libs(args.libwayland)
+
     return Arguments(
         show_verbose,
         show_color,
@@ -192,6 +243,7 @@ def parse_args(argv: List[str]) -> Arguments:
         load_path,
         filter_matcher,
         stop_matcher,
+        libwayland_libs,
         wayland_debug_args,
         command_args
     )

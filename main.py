@@ -49,7 +49,7 @@ def main(args: Arguments, output: Output, input_func: Callable[[str], str]) -> N
     # Instead GDB is run, an instance of wayland-debug is run inside it and main() is run in that
     if args.mode == Mode.GDB_RUNNER:
         try:
-            gdb_plugin.run_gdb(args.wayland_debug_args, args.command_args, False)
+            gdb_plugin.run_gdb(args, False)
         except RuntimeError as e:
             logging.error(e)
     else:
