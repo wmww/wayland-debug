@@ -29,7 +29,7 @@
     DEALINGS IN THE SOFTWARE.
   </copyright>
 
-  <interface name="xdg_wm_base" version="4">
+  <interface name="xdg_wm_base" version="5">
     <description summary="create desktop-style surfaces">
       The xdg_wm_base interface is exposed as a global object enabling clients
       to turn their wl_surfaces into windows in a desktop environment. It
@@ -117,7 +117,7 @@
     </event>
   </interface>
 
-  <interface name="xdg_positioner" version="4">
+  <interface name="xdg_positioner" version="5">
     <description summary="child surface positioner">
       The xdg_positioner provides a collection of rules for the placement of a
       child surface relative to a parent surface. Rules can be defined to ensure
@@ -401,7 +401,7 @@
     </request>
   </interface>
 
-  <interface name="xdg_surface" version="4">
+  <interface name="xdg_surface" version="5">
     <description summary="desktop user interface surface base interface">
       An interface that may be implemented by a wl_surface, for
       implementations that provide a desktop-style user interface.
@@ -577,7 +577,7 @@
 
   </interface>
 
-  <interface name="xdg_toplevel" version="4">
+  <interface name="xdg_toplevel" version="5">
     <description summary="toplevel surface">
       This interface defines an xdg_surface role which allows a surface to,
       among other things, set window-like properties such as maximize,
@@ -1100,9 +1100,44 @@
       <arg name="width" type="int"/>
       <arg name="height" type="int"/>
     </event>
+
+    <!-- Version 5 additions -->
+
+    <enum name="wm_capabilities" since="5">
+      <entry name="window_menu" value="1" summary="show_window_menu is available"/>
+      <entry name="maximize" value="2" summary="set_maximized and unset_maximized are available"/>
+      <entry name="fullscreen" value="3" summary="set_fullscreen and unset_fullscreen are available"/>
+      <entry name="minimize" value="4" summary="set_minimized is available"/>
+    </enum>
+
+    <event name="wm_capabilities" since="5">
+      <description summary="compositor capabilities">
+	This event advertises the capabilities supported by the compositor. If
+	a capability isn't supported, clients should hide or disable the UI
+	elements that expose this functionality. For instance, if the
+	compositor doesn't advertise support for minimized toplevels, a button
+	triggering the set_minimized request should not be displayed.
+
+	The compositor will ignore requests it doesn't support. For instance,
+	a compositor which doesn't advertise support for minimized will ignore
+	set_minimized requests.
+
+	Compositors must send this event once before the first
+	xdg_surface.configure event. When the capabilities change, compositors
+	must send this event again and then send an xdg_surface.configure
+	event.
+
+	The configured state should not be applied immediately. See
+	xdg_surface.configure for details.
+
+	The capabilities are sent as an array of 32-bit unsigned integers in
+	native endianness.
+      </description>
+      <arg name="capabilities" type="array" summary="array of 32-bit capabilities"/>
+    </event>
   </interface>
 
-  <interface name="xdg_popup" version="4">
+  <interface name="xdg_popup" version="5">
     <description summary="short-lived, popup surfaces for menus">
       A popup surface is a short-lived, temporary surface. It can be used to
       implement for example menus, popovers, tooltips and other similar user

@@ -1156,7 +1156,7 @@
     </event>
 
     <event name="leave">
-      <description summary="enter event">
+      <description summary="leave event">
 	Notification that this pad is no longer focused on the specified
 	surface.
       </description>

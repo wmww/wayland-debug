@@ -19,7 +19,7 @@
   </event>
 
   <request name="destroy" type="destructor" since="2">
-      Destroy the primary output notifier.
+    <description summary="Destroy the primary output notifier."/>
   </request>
 </interface>
 

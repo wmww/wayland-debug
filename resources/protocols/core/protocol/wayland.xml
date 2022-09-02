@@ -2231,7 +2231,8 @@
 	axis number within the same wl_pointer.frame. Note that the protocol
 	allows for other events to occur between the axis_discrete and
 	its coupled axis event, including other axis_discrete or axis
-	events.
+	events. A wl_pointer.frame must not contain more than one axis_discrete
+	event per axis type.
 
 	This event is optional; continuous scrolling devices
 	like two-finger scrolling on touchpads do not have discrete

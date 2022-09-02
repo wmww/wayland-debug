@@ -9,7 +9,7 @@
 <interface name="org_kde_plasma_virtual_desktop_management" version="2">
     <request name="get_virtual_desktop">
         <description summary="get the org_kde_plasma_virtual_desktop interface for a desktop">
-            Given the id of a particular virtual desktop, get the corresponding org_kde_plasma_virtual_desktop which represents only the desktop with that id;
+            Given the id of a particular virtual desktop, get the corresponding org_kde_plasma_virtual_desktop which represents only the desktop with that id.
         </description>
         <arg name="id" type="new_id" interface="org_kde_plasma_virtual_desktop"/>
         <arg name="desktop_id" type="string" summary="Unique id of the desktop"/>
@@ -17,7 +17,7 @@
 
     <request name="request_create_virtual_desktop">
         <description summary="ask for the creation of a new desktop at a specified position">
-            Ask the server to create a new virtual desktop, and position it at a specified position. If the position is zero or less, it will be positioned at the beginning, if the cosition is the count or more, it will be positioned at the end.
+            Ask the server to create a new virtual desktop, and position it at a specified position. If the position is zero or less, it will be positioned at the beginning, if the position is the count or more, it will be positioned at the end.
         </description>
         <arg name="name" type="string" summary="The user readable name we want for the desktop"/>
         <arg name="position" type="uint" summary="The position we want for the desktop"/>

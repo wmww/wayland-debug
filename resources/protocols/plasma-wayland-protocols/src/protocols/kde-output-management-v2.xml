@@ -78,6 +78,13 @@
     applied to the hardware and before the server side sends the applied event.
   </description>
 
+  <enum name="error">
+    <description summary="kde_output_configuration_v2 error values">
+      These error can be emitted in response to kde_output_configuration_v2 requests.
+    </description>
+    <entry name="already_applied" value="0" summary="the config is already applied"/>
+  </enum>
+
   <request name="enable">
     <description summary="enable or disable an output">
       Mark the output as enabled or disabled.
@@ -129,6 +136,9 @@
     <description summary="apply configuration changes to all output devices">
       Asks the server to apply property changes requested through this outputconfiguration
       object to all outputs on the server side.
+
+      The output configuration can be applied only once. The already_applied protocol error
+      will be posted if the apply request is called the second time.
     </description>
   </request>
 

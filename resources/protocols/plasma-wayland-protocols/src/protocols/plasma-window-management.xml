@@ -6,7 +6,7 @@
     SPDX-License-Identifier: LGPL-2.1-or-later
   ]]></copyright>
 
-  <interface name="org_kde_plasma_window_management" version="15">
+  <interface name="org_kde_plasma_window_management" version="16">
     <description summary="application windows management">
       This interface manages application windows.
       It provides requests to show and hide the desktop and emits
