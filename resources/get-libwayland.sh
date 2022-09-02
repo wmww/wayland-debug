@@ -24,7 +24,7 @@ git apply ../libwayland-patches/*.patch
 if ! test -d build
 then
     echo "Running meson…"
-    meson --buildtype=debug build
+    meson --buildtype=debug -Dtests=false, -Ddocumentation=false, -Ddtd_validation=false build
 fi
 
 echo "Building…"
