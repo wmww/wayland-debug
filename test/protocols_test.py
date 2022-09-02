@@ -20,7 +20,7 @@ class ProtocolsUpToDateTest(unittest.TestCase):
         now = datetime.now()
         last_update = datetime.fromtimestamp(timestamp)
         delta = now - last_update
-        if delta.days > 160:
+        if delta.days > 90:
             raise RuntimeError(
                 'It has been ' + str(delta.days) + ' days since the protocols were updated. ' +
                 'Please run resources/update-protocols.sh and commit any changes')
