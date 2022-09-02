@@ -14,7 +14,11 @@ then
     exit
 fi
 
-find wayland/ -type f -not -name "libwayland*.so*" | xargs rm -f
+find wayland/ \
+    -type f -a \
+    -not -name "libwayland-client*.so*" -a \
+    -not -name "libwayland-server*.so*" \
+    | xargs rm -f
 
 while find wayland/ -type d -empty | xargs rmdir 2>/dev/null
 do
