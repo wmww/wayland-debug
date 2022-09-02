@@ -58,10 +58,10 @@ def color(color: Optional[str], string: str) -> str:
 def no_color(string: str) -> str:
     return re.sub(r'\x1b\[[\d;]*m', '', string)
 
-def set_verbose(val: bool) -> None:
+def set_verbose(new_verbose: bool) -> None:
     global verbose
-    verbose = val
-    logging.getLogger().setLevel(logging.DEBUG)
+    verbose = new_verbose
+    logging.getLogger().setLevel(logging.DEBUG if new_verbose else logging.WARN)
 
 cached_project_root = None
 def project_root() -> str:

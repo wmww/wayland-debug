@@ -1,6 +1,11 @@
 import os
 import subprocess
 import shutil
+from typing import List
+
+from frontends.tui import parse_args
+from core.output import Output
+from frontends.tui import Mode, Arguments
 
 gdb_log_path = '/tmp/gdb_log.txt'
 
@@ -52,16 +57,13 @@ def run_main(args):
     out = stream.String()
     err = stream.String()
     input_func = lambda msg: 'q'
-    main.main(out, err, args, input_func)
+    main.main(parse_args(args), Output(False, False, out, err), input_func)
     assert err.buffer == '', err.buffer
     return out.buffer
 
-def run_in_gdb(wldbg_args, gdb_args, also_run):
+def run_in_gdb(wldbg_args: List[str], gdb_args: List[str], also_run: List[str]):
     from backends import gdb_plugin
     from core.util import no_color
-    assert isinstance(wldbg_args, list)
-    assert isinstance(gdb_args, list)
-    assert also_run is None or isinstance(also_run, list)
 
     if not os.environ.get('XDG_RUNTIME_DIR'):
         tmp_runtime_dir = '/tmp/wldbg-runtime-dir'
@@ -72,7 +74,7 @@ def run_in_gdb(wldbg_args, gdb_args, also_run):
         print('XDG_RUNTIME_DIR not set. Setting to ' + tmp_runtime_dir)
         os.environ['XDG_RUNTIME_DIR'] = tmp_runtime_dir
 
-    wayland_display_path = os.environ.get('XDG_RUNTIME_DIR') + '/wayland-wldbg-test'
+    wayland_display_path = os.environ['XDG_RUNTIME_DIR'] + '/wayland-wldbg-test'
     os.environ['WAYLAND_DISPLAY'] = os.path.basename(wayland_display_path)
     if os.path.exists(wayland_display_path):
         os.remove(wayland_display_path)
@@ -80,13 +82,16 @@ def run_in_gdb(wldbg_args, gdb_args, also_run):
         os.remove(wayland_display_path + '.lock')
 
     gdb_args = ['-ex', 'set logging file ' + gdb_log_path, '-ex', 'set logging on'] + gdb_args
-    args = gdb_plugin.runner.Args([get_main_path()] + wldbg_args, gdb_args)
     if os.path.exists(gdb_log_path):
         os.remove(gdb_log_path)
 
     if also_run:
         other_process = subprocess.Popen(also_run, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
+    args = Arguments.default()
+    args.mode = Mode.GDB_RUNNER
+    args.wayland_debug_args = [get_main_path()] + wldbg_args
+    args.command_args = gdb_args
     gdb_plugin.run_gdb(args, False)
 
     if also_run:
