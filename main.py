@@ -10,7 +10,7 @@ from core import matcher, ConnectionManager
 from core.util import check_gdb, set_color_output, set_verbose, color
 from core.wl import protocol
 from frontends.tui import Controller, TerminalUI, parse_args, Arguments, Mode
-from backends.libwayland_debug_output import parse
+from backends.libwayland_debug_output import parse, run_program
 from backends import gdb_plugin
 from core.output import stream, Output
 
@@ -69,7 +69,8 @@ def main(args: Arguments, output: Output, input_func: Callable[[str], str]) -> N
                 output.warn('Ignoring stop matcher when stdin is used for messages')
             piped_input_main(output, connection_list)
         elif args.mode == Mode.RUN:
-            output.error('Run mode not supported yet')
+            returncode = run_program(output, args, connection_list, ui_controller, ui_controller, input_func)
+            exit(returncode)
         else:
             assert False, 'invalid mode ' + repr(args.mode)
 
