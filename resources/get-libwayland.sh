@@ -8,6 +8,12 @@ set -euo pipefail
 # Move into the directory where this script is located
 cd "$( dirname "${BASH_SOURCE[0]}" )"
 
+# If our last attempt resulted in an incomplete build, wipe it and start over
+if test ! -d wayland/build/src/libwayland-client.so
+then
+    rm -Rf wayland/
+fi
+
 # Get the latest libwayland and move into the wayland directory
 if ! test -d wayland
 then
