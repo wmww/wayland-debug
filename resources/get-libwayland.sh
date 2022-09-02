@@ -9,15 +9,16 @@ set -euo pipefail
 cd "$( dirname "${BASH_SOURCE[0]}" )"
 
 # If our last attempt resulted in an incomplete build, wipe it and start over
-if test ! -d wayland/build/src/libwayland-client.so
+if test -d wayland -a ! -f wayland/build-complete
 then
+    echo "Wiping wayland and re-cloning…"
     rm -Rf wayland/
 fi
 
 # Get the latest libwayland and move into the wayland directory
 if ! test -d wayland
 then
-    git clone https://gitlab.freedesktop.org/wayland/wayland.git
+    git clone --depth 1 https://gitlab.freedesktop.org/wayland/wayland.git
 fi
 
 cd wayland
@@ -36,4 +37,6 @@ fi
 echo "Building…"
 ninja -C build
 
+# Touching this file means meson is in a good state, and we don't have to re-clone next time
+touch build-complete
 echo "Done"
