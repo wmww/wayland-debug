@@ -187,6 +187,14 @@
         It is a protocol error to make this request if the locked event has
         not been sent. In that case, the lock object may only be destroyed
         using the destroy request.
+        
+        Note that a correct client that wishes to exit directly after unlocking
+        the session must use the wl_display.sync request to ensure the server
+        receives and processes the unlock_and_destroy request. Otherwise
+        there is no guarantee that the server has unlocked the session due
+        to the asynchronous nature of the Wayland protocol. For example,
+        the server might terminate the client with a protocol error before
+        it processes the unlock_and_destroy request.
       </description>
     </request>
   </interface>

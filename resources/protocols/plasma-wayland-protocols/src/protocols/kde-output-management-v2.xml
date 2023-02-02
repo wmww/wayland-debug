@@ -10,7 +10,7 @@
     SPDX-License-Identifier: MIT-CMU
     ]]></copyright>
 
-<interface name="kde_output_management_v2" version="2">
+<interface name="kde_output_management_v2" version="3">
   <description summary="configuration of server outputs through clients">
     This interface enables clients to set properties of output devices for screen
     configuration purposes via the server. To this end output devices are referenced
@@ -62,7 +62,7 @@
 
 </interface>
 
-<interface name="kde_output_configuration_v2" version="2">
+<interface name="kde_output_configuration_v2" version="3">
   <description summary="configure single output devices">
     outputconfiguration is a client-specific resource that can be used to ask
     the server to apply changes to available output devices.
@@ -206,6 +206,15 @@
     <description summary="Select which primary output to use" />
     <arg name="output" type="object" interface="kde_output_device_v2" allow-null="false"/>
   </request>
-</interface>
 
+  <request name="set_priority" since="3">
+    <description summary="Set the order of outputs">
+      The order of outputs can be used to assign desktop environment components to a specific screen,
+      see kde_output_order_v1 for details. The priority is 1-based for outputs that will be enabled after
+      this changeset is applied, all outputs that are disabled need to have the index set to zero.
+    </description>
+    <arg name="outputdevice" type="object" interface="kde_output_device_v2" summary="outputdevice the index applies to" />
+    <arg name="priority" type="uint" summary="the priority of the output" />
+  </request>
+</interface>
 </protocol>

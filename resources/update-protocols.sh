@@ -45,11 +45,11 @@ done
 
 echo "Deleting unneeded files…"
 # Delete everything but XML and licenses
-find "${PROTOCOL_DIR}" -type f -and -not -iname '*.xml' -and -not -iname 'COPYING*' -and -not -iname 'LICENSE*' | xargs rm
+find "${PROTOCOL_DIR}" -type f -and -not -iname '*.xml' -and -not -iname 'COPYING*' -and -not -iname 'LICENSE*' | xargs rm -f
 # Special case this directory we don't need
 rm -Rf "${PROTOCOL_DIR}/core/tests"
 # Delete XML files that aren't Wayland protocols
-find "${PROTOCOL_DIR}" -iname '*.xml' | xargs grep -L '^<protocol name=.*>$' | xargs rm
+find "${PROTOCOL_DIR}" -iname '*.xml' | xargs grep -L '^<protocol name=.*>$' | xargs rm -f
 # Remove any directories that are now empty
 find "${PROTOCOL_DIR}" -type d -empty | xargs rmdir
 
