@@ -6,7 +6,7 @@
     SPDX-License-Identifier: LGPL-2.1-or-later
   ]]></copyright>
 
-  <interface  name="org_kde_kwin_keystate" version="3">
+  <interface  name="org_kde_kwin_keystate" version="4">
       <description summary="Key States">
         Keeps track of the states of the different keys that have a state attached to it.
       </description>
@@ -28,5 +28,8 @@
         <arg name="key" type="uint"/>
         <arg name="state" type="uint"/>
       </event>
+
+      <request name="destroy" type="destructor" since="4">
+      </request>
   </interface>
 </protocol>

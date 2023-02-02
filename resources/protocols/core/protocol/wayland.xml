@@ -177,6 +177,9 @@
     <description summary="callback object">
       Clients can handle the 'done' event to get notified when
       the related request is done.
+
+      Note, because wl_callback objects are created from multiple independent
+      factory interfaces, the wl_callback interface is frozen at version 1.
     </description>
 
     <event name="done" type="destructor">
@@ -453,6 +456,9 @@
       If the buffer uses a format that has an alpha channel, the alpha channel
       is assumed to be premultiplied in the color channels unless otherwise
       specified.
+
+      Note, because wl_buffer objects are created from multiple independent
+      factory interfaces, the wl_buffer interface is frozen at version 1.
     </description>
 
     <request name="destroy" type="destructor">
@@ -1384,8 +1390,9 @@
       that this request gives a role to a wl_surface. Often, this
       request also creates a new protocol object that represents the
       role and adds additional functionality to wl_surface. When a
-      client wants to destroy a wl_surface, they must destroy this 'role
-      object' before the wl_surface.
+      client wants to destroy a wl_surface, they must destroy this role
+      object before the wl_surface, otherwise a defunct_role_object error is
+      sent.
 
       Destroying the role object does not remove the role from the
       wl_surface, but it may stop the wl_surface from "playing the role".
@@ -1405,6 +1412,8 @@
       <entry name="invalid_transform" value="1" summary="buffer transform value is invalid"/>
       <entry name="invalid_size" value="2" summary="buffer size is invalid"/>
       <entry name="invalid_offset" value="3" summary="buffer offset is invalid"/>
+      <entry name="defunct_role_object" value="4"
+             summary="surface was destroyed before its role object"/>
     </enum>
 
     <request name="destroy" type="destructor">
@@ -2861,6 +2870,8 @@
     <enum name="error">
       <entry name="bad_surface" value="0"
 	     summary="the to-be sub-surface is invalid"/>
+      <entry name="bad_parent" value="1"
+	     summary="the to-be sub-surface parent is invalid"/>
     </enum>
 
     <request name="get_subsurface">
@@ -2870,13 +2881,17 @@
 	plain wl_surface into a sub-surface.
 
 	The to-be sub-surface must not already have another role, and it
-	must not have an existing wl_subsurface object. Otherwise a protocol
-	error is raised.
+	must not have an existing wl_subsurface object. Otherwise the
+	bad_surface protocol error is raised.
 
 	Adding sub-surfaces to a parent is a double-buffered operation on the
 	parent (see wl_surface.commit). The effect of adding a sub-surface
 	becomes visible on the next time the state of the parent surface is
 	applied.
+
+	The parent surface must not be one of the child surface's descendants,
+	and the parent must be different from the child surface, otherwise the
+	bad_parent protocol error is raised.
 
 	This request modifies the behaviour of wl_surface.commit request on
 	the sub-surface, see the documentation on wl_subsurface interface.
@@ -2932,12 +2947,10 @@
       synchronized mode, and then assume that all its child and grand-child
       sub-surfaces are synchronized, too, without explicitly setting them.
 
-      If the wl_surface associated with the wl_subsurface is destroyed, the
-      wl_subsurface object becomes inert. Note, that destroying either object
-      takes effect immediately. If you need to synchronize the removal
-      of a sub-surface to the parent surface update, unmap the sub-surface
-      first by attaching a NULL wl_buffer, update parent, and then destroy
-      the sub-surface.
+      Destroying a sub-surface takes effect immediately. If you need to
+      synchronize the removal of a sub-surface to the parent surface update,
+      unmap the sub-surface first by attaching a NULL wl_buffer, update parent,
+      and then destroy the sub-surface.
 
       If the parent wl_surface object is destroyed, the sub-surface is
       unmapped.
@@ -2948,8 +2961,7 @@
 	The sub-surface interface is removed from the wl_surface object
 	that was turned into a sub-surface with a
 	wl_subcompositor.get_subsurface request. The wl_surface's association
-	to the parent is deleted, and the wl_surface loses its role as
-	a sub-surface. The wl_surface is unmapped immediately.
+	to the parent is deleted. The wl_surface is unmapped immediately.
       </description>
     </request>
 
