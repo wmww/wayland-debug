@@ -45,18 +45,16 @@ class Controller(CommandSink,
     ):
         self.out = output
         self.connection_list = connection_list
+        self.all_messages: List[wl.Message] = []
         connection_list.add_connection_list_listener(self, True)
         self.display_matcher = display_matcher
         self.stop_matcher = stop_matcher
         self.current_connection: Optional[Connection] = None # The connection that is currently being shown
-        self.connection_explicitly_selected = False # If the current connection was selected by the user
-        # NOTE: remember to also update the readme when command help text changes
         self.commands = [
             Command('help', '[COMMAND]', self.help_command,
                 'Show this help message, or get help for a specific command'),
             Command('list', '[CONN:] [MATCHER] [~ COUNT]', self.list_command,
                 'List messages matching given matcher (or use the current filter matcher if none provided)\n' +
-                'Prepend "CONN:" to show messages from a different connection than the one currently active\n' +
                 'Append "~ COUNT" to show at most the last COUNT messages that match\n' +
                 'See ' + command_format('help matcher') + ' for matcher syntax'),
             Command('filter', '[MATCHER]', self.filter_command,
@@ -69,7 +67,8 @@ class Controller(CommandSink,
             Command('matcher', '[MATCHER]', self.matcher_command,
                 'Parse a matcher, and show it unsimplified'),
             Command('connection', '[CONNECTION]', self.connection_command,
-                'Show Wayland connections, or switch to another connection'),
+                'Show Wayland connections, or switch to seeing messages from a specific connection\n' +
+                'Switch to `all` to see messages from all connections (default)'),
             Command('resume', None, self.resume_command,
                 'Resume processing events\n' +
                 'In GDB you can also use the continue gdb command'),
@@ -107,24 +106,9 @@ class Controller(CommandSink,
     def connection_opened(self, connection_list: ConnectionList, connection: Connection) -> None:
         '''Overrides method in ConnectionList.Listener'''
         connection.add_connection_listener(self)
-        if self.current_connection:
-            if self.connection_explicitly_selected:
-                switch_current = False
-            elif self.current_connection.is_server() and not connection.is_server:
-                switch_current = False
-            else:
-                switch_current = True
-        else:
-            switch_current = True
-        if switch_current:
-            self.current_connection = connection
-            self.out.show(color(
-                good_color,
-                'Switching to new ' + _connection_get_type_str(connection) + ' connection ' + connection.name()))
-        else:
-            self.out.show(color(
-                good_color,
-                'New ' + _connection_get_type_str(connection) + ' connection ' + connection.name()))
+        self.out.show(color(
+            good_color,
+            'New ' + _connection_get_type_str(connection) + ' connection ' + connection.name()))
 
     def connection_str_changed(self, connection: Connection) -> None:
         '''Overrides method in Connection.Listener'''
@@ -136,19 +120,13 @@ class Controller(CommandSink,
 
     def connection_got_new_message(self, connection: Connection, message: wl.Message) -> None:
         '''Overrides method in Connection.Listener'''
-        assert isinstance(message, wl.Message)
-        if connection == self.current_connection:
+        self.all_messages.append(message)
+        if self.current_connection is None or connection == self.current_connection:
             if self.display_matcher.matches(message):
                 self._show_message(message)
-        if self.stop_matcher.matches(message):
-            self.out.show(color(alert_color, '    Stopped at ') + str(message).strip())
-            if connection != self.current_connection:
-                self.current_connection = connection
-                self.out.show(color(
-                    alert_color,
-                    '    and switched to ' + _connection_get_type_str(connection) + ' connection ' + connection.name() +
-                    ' where message happened'))
-            self.ui_state_listener.pause_requested()
+            if self.stop_matcher.matches(message):
+                self.out.show(color(alert_color, '    Stopped at ') + str(message).strip())
+                self.ui_state_listener.pause_requested()
 
     def connection_closed(self, connection: Connection) -> None:
         '''Overrides method in Connection.Listener'''
@@ -164,21 +142,17 @@ class Controller(CommandSink,
         '''Overrides method in UIState'''
         self.ui_state_listener.remove_listener(listener)
 
-    def show_messages(self, connection: Connection, matcher: matcher.MessageMatcher, cap: Optional[int]) -> None:
+    def show_messages(self, connection: Optional[Connection], matcher: matcher.MessageMatcher, cap: Optional[int]) -> None:
         msg = 'Messages that match ' + str(matcher)
-        if connection != self.current_connection:
+        if connection is not None and connection != self.current_connection:
             msg += ' on connection ' + connection.name()
         msg += ':'
         self.out.show(msg)
-        if connection == None:
-            self.out.show(' ╰╴ No connection')
-            return
         matching, matched, didnt_match, not_searched = self._get_matching(connection, matcher, cap)
         if not matching:
             if not self.connection_list.connections():
                 self.out.show(' ╰╴ No messages yet')
             else:
-                assert didnt_match == len(connection.messages())
                 self.out.show(' ╰╴ None of the ' + color(bad_color, str(didnt_match)) + ' messages so far')
         else:
             self.last_shown_timestamp = None
@@ -201,7 +175,7 @@ class Controller(CommandSink,
 
     def _get_matching(
         self,
-        connection: Connection,
+        connection: Optional[Connection],
         matcher: matcher.MessageMatcher,
         cap: Optional[int]
     ) -> Tuple[List[wl.Message], int, int, int]:
@@ -212,7 +186,7 @@ class Controller(CommandSink,
         if connection:
             messages = connection.messages()
         else:
-            messages = ()
+            messages = tuple(self.all_messages)
         for message in reversed(messages):
             if matcher.matches(message):
                 acc.append(message)
@@ -300,7 +274,6 @@ class Controller(CommandSink,
 
     def list_command(self, arg: str) -> None:
         cap = None
-        connection = self.current_connection
         tilde_split = arg.split('~')
         if len(tilde_split) == 2:
             try:
@@ -310,22 +283,9 @@ class Controller(CommandSink,
                 return
         arg = tilde_split[0]
         m = self.display_matcher
-        colon_split = arg.split(':')
-        if len(colon_split) == 2:
-            c = self._get_connection(colon_split[0])
-            if c == None:
-                self.out.error('"' + colon_split[0] + '" does not name a connection')
-                return
-            connection = c
-            arg = colon_split[1]
-        else:
-            arg = colon_split[0]
         if arg:
             m = self.parse_and_join(arg, None)
-        if connection is not None:
-            self.show_messages(connection, m, cap)
-        else:
-            self.out.error('No connection')
+        self.show_messages(self.current_connection, m, cap)
 
     def _get_connection(self, name: str) -> Optional[Connection]:
         name = name.lower()
@@ -340,11 +300,14 @@ class Controller(CommandSink,
 
     def connection_command(self, arg: str) -> None:
         if arg:
+            if arg == 'all':
+                self.current_connection = None
+                self.out.show('Showing messages from all connections')
+                return
             connection = self._get_connection(arg)
             if connection is not None:
                 self.current_connection = connection
                 self.out.show('Switched to connection ' + color('1;37', connection.name()))
-                self.connection_explicitly_selected = True
                 return
             else:
                 self.out.error('"' + arg + '" does not name a connection')

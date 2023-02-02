@@ -24,7 +24,7 @@ class FileLoadTests(TestCase):
 
     def test_load_file_with_comma_numbers(self):
         result = helpers.run_main(['-l', helpers.log_file_with_comma_numbers()])
-        self.assertIn('2690.6303 wl_pointer@19a.motion(time=4491984, surface_x=561.15625, surface_y=501.382812)', result)
+        self.assertIn('2690.6303 A: wl_pointer@19a.motion(time=4491984, surface_x=561.15625, surface_y=501.382812)', result)
 
     # see https://github.com/wmww/wayland-debug/issues/35
     @expectedFailure

@@ -64,7 +64,8 @@ class Message:
             (color(symbol_color, ' ↲') if not self.sent else ''))
 
     def show(self, out: Output) -> None:
-        out.show(color(timestamp_color, '{:7.4f}'.format(self.timestamp)) + ' ' + str(self))
+        conn_name = '' if self.obj.connection is None else self.obj.connection.name()
+        out.show(color(timestamp_color, '{:7.4f}'.format(self.timestamp)) + ' ' + conn_name + ': ' + str(self))
 
 class MockMessage(Message):
     def __init__(
