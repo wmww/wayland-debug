@@ -10,6 +10,7 @@ Matchers are used throughout wayland-debug to filter messages and set breakpoint
 | `4b`                  | Messages on object `4b` |
 | `.commit`             | `commit` messages on any object |
 | `wl_surface.commit`   | `commit` messages on `wl_surface`s |
+| `B: .commit`          | `commit` messages on connection `B` (the 2nd connection) |
 
 When objects are destroyed the `wl_display` gets a `.delete_id` message with the object ID of the destroyed object. To make matching these easier, you can also match to `object.destroyed`.
 
