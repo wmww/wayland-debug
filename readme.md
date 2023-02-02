@@ -50,9 +50,9 @@ To run in GDB mode without using the snap, or if the libwayland from the snap do
 In these examples `program` can be any native Wayland app or server, such as `gedit`, `weston-terminal` or `sway`. `wayland-debug` can be replaced with `./main.py` if you're not using the snap.
 
 ### Filtering messages
-Only show pointer, surface.commit and surface.destroy messages.
+Only show pointer, surface.commit and surface.destroy messages on the first connection (connection `A`).
 ```bash
-wayland-debug -f 'wl_pointer, wl_surface.[commit, destroy]' -r program
+wayland-debug -f 'A: wl_pointer, wl_surface.[commit, destroy]' -r program
 ```
 
 ### GDB with arguments

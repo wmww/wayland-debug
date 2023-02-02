@@ -1,14 +1,14 @@
 import logging
 from typing import Optional, List, Tuple
 
-from interfaces import Connection, ObjectDB
+from interfaces import Connection
 from .util import *
 from . import wl
 from .matcher import str_matcher
 
 logger = logging.getLogger(__name__)
 
-class ConnectionImpl(Connection.Sink, Connection, ObjectDB):
+class ConnectionImpl(Connection.Sink, Connection):
     def __init__(self, time: float, name: str, is_server: Optional[bool]) -> None:
         '''Create a new connection
         time: when the connection was created
@@ -23,7 +23,7 @@ class ConnectionImpl(Connection.Sink, Connection, ObjectDB):
         self.open = True
         # keys are ids, values are arrays of objects in the order they are created
         self.message_list: List[wl.Message] = []
-        self.display = wl.ResolvedObject(0.0, None, 1, 0, 'wl_display')
+        self.display = wl.ResolvedObject(self, 0.0, None, 1, 0, 'wl_display')
         self.db = {1: [self.display]}
         self.listener = new_disseminator_of_type(Connection.Listener)
 
@@ -106,7 +106,7 @@ class ConnectionImpl(Connection.Sink, Connection, ObjectDB):
         self.listener.remove_listener(listener)
 
     def create_object(self, time: float, parent: wl.ObjectBase, obj_id: int, type_name: str) -> wl.ObjectBase:
-        '''Overrides method in ObjectDB'''
+        '''Overrides method in Connection'''
         if obj_id <= 1:
             raise RuntimeError('Invalid object ID ' + str(obj_id))
         if obj_id in self.db:
@@ -127,12 +127,12 @@ class ConnectionImpl(Connection.Sink, Connection, ObjectDB):
         else:
             self.db[obj_id] = []
         generation = len(self.db[obj_id])
-        obj = wl.ResolvedObject(time, parent, obj_id, generation, type_name)
+        obj = wl.ResolvedObject(self, time, parent, obj_id, generation, type_name)
         self.db[obj_id].append(obj)
         return obj
 
     def retrieve_object(self, id: int, generation: int, type_name: Optional[str]) -> wl.ObjectBase:
-        '''Overrides method in ObjectDB'''
+        '''Overrides method in Connection'''
         try:
             obj_list = self.db[id]
         except KeyError as e:
@@ -149,7 +149,7 @@ class ConnectionImpl(Connection.Sink, Connection, ObjectDB):
         return obj
 
     def wl_display(self) -> wl.ObjectBase:
-        '''Overrides method in ObjectDB'''
+        '''Overrides method in Connection'''
         return self.display
 
     def _set_title(self, title: str) -> None:

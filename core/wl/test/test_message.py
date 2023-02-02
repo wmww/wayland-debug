@@ -27,7 +27,7 @@ class TestMockMessage(TestCase):
         self.assertTrue(str(self.m))
 
     def test_resolve(self):
-        db = mock.Mock(spec=interfaces.ObjectDB)
+        db = mock.Mock(spec=interfaces.Connection)
         self.m.resolve(db)
 
     def test_used_objects(self):

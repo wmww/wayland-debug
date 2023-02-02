@@ -3,6 +3,14 @@ from core.matcher import *
 from core.wl.object import MockObject
 from core.wl.message import MockMessage
 from core.wl import Arg
+from interfaces import Connection
+
+class MockConnection(Connection):
+    def __init__(self, name: str):
+        self.name_ = name
+
+    def name(self) -> str:
+        return self.name_
 
 class TestShowMatcherHelp(TestCase):
     def test_shows_matcher_help(self):
@@ -194,6 +202,24 @@ class TestParsedMessageMatcher(TestCase):
         self.assertFalse(m.matches(MockMessage(
             obj=MockObject(type='wl_display', id=1),
             name='delete_id')))
+
+    def test_connection_can_be_matched(self):
+        m = parse('FOO:')
+        self.assertTrue(m.matches(MockMessage(obj=MockObject(conn=MockConnection(name='FOO')))))
+        self.assertFalse(m.matches(MockMessage(obj=MockObject(conn=MockConnection(name='BAR')))))
+
+    def test_unknown_connection_can_be_matched(self):
+        m = parse('unknown:')
+        self.assertTrue(m.matches(MockMessage(obj=MockObject(conn=None))))
+        self.assertFalse(m.matches(MockMessage(obj=MockObject(conn=MockConnection(name='BAR')))))
+
+    def test_complex_connection_matcher(self):
+        m = parse('[*OO, BAR ! XOO]: wl_pointer')
+        self.assertTrue(m.matches(MockMessage(obj=MockObject(conn=MockConnection(name='FOO'), type='wl_pointer'))))
+        self.assertTrue(m.matches(MockMessage(obj=MockObject(conn=MockConnection(name='YOO'), type='wl_pointer'))))
+        self.assertTrue(m.matches(MockMessage(obj=MockObject(conn=MockConnection(name='BAR'), type='wl_pointer'))))
+        self.assertFalse(m.matches(MockMessage(obj=MockObject(conn=MockConnection(name='XOO'), type='wl_pointer'))))
+        self.assertFalse(m.matches(MockMessage(obj=MockObject(conn=MockConnection(name='FOO'), type='wl_touch'))))
 
 class TestJoinMatchers(TestCase):
     def test_join_lists_with_negative(self):
