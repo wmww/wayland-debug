@@ -103,12 +103,14 @@ class UnresolvedObject(ObjectBase):
 class MockObject(ObjectBase):
     def __init__(
         self,
+        conn: Optional[Connection] = None,
         create_time: float = 0.0,
         id: int = 1,
         generation: int = 0,
         type: Optional[str] = 'mock_type'
     ) -> None:
         super().__init__(id)
+        self.connection = conn
         self.create_time = create_time
         self.generation = generation
         self.type = type
