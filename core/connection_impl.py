@@ -23,7 +23,7 @@ class ConnectionImpl(Connection.Sink, Connection):
         self.open = True
         # keys are ids, values are arrays of objects in the order they are created
         self.message_list: List[wl.Message] = []
-        self.display = wl.ResolvedObject(0.0, None, 1, 0, 'wl_display')
+        self.display = wl.ResolvedObject(self, 0.0, None, 1, 0, 'wl_display')
         self.db = {1: [self.display]}
         self.listener = new_disseminator_of_type(Connection.Listener)
 
@@ -127,7 +127,7 @@ class ConnectionImpl(Connection.Sink, Connection):
         else:
             self.db[obj_id] = []
         generation = len(self.db[obj_id])
-        obj = wl.ResolvedObject(time, parent, obj_id, generation, type_name)
+        obj = wl.ResolvedObject(self, time, parent, obj_id, generation, type_name)
         self.db[obj_id].append(obj)
         return obj
 

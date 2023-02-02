@@ -1,9 +1,10 @@
 import re
-from typing import List, Set, Tuple, Generic, TypeVar, Any, Callable, cast
+from typing import List, Set, Optional, Tuple, Generic, TypeVar, Any, Callable, cast
 
 from core.util import *
 from core.letter_id_generator import letter_id_to_number
 from core import wl
+from interfaces import Connection
 
 T = TypeVar('T')
 U = TypeVar('U')
@@ -218,16 +219,20 @@ class ObjectNameMatcher(Matcher[wl.ObjectBase]):
 class MessagePattern(Matcher[wl.Message]):
     def __init__(
         self,
+        conn_matcher: Matcher[Optional[Connection]],
         obj_matcher: Matcher[wl.ObjectBase],
         name_matcher: Matcher[str],
         args_matcher: Matcher[Tuple[wl.Arg.Base, ...]]
     ) -> None:
+        self.conn_matcher = conn_matcher
         self.obj_matcher = obj_matcher
         self.name_matcher = name_matcher
         self.args_matcher = args_matcher
         self.match_destroyed = self.name_matcher.matches('destroyed')
 
     def matches(self, message: wl.Message) -> bool:
+        if not self.conn_matcher.matches(message.obj.connection):
+            return False
         if (self.match_destroyed and
             message.destroyed_obj is not None and
             self.obj_matcher.matches(message.destroyed_obj)
@@ -242,15 +247,18 @@ class MessagePattern(Matcher[wl.Message]):
         return True
 
     def simplify(self) -> Matcher[wl.Message]:
+        self.conn_matcher = self.conn_matcher.simplify()
         self.obj_matcher = self.obj_matcher.simplify()
         self.name_matcher = self.name_matcher.simplify()
         self.args_matcher = self.args_matcher.simplify()
-        if (self.obj_matcher.always() is False or
+        if (self.conn_matcher.always() is False or
+            self.obj_matcher.always() is False or
             self.name_matcher.always() is False or
             self.args_matcher.always() is False
         ):
             return AlwaysMatcher(False)
-        if (self.obj_matcher.always() is True and
+        if (self.conn_matcher.always() is True and
+            self.obj_matcher.always() is True and
             self.name_matcher.always() is True and
             self.args_matcher.always() is True
         ):
@@ -258,18 +266,42 @@ class MessagePattern(Matcher[wl.Message]):
         return self
 
     def __str__(self) -> str:
-        return (
-            str(self.obj_matcher) +
-            '.' + str(self.name_matcher) +
-            '(' + str(self.args_matcher) + ')'
-        )
+        result = ''
+        if self.conn_matcher.always() is not True:
+            result += str(self.conn_matcher)
+        result += str(self.obj_matcher)
+        result += '.' + str(self.name_matcher)
+        result += '(' + str(self.args_matcher) + ')'
+        return result
 
     def __repr__(self) -> str:
         return ('Message(' +
+            repr(self.conn_matcher) + ', ' +
             repr(self.obj_matcher) + ', ' +
             repr(self.name_matcher) + ', ' +
             repr(self.args_matcher) + ')'
         )
+
+class ConnectionMatcher(Matcher[Optional[Connection]]):
+    def __init__(self, str_matcher: Matcher[str]) -> None:
+        self.str_matcher = str_matcher
+
+    def matches(self, conn: Optional[Connection]) -> bool:
+        name = conn.name() if conn is not None else 'unknown'
+        return self.str_matcher.matches(name)
+
+    def simplify(self) -> Matcher[Optional[Connection]]:
+        self.str_matcher = self.str_matcher.simplify()
+        if isinstance(self.str_matcher, AlwaysMatcher):
+            return self.str_matcher
+        else:
+            return self
+
+    def __str__(self) -> str:
+        return str(self.str_matcher)
+
+    def __repr__(self) -> str:
+        return 'Connection(' + repr(self.str_matcher) + ')'
 
 always: Matcher[Any] = AlwaysMatcher(True)
 never: Matcher[Any] = AlwaysMatcher(False)
@@ -430,30 +462,33 @@ def _parse_obj_matcher(text: str) -> Matcher[wl.ObjectBase]:
 def _parse_message_pattern(text: str) -> Matcher[wl.Message]:
     if not text:
         return AlwaysMatcher(True)
-    type_m: Matcher[str] = AlwaysMatcher(True)
-    id_m: Matcher[Tuple[int, int]] = AlwaysMatcher(True)
-    name_m: Matcher[str] = AlwaysMatcher(True)
-    args_m: Matcher[Tuple[wl.Arg.Base, ...]] = AlwaysMatcher(True)
-    dot_split = _split_pair(text, '.')
+    colon_split = _split_pair(text, ':')
+    if colon_split is not None:
+        conn_text, message_text = colon_split
+    else:
+        message_text = text
+        conn_text = '*'
+    dot_split = _split_pair(message_text, '.')
     if dot_split is not None:
         obj_text, name_and_arg_text = dot_split
-        peren_split = _split_peren_at_end(text)
+        peren_split = _split_peren_at_end(message_text)
         if peren_split is not None:
             name_text, arg_text = peren_split
         else:
             name_text = name_and_arg_text
             arg_text = ''
     else:
-        peren_split = _split_peren_at_end(text)
+        peren_split = _split_peren_at_end(message_text)
         if peren_split is not None:
             obj_text, arg_text = peren_split
         else:
-            obj_text = text
+            obj_text = message_text
             arg_text = ''
         name_text = ''
     if arg_text:
         raise RuntimeError(text + ' has argument matcher component, this is not yet implemented')
     return MessagePattern(
+        ConnectionMatcher(_parse_text_matcher(conn_text)),
         _parse_obj_matcher(obj_text),
         _parse_text_matcher(name_text),
         AlwaysMatcher(True)

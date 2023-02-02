@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 class ObjectBase:
     def __init__(self, obj_id: int) -> None:
         assert obj_id > 0
+        self.connection: Optional[Connection] = None
         self.id = obj_id
         self.generation: Optional[int] = None
         self.type: Optional[str] = None
@@ -59,9 +60,18 @@ class ObjectBase:
         raise NotImplementedError()
 
 class ResolvedObject(ObjectBase):
-    def __init__(self, create_time: float, parent_obj: Optional[ObjectBase], obj_id: int, generation: int, type_name: Optional[str]) -> None:
+    def __init__(
+        self,
+        conn: Connection,
+        create_time: float,
+        parent_obj: Optional[ObjectBase],
+        obj_id: int,
+        generation: int,
+        type_name: Optional[str]
+    ) -> None:
         assert generation >= 0
         super().__init__(obj_id)
+        self.connection = conn
         self.create_time = create_time
         self.parent = parent_obj
         self.generation = generation
