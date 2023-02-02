@@ -8,7 +8,7 @@ from core.wl.object import MockObject
 class TestUnresolvedObject(TestCase):
     def test_resolves_to_object_returned_by_db(self):
         o = UnresolvedObject(7, None)
-        db = Mock(spec=interfaces.ObjectDB)
+        db = Mock(spec=interfaces.Connection)
         expected_obj = MockObject()
         db.retrieve_object = Mock(return_value=expected_obj)
         r = o.resolve(db)
@@ -16,7 +16,7 @@ class TestUnresolvedObject(TestCase):
 
     def test_requests_right_object_with_null_type_from_db(self):
         o = UnresolvedObject(7, None)
-        db = Mock(spec=interfaces.ObjectDB)
+        db = Mock(spec=interfaces.Connection)
         expected_obj = MockObject()
         db.retrieve_object = Mock(return_value=expected_obj)
         o.resolve(db)
@@ -24,7 +24,7 @@ class TestUnresolvedObject(TestCase):
 
     def test_requests_right_object_with_non_null_type_from_db(self):
         o = UnresolvedObject(7, 'some_type')
-        db = Mock(spec=interfaces.ObjectDB)
+        db = Mock(spec=interfaces.Connection)
         expected_obj = MockObject()
         db.retrieve_object = Mock(return_value=expected_obj)
         o.resolve(db)

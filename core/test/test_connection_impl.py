@@ -169,10 +169,6 @@ class TestConnectionImpl(TestCase):
         self.c.close(1.0)
         self.l.connection_got_new_message.connection_closed(self.c)
 
-class TestObjectDBImpl(TestCase):
-    def setUp(self):
-        self.c = ConnectionImpl(0.0, 'BAR', False)
-
     def test_can_create_registry(self):
         self.c.create_object(0.0, self.c.wl_display(), 2, 'wl_registry')
 

@@ -1,7 +1,7 @@
 from typing import Optional, Tuple
 
 from core.util import *
-from interfaces import ObjectDB
+from interfaces import Connection
 from .object import ObjectBase, MockObject
 from .arg import Arg
 from core.output import Output
@@ -20,21 +20,21 @@ class Message:
         self.args = args
         self.destroyed_obj: Optional[ObjectBase] = None
 
-    def resolve(self, db: ObjectDB) -> None:
+    def resolve(self, conn: Connection) -> None:
         if not self.obj.resolved():
-            self.obj = self.obj.resolve(db)
+            self.obj = self.obj.resolve(conn)
         if self.obj.type == 'wl_registry' and self.name == 'bind':
             assert len(self.args) == 4
             assert isinstance(self.args[1], Arg.String)
             assert isinstance(self.args[3], Arg.Object)
             self.args[3].set_type(self.args[1].value)
-        if self.obj == db.wl_display() and self.name == 'delete_id' and len(self.args) > 0:
+        if self.obj == conn.wl_display() and self.name == 'delete_id' and len(self.args) > 0:
             first_arg = self.args[0]
             assert isinstance(first_arg, Arg.Int)
-            self.destroyed_obj = db.retrieve_object(first_arg.value, -1, None)
+            self.destroyed_obj = conn.retrieve_object(first_arg.value, -1, None)
             self.destroyed_obj.destroy(self.timestamp)
         for i, arg in enumerate(self.args):
-            arg.resolve(db, self, i)
+            arg.resolve(conn, self, i)
 
     def used_objects(self) -> Tuple[ObjectBase, ...]:
         result = []

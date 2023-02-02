@@ -5,7 +5,7 @@ from core.util import *
 from . import protocol
 
 if TYPE_CHECKING:
-    from interfaces import ObjectDB
+    from interfaces import Connection
     from . import Message, ObjectBase
 
 class Arg:
@@ -13,7 +13,7 @@ class Arg:
         def __init__(self) -> None:
             self.name: Optional[str] = None
 
-        def resolve(self, db: 'ObjectDB', message: 'Message', index: int) -> None:
+        def resolve(self, conn: 'Connection', message: 'Message', index: int) -> None:
             if self.name is None and message.obj.type is not None:
                 self.name = protocol.get_arg_name(message.obj.type, message.name, index)
 
@@ -34,8 +34,8 @@ class Arg:
         def __init__(self, value: int) -> None:
             super().__init__()
             self.value = value
-        def resolve(self, db: 'ObjectDB', message: 'Message', index: int) -> None:
-            super().resolve(db, message, index)
+        def resolve(self, conn: 'Connection', message: 'Message', index: int) -> None:
+            super().resolve(conn, message, index)
             if message.obj.type is not None:
                 labels = protocol.look_up_enum(message.obj.type, message.name, index, self.value)
                 if labels:
@@ -67,8 +67,8 @@ class Arg:
         def __init__(self, type_: Optional[str] = None) -> None:
             super().__init__()
             self.type = type_
-        def resolve(self, db: 'ObjectDB', message: 'Message', index: int) -> None:
-            super().resolve(db, message, index)
+        def resolve(self, conn: 'Connection', message: 'Message', index: int) -> None:
+            super().resolve(conn, message, index)
             if self.type is None and message.obj.type is not None:
                 self.type = protocol.look_up_interface(message.obj.type, message.name, index)
 
@@ -86,17 +86,17 @@ class Arg:
                 self.obj.type = new_type
             assert new_type == self.obj.type, 'Object arg already has type ' + str(self.obj.type) + ', so can not be set to ' + new_type
 
-        def resolve(self, db: 'ObjectDB', message: 'Message', index: int) -> None:
-            super().resolve(db, message, index)
+        def resolve(self, conn: 'Connection', message: 'Message', index: int) -> None:
+            super().resolve(conn, message, index)
             if not self.obj.resolved():
                 if self.is_new:
                     try:
                         if self.obj.type is None:
                             raise RuntimeError('has no type')
-                        db.create_object(message.timestamp, message.obj, self.obj.id, self.obj.type)
+                        conn.create_object(message.timestamp, message.obj, self.obj.id, self.obj.type)
                     except RuntimeError as e:
                         logging.warning('Unable to resolve object argument ' + str(self) + ': ' + str(e))
-                self.obj = self.obj.resolve(db)
+                self.obj = self.obj.resolve(conn)
 
         def value_to_str(self) -> str:
             return (color(good_color, 'new ') if self.is_new else '') + str(self.obj)
@@ -112,11 +112,11 @@ class Arg:
         def __init__(self, values: Optional[List['Arg.Base']] = None) -> None:
             super().__init__()
             self.values = values
-        def resolve(self, db: 'ObjectDB', message: 'Message', index: int) -> None:
-            super().resolve(db, message, index)
+        def resolve(self, conn: 'Connection', message: 'Message', index: int) -> None:
+            super().resolve(conn, message, index)
             if self.values is not None:
                 for v in self.values:
-                    v.resolve(db, message, index)
+                    v.resolve(conn, message, index)
                     v.name = None # hack to stop names appearing in every array element
         def value_to_str(self) -> str:
             if self.values is not None:

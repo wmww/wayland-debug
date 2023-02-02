@@ -1,7 +1,7 @@
 import logging
 from typing import Optional
 
-from interfaces import ObjectDB
+from interfaces import Connection
 from core.util import *
 from core.letter_id_generator import number_to_letter_id
 
@@ -17,7 +17,7 @@ class ObjectBase:
         self.destroy_time: Optional[float] = None
         self.alive = True
 
-    def resolve(self, db: ObjectDB) -> 'ObjectBase':
+    def resolve(self, conn: Connection) -> 'ObjectBase':
         return self
 
     def type_str(self) -> str:
@@ -75,9 +75,9 @@ class UnresolvedObject(ObjectBase):
         super().__init__(obj_id)
         self.type = type_name
 
-    def resolve(self, db: ObjectDB) -> ObjectBase:
+    def resolve(self, conn: Connection) -> ObjectBase:
         try:
-            resolved = db.retrieve_object(self.id, -1, self.type)
+            resolved = conn.retrieve_object(self.id, -1, self.type)
             assert isinstance(resolved, ObjectBase)
             return resolved
         except RuntimeError as e:

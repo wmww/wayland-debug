@@ -5,5 +5,4 @@ from .command_sink import CommandSink
 from .connection import Connection
 from .connection_id_sink import ConnectionIDSink
 from .connection_list import ConnectionList
-from .object_db import ObjectDB
 from .ui_state import UIState

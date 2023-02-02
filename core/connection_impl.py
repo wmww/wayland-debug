@@ -1,14 +1,14 @@
 import logging
 from typing import Optional, List, Tuple
 
-from interfaces import Connection, ObjectDB
+from interfaces import Connection
 from .util import *
 from . import wl
 from .matcher import str_matcher
 
 logger = logging.getLogger(__name__)
 
-class ConnectionImpl(Connection.Sink, Connection, ObjectDB):
+class ConnectionImpl(Connection.Sink, Connection):
     def __init__(self, time: float, name: str, is_server: Optional[bool]) -> None:
         '''Create a new connection
         time: when the connection was created
@@ -106,7 +106,7 @@ class ConnectionImpl(Connection.Sink, Connection, ObjectDB):
         self.listener.remove_listener(listener)
 
     def create_object(self, time: float, parent: wl.ObjectBase, obj_id: int, type_name: str) -> wl.ObjectBase:
-        '''Overrides method in ObjectDB'''
+        '''Overrides method in Connection'''
         if obj_id <= 1:
             raise RuntimeError('Invalid object ID ' + str(obj_id))
         if obj_id in self.db:
@@ -132,7 +132,7 @@ class ConnectionImpl(Connection.Sink, Connection, ObjectDB):
         return obj
 
     def retrieve_object(self, id: int, generation: int, type_name: Optional[str]) -> wl.ObjectBase:
-        '''Overrides method in ObjectDB'''
+        '''Overrides method in Connection'''
         try:
             obj_list = self.db[id]
         except KeyError as e:
@@ -149,7 +149,7 @@ class ConnectionImpl(Connection.Sink, Connection, ObjectDB):
         return obj
 
     def wl_display(self) -> wl.ObjectBase:
-        '''Overrides method in ObjectDB'''
+        '''Overrides method in Connection'''
         return self.display
 
     def _set_title(self, title: str) -> None:
