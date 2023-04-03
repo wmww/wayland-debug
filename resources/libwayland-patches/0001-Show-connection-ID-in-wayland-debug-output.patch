@@ -1,20 +1,46 @@
-From 76731b05bb37cac77f10dc7e0a6fba327c03bd09 Mon Sep 17 00:00:00 2001
-From: Sophie Winter <wm@wmww.sh>
-Date: Wed, 24 Aug 2022 18:49:31 -0700
-Subject: [PATCH] Show connection address in wayland-debug output
+From d68edcbb5eb106620729f62a4ffa0d8cfbc27661 Mon Sep 17 00:00:00 2001
+From: Sophie Winter <git@phie.me>
+Date: Mon, 3 Apr 2023 14:38:01 -0700
+Subject: [PATCH] Show connection ID in wayland-debug output
 
 ---
- src/connection.c      | 5 +++--
- src/wayland-client.c  | 8 ++++----
- src/wayland-private.h | 2 +-
- src/wayland-server.c  | 2 +-
- 4 files changed, 9 insertions(+), 8 deletions(-)
+ src/connection.c      | 10 ++++++++--
+ src/wayland-client.c  |  8 ++++----
+ src/wayland-private.h |  2 +-
+ src/wayland-server.c  |  2 +-
+ 4 files changed, 14 insertions(+), 8 deletions(-)
 
 diff --git a/src/connection.c b/src/connection.c
-index ceaeac1..8b46adc 100644
+index ceaeac1..5358a70 100644
 --- a/src/connection.c
 +++ b/src/connection.c
-@@ -1263,7 +1263,7 @@ wl_closure_queue(struct wl_closure *closure, struct wl_connection *connection)
+@@ -44,6 +44,8 @@
+ #include "wayland-private.h"
+ #include "wayland-os.h"
+ 
++int monotonic_connection_count = 0;
++
+ static inline uint32_t
+ div_roundup(uint32_t n, size_t a)
+ {
+@@ -69,6 +71,7 @@ struct wl_connection {
+ 	struct wl_ring_buffer fds_in, fds_out;
+ 	int fd;
+ 	int want_flush;
++	int conn_id;
+ };
+ 
+ static int
+@@ -176,6 +179,8 @@ wl_connection_create(int fd)
+ 		return NULL;
+ 
+ 	connection->fd = fd;
++	connection->conn_id = monotonic_connection_count << 8 | fd;
++	monotonic_connection_count += 1;
+ 
+ 	return connection;
+ }
+@@ -1263,7 +1268,7 @@ wl_closure_queue(struct wl_closure *closure, struct wl_connection *connection)
  }
  
  void
@@ -23,22 +49,22 @@ index ceaeac1..8b46adc 100644
  		 int send, int discarded, uint32_t (*n_parse)(union wl_argument *arg))
  {
  	int i;
-@@ -1283,8 +1283,9 @@ wl_closure_print(struct wl_closure *closure, struct wl_object *target,
+@@ -1283,8 +1288,9 @@ wl_closure_print(struct wl_closure *closure, struct wl_object *target,
  	clock_gettime(CLOCK_REALTIME, &tp);
  	time = (tp.tv_sec * 1000000L) + (tp.tv_nsec / 1000);
  
 -	fprintf(f, "[%7u.%03u] %s%s%s@%u.%s(",
-+	fprintf(f, "[%7u.%03u] <%p> %s%s%s@%u.%s(",
++	fprintf(f, "[%7u.%03u] <%d> %s%s%s@%u.%s(",
  		time / 1000, time % 1000,
-+		connection,
++		connection->conn_id,
  		discarded ? "discarded " : "",
  		send ? " -> " : "",
  		target->interface->name, target->id,
 diff --git a/src/wayland-client.c b/src/wayland-client.c
-index 90fb9c7..0997491 100644
+index 105f9be..d0a9d5b 100644
 --- a/src/wayland-client.c
 +++ b/src/wayland-client.c
-@@ -854,7 +854,7 @@ wl_proxy_marshal_array_flags(struct wl_proxy *proxy, uint32_t opcode,
+@@ -886,7 +886,7 @@ wl_proxy_marshal_array_flags(struct wl_proxy *proxy, uint32_t opcode,
  	}
  
  	if (debug_client)
@@ -47,7 +73,7 @@ index 90fb9c7..0997491 100644
  
  	if (wl_closure_send(closure, proxy->display->connection)) {
  		wl_log("Error sending request: %s\n", strerror(errno));
-@@ -1575,7 +1575,7 @@ dispatch_event(struct wl_display *display, struct wl_event_queue *queue)
+@@ -1611,7 +1611,7 @@ dispatch_event(struct wl_display *display, struct wl_event_queue *queue)
  	proxy_destroyed = !!(proxy->flags & WL_PROXY_FLAG_DESTROYED);
  	if (proxy_destroyed) {
  		if (debug_client)
@@ -56,7 +82,7 @@ index 90fb9c7..0997491 100644
  		destroy_queued_closure(closure);
  		return;
  	}
-@@ -1584,13 +1584,13 @@ dispatch_event(struct wl_display *display, struct wl_event_queue *queue)
+@@ -1620,13 +1620,13 @@ dispatch_event(struct wl_display *display, struct wl_event_queue *queue)
  
  	if (proxy->dispatcher) {
  		if (debug_client)
@@ -86,10 +112,10 @@ index 9274f1b..6764e08 100644
  		 uint32_t (*n_parse)(union wl_argument *arg));
  
 diff --git a/src/wayland-server.c b/src/wayland-server.c
-index a44982f..5b4e0df 100644
+index d51acc6..992fd3c 100644
 --- a/src/wayland-server.c
 +++ b/src/wayland-server.c
-@@ -156,7 +156,7 @@ log_closure(struct wl_resource *resource,
+@@ -157,7 +157,7 @@ log_closure(struct wl_resource *resource,
  	struct wl_protocol_logger_message message;
  
  	if (debug_server)
