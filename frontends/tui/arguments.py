@@ -122,8 +122,6 @@ def _select_mode(command_id: str, args) -> Optional[Mode]:
 def _get_libwayland_libs(explicit_path: Optional[str]) -> List[str]:
     if explicit_path:
         path = explicit_path
-        if not os.path.isdir(path):
-            raise RuntimeError(path + ' is not a directory')
     else:
         path = os.path.join(
             os.path.dirname(__file__),
@@ -133,9 +131,10 @@ def _get_libwayland_libs(explicit_path: Optional[str]) -> List[str]:
             'wayland',
             'build',
             'src')
-        if not os.path.isdir(path):
-            logging.warning(path + ' is not a directory, will use the system\'s libwayland. ' +
-                'consider running resources/get-libwayland.sh or specifying --libwayland')
+    if not os.path.isdir(path):
+        logging.warning(path + ' is not a directory, will use the system\'s libwayland. ' +
+            'consider running resources/get-libwayland.sh or specifying --libwayland')
+        return []
     client = os.path.join(path, 'libwayland-client.so')
     result = []
     if os.path.exists(client):
