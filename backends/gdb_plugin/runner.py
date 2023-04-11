@@ -37,11 +37,14 @@ def run_gdb(args: Arguments, quiet: bool) -> int:
     env[python_path_var] = os.path.dirname(os.path.realpath(args.wayland_debug_args[0])) + prev
 
     # Get libwayland libs and make sure they have debug symbols
-    for lib in args.wayland_libs:
-        verify_has_debug_symbols(lib)
+    if args.wayland_lib_dir is not None:
+        for lib in ['client', 'server']:
+            lib_path = os.path.join(args.wayland_lib_dir, 'libwayland-' + lib + '.so')
+            if os.path.exists(lib_path):
+                verify_has_debug_symbols(lib_path)
 
-    # Add libwayland libs to LD_PRELOAD
-    env['LD_PRELOAD'] = ':'.join([env.get('LD_PRELOAD', '')] + args.wayland_libs)
+    # Add libwayland libs to the LD_LIBRARY_PATH
+    env['LD_LIBRARY_PATH'] = ':'.join(filter(None, [args.wayland_lib_dir, env.get('LD_LIBRARY_PATH', '')]))
 
     # All the args before the GDB option need to be sent along to the child instance
     # Since we run the child instance from the GDB command, we need to pack them all in there

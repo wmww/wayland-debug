@@ -26,7 +26,7 @@ Enabled with `-g`/`--gdb`. All subsequent command line arguments are sent direct
 GDB mode requires a libwayland that is built with debug symbols and no inlining (ie a debug build). The `wayland-debug` snap comes with such a libwayland, however if you're not using the snap or on an older/non-libc system, you may need to build libwayland yourself to use GDB mode. See [libwayland_debug_symbols.md](libwayland_debug_symbols.md) for details.
 
 ## Pipe/file modes
-libwayland has native support for dumping a simplified version of protocol messages. This is enabled by running a Wayland application with the `WAYLAND_DEBUG` environment variable set to `1` (or `client` or `server`). `wayland-debug` can parse these messages (either by loading them from a file, or receiving them via stdin). Note that if a program opens multiple Wayland connections the information becomes ambiguous and `wayland-debug` can't process it (see [#5](https://github.com/wmww/wayland-debug/issues/5)). The run mode works around this by LD_PRELOADing a patched libwayland.
+libwayland has native support for dumping a simplified version of protocol messages. This is enabled by running a Wayland application with the `WAYLAND_DEBUG` environment variable set to `1` (or `client` or `server`). `wayland-debug` can parse these messages (either by loading them from a file, or receiving them via stdin). Note that if a program opens multiple Wayland connections the information becomes ambiguous and `wayland-debug` can't process it (see [#5](https://github.com/wmww/wayland-debug/issues/5)). The run mode works around this by adding a patched libwayland to the LD_LIBRARY_PATH.
 
 ## Further info
 For a list of command line arguments, run:

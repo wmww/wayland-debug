@@ -17,8 +17,8 @@ class _Subprocess:
 
     def run(self) -> None:
         env = os.environ.copy()
-        # Add libwayland libs to LD_PRELOAD
-        env['LD_PRELOAD'] = ':'.join([env.get('LD_PRELOAD', '')] + self.args.wayland_libs)
+        # Add libwayland libs to LD_LIBRARY_PATH
+        env['LD_LIBRARY_PATH'] = ':'.join(filter(None, [self.args.wayland_lib_dir, env.get('LD_LIBRARY_PATH', '')]))
         env['WAYLAND_DEBUG'] = '1'
         logging.info('Running ' + repr(self.args.command_args))
         self.returncode = subprocess.run(
