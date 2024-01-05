@@ -117,7 +117,7 @@ def build_mock_program():
     assert meson and ninja, 'meson and ninja needed to build mock program'
     build_dir = os.path.join(mock_program_path, 'build')
     if not os.path.isdir(build_dir):
-        subprocess.run([meson, 'build'], cwd = mock_program_path).check_returncode()
+        subprocess.run([meson, 'setup', 'build'], cwd = mock_program_path).check_returncode()
     subprocess.run([ninja, '-C', build_dir]).check_returncode()
     bin_paths = (
         os.path.join(build_dir, 'mock-client'),
