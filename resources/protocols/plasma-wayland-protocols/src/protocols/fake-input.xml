@@ -5,7 +5,7 @@
 
     SPDX-License-Identifier: LGPL-2.1-or-later
   ]]></copyright>
-  <interface  name="org_kde_kwin_fake_input" version="4">
+  <interface name="org_kde_kwin_fake_input" version="5">
       <description summary="Fake input manager">
         This interface allows other processes to provide fake input events.
         Purpose is on the one hand side to provide testing facilities like XTest on X11.
@@ -79,6 +79,12 @@
       <request name="keyboard_key" since="4">
         <arg name="button" type="uint"/>
         <arg name="state" type="uint"/>
+      </request>
+
+      <!-- Version 5 additions -->
+
+      <request name="destroy" type="destructor" since="5">
+        <description summary="Destroy the fake input device"/>
       </request>
   </interface>
 </protocol>

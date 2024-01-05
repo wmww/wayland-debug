@@ -6,11 +6,12 @@
     SPDX-FileCopyrightText: 2012-2013 Collabora, Ltd.
     SPDX-FileCopyrightText: 2015 Sebastian Kügler <sebas@kde.org>
     SPDX-FileCopyrightText: 2021 Méven Car <meven.car@enioka.com>
+    SPDX-FileCopyrightText: 2023 Xaver Hugl <xaver.hugl@kde.org>
 
     SPDX-License-Identifier: MIT-CMU
     ]]></copyright>
 
-<interface name="kde_output_management_v2" version="3">
+<interface name="kde_output_management_v2" version="7">
   <description summary="configuration of server outputs through clients">
     This interface enables clients to set properties of output devices for screen
     configuration purposes via the server. To this end output devices are referenced
@@ -62,7 +63,7 @@
 
 </interface>
 
-<interface name="kde_output_configuration_v2" version="3">
+<interface name="kde_output_configuration_v2" version="7">
   <description summary="configure single output devices">
     outputconfiguration is a client-specific resource that can be used to ask
     the server to apply changes to available output devices.
@@ -215,6 +216,67 @@
     </description>
     <arg name="outputdevice" type="object" interface="kde_output_device_v2" summary="outputdevice the index applies to" />
     <arg name="priority" type="uint" summary="the priority of the output" />
+  </request>
+
+  <request name="set_high_dynamic_range" since="4">
+    <description summary="change if HDR should be enabled">
+      Sets whether or not the output should be set to HDR mode.
+    </description>
+    <arg name="outputdevice" type="object" interface="kde_output_device_v2" summary="outputdevice this setting applies to"/>
+    <arg name="enable_hdr" type="uint" summary="1 to enable, 0 to disable hdr"/>
+  </request>
+
+  <request name="set_sdr_brightness" since="4">
+    <description summary="set the brightness for sdr content">
+      Sets the brightness of standard dynamic range content in nits. Only has an effect while the output is in HDR mode.
+      Note that while the value is in nits, that doesn't necessarily translate to the same brightness on the screen.
+    </description>
+    <arg name="outputdevice" type="object" interface="kde_output_device_v2" summary="outputdevice this setting applies to"/>
+    <arg name="sdr_brightness" type="uint"/>
+  </request>
+
+  <request name="set_wide_color_gamut" since="4">
+    <description summary="change if a wide color gamut should be used">
+      Whether or not the output should use a wide color gamut
+    </description>
+    <arg name="outputdevice" type="object" interface="kde_output_device_v2" summary="outputdevice this setting applies to"/>
+    <arg name="enable_wcg" type="uint" summary="1 to enable, 0 to disable wcg"/>
+  </request>
+
+  <enum name="auto_rotate_policy">
+    <description summary="describes when auto rotate should be used"/>
+    <entry name="never" value="0"/>
+    <entry name="in_tablet_mode" value="1"/>
+    <entry name="always" value="2"/>
+  </enum>
+
+  <request name="set_auto_rotate_policy" since="5">
+    <description summary="change when auto rotate should be used"/>
+    <arg name="outputdevice" type="object" interface="kde_output_device_v2" summary="outputdevice this setting applies to"/>
+    <arg name="policy" type="uint" enum="auto_rotate_policy"/>
+  </request>
+
+  <request name="set_icc_profile_path" since="6">
+    <description summary="change the used icc profile"/>
+    <arg name="outputdevice" type="object" interface="kde_output_device_v2" summary="outputdevice this setting applies to"/>
+    <arg name="profile_path" type="string"/>
+  </request>
+
+  <request name="set_brightness_overrides" since="7">
+    <description summary="override metadata about the screen's brightness limits"/>
+    <arg name="outputdevice" type="object" interface="kde_output_device_v2" summary="outputdevice this setting applies to"/>
+    <arg name="max_peak_brightness" type="int" summary="-1 for not overriding, or positive values in nits"/>
+    <arg name="max_frame_average_brightness" type="int" summary="-1 for not overriding, or positive values in nits"/>
+    <arg name="min_brightness" type="int" summary="-1 for not overriding, or positive values in 0.0001 nits"/>
+  </request>
+
+  <request name="set_sdr_gamut_wideness" since="7">
+    <description summary="describes which gamut is assumed for sRGB applications">
+      This can be used to provide the colors users assume sRGB applications should have based on the
+      default experience on many modern sRGB screens.
+    </description>
+    <arg name="outputdevice" type="object" interface="kde_output_device_v2" summary="outputdevice this setting applies to"/>
+    <arg name="gamut_wideness" type="uint" summary="0 means rec.709 primaries, 10000 means rec.2020 primaries"/>
   </request>
 </interface>
 </protocol>

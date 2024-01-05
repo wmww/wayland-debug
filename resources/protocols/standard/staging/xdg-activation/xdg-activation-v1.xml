@@ -193,7 +193,7 @@
     <request name="destroy" type="destructor">
       <description summary="destroy the xdg_activation_token_v1 object">
         Notify the compositor that the xdg_activation_token_v1 object will no
-        longer be used.
+        longer be used. The received token stays valid.
       </description>
     </request>
   </interface>

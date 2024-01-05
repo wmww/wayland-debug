@@ -24,99 +24,6 @@
       <arg name="id" type="new_id" interface="org_kde_plasma_surface"/>
       <arg name="surface" type="object" interface="wl_surface"/>
     </request>
-
-    <!-- Lock and unlock -->
-
-    <!--
-    <request name="lock">
-      <description summary="lock the session">
-        Tell the compositor to initiate the lock sequence.
-
-        When the compositor receives this request it hides all surfaces,
-        disable all input for them and go in idle mode (usually it turns off
-        the screens or run the screen saver).
-
-        Input events resume the compositor (it turns the screens on or
-        kills the screen saver), however surfaces keep being hidden.
-
-        At this point the org_kde_plasma_shell.prepare_lock_surfaces event is emitted
-        and the shell decides what to do.
-      </description>
-    </request>
-
-    <request name="unlock">
-      <description summary="unlock the session">
-        Tell the compositor to unlock the session.
-
-        This resumes the compositor and restores all surfaces to
-        their initial state.
-
-        The shell at this point can destroy lock surfaces to save
-        resources.
-      </description>
-    </request>
-
-    <event name="prepare_lock_surfaces">
-      <description summary="tell the shell to create lock surfaces">
-	Tell the shell we want it to create lock surfaces and set their role.
-        See org_kde_plasma_shell.set_lock_role for more details.
-
-	Whether or not the shell actually implements locking, it MUST send the
-        org_kde_plasma_shell.unlock request to let the normal desktop resume.
-      </description>
-    </event>
-    -->
-
-    <!-- Desktop loading -->
-
-<!--
-    <event name="loaded">
-      <description summary="tell the shell to create and set its surfaces">
-        Tell the shell we want it to create and set its surfaces such as
-        desktops and panels.
-
-        The shell will then call org_kde_plasma_shell.desktop_ready when all
-        surfaces are ready.
-      </description>
-    </event>
-
-    <request name="desktop_ready">
-      <description summary="desktop is ready to be shown">
-	Tell the compositor, that enough desktop elements have been drawn
-	to make the desktop look ready for use.
-
-        During start-up, the compositor can wait for this request with a
-        black screen and fade the desktop in when this request is called.
-
-        If the shell surfaces take a long time to initialize, we avoid
-	showing temporary garbage.
-
-        See also the splash role in org_kde_plasma_surface.set_role.
-      </description>
-    </request>
--->
-
-    <!-- Other stuff -->
-
-<!--
-    <request name="present">
-      <description summary="present all surfaces specified">
-        Tell the compositor to present all the specified surfaces.
-      </description>
-      <arg name="surfaces" type="array" allow-null="true" summary="list of surfaces to present"/>
-    </request>
--->
-
-    <!-- Martin will discuss the whole security concept at XDC -->
-    <!--
-    <request name="add_trusted_client">
-      <description summary="add a trusted client">
-        Adds a client to the whitelist for the specified interface.
-      </description>
-      <arg name="fd" type="fd"/>
-      <arg name="interface" type="string"/>
-    </request>
-    -->
   </interface>
 
   <interface name="org_kde_plasma_surface" version="8">
@@ -181,12 +88,6 @@
       <entry name="tooltip" value="5"/>
       <entry name="criticalnotification" value="6" since="6"/>
       <entry name="appletpopup" value="7" since="8"/>
-<!--
-      <entry name="splash" value="1"/>
-      <entry name="dashboard" value="3"/>
-      <entry name="overlay" value="5"/>
-      <entry name="lock" value="7"/>
--->
     </enum>
 
     <request name="set_role">
@@ -322,6 +223,8 @@
         Set flags bitmask as described by the flag enum.
         Pass 0 to unset any flag, the surface will adjust its behavior to
         the default.
+
+        Deprecated in Plasma 6. Setting this flag will have no effect. Applications should use layer shell where appropriate.
       </description>
       <arg name="flag" type="uint" summary="panel_behavior enum value"/>
     </request>
