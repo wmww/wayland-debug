@@ -14,8 +14,8 @@ class WlPatterns:
         float_re = r'(?P<float>-?\d+(?:[\.,]\d+)?(?:[eE][+-]?\d+)?)'
         fd_re = r'(?:fd (?P<fd>\d+))'
         str_re = r'(?:"(?P<str>.*)")'
-        new_id_re = r'(?:new id (?:(?P<new_type>\w+)|(?:\[unknown\]))@(?P<new_id>\d+))'
-        obj_re = r'(?P<obj_type>\w+)@(?P<obj_id>\d+)'
+        new_id_re = r'(?:new id (?:(?P<new_type>\w+)|(?:\[unknown\]))[@#](?P<new_id>\d+))'
+        obj_re = r'(?P<obj_type>\w+)[@#](?P<obj_id>\d+)'
         array_re = r'(?P<array>array)'
         nil_re = r'(?P<nil>nil)'
         all_args_re = (
@@ -31,7 +31,7 @@ class WlPatterns:
         self.arg_re = re.compile(all_args_re)
         timestamp_regex = r'\[\s*(?P<timestamp>\d+[\.,]\d+)\s*\]'
         conn_re = r'( \<(?P<conn>\w+)\>)?'
-        message_regex = r'(?P<type>\w+)@(?P<id>\d+)\.(?P<message>\w+)\((?P<args>.*)\)$'
+        message_regex = r'(?P<type>\w+)[@#](?P<id>\d+)\.(?P<message>\w+)\((?P<args>.*)\)$'
         self.out_msg_re = re.compile(timestamp_regex + conn_re + '  -> ' + message_regex)
         self.in_msg_re = re.compile(timestamp_regex + conn_re + ' ' + message_regex)
 
