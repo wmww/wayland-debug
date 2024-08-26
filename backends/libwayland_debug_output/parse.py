@@ -31,9 +31,10 @@ class WlPatterns:
         self.arg_re = re.compile(all_args_re)
         timestamp_regex = r'\[\s*(?P<timestamp>\d+[\.,]\d+)\s*\]'
         conn_re = r'( \<(?P<conn>\w+)\>)?'
+        queue_re = r'( {.*})?'
         message_regex = r'(?P<type>\w+)[@#](?P<id>\d+)\.(?P<message>\w+)\((?P<args>.*)\)$'
-        self.out_msg_re = re.compile(timestamp_regex + conn_re + '  -> ' + message_regex)
-        self.in_msg_re = re.compile(timestamp_regex + conn_re + ' ' + message_regex)
+        self.out_msg_re = re.compile(timestamp_regex + queue_re + conn_re + '  -> ' + message_regex)
+        self.in_msg_re = re.compile(timestamp_regex + queue_re + conn_re + ' ' + message_regex)
 
     @staticmethod
     def lazy_get_instance() -> 'WlPatterns':
