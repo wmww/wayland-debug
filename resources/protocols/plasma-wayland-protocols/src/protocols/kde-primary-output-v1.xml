@@ -8,7 +8,13 @@
 
 <interface name="kde_primary_output_v1" version="2">
   <description summary="expose which is the primary display">
-      Protocol for telling which is the primary display among the selection of enabled outputs.
+    Protocol for telling which is the primary display among the selection
+    of enabled outputs.
+
+    Warning! The protocol described in this file is a desktop environment
+    implementation detail. Regular clients must not use this protocol.
+    Backward incompatible changes may be added without bumping the major
+    version of the extension.
   </description>
 
   <event name="primary_output">

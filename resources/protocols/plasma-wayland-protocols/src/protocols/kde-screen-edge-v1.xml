@@ -15,6 +15,11 @@
       policies. As an example, the compositor may consider the screen edge to be
       triggered if the pointer hits its associated screen border. Other ways may
       include using touchscreen or touchpad gestures.
+
+      Warning! The protocol described in this file is a desktop environment
+      implementation detail. Regular clients must not use this protocol.
+      Backward incompatible changes may be added without bumping the major
+      version of the extension.
     </description>
 
     <enum name="error">

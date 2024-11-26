@@ -11,6 +11,11 @@
         Allows a client to request a surface to be visible when the system is locked.
 
         This is meant to be used for specific high urgency cases like phone calls or alarms.
+
+        Warning! The protocol described in this file is a desktop environment
+        implementation detail. Regular clients must not use this protocol.
+        Backward incompatible changes may be added without bumping the major
+        version of the extension.
       </description>
 
       <enum name="error">

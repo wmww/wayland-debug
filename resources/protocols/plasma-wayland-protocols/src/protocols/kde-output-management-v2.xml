@@ -11,7 +11,7 @@
     SPDX-License-Identifier: MIT-CMU
     ]]></copyright>
 
-<interface name="kde_output_management_v2" version="7">
+<interface name="kde_output_management_v2" version="9">
   <description summary="configuration of server outputs through clients">
     This interface enables clients to set properties of output devices for screen
     configuration purposes via the server. To this end output devices are referenced
@@ -52,6 +52,9 @@
     Through this design the interface enables atomic output configuration changes if
     internally supported by the server.
 
+    Warning! The protocol described in this file is a desktop environment implementation
+    detail. Regular clients must not use this protocol. Backward incompatible
+    changes may be added without bumping the major version of the extension.
   </description>
   <request name="create_configuration">
     <description summary="provide outputconfiguration object for configuring outputs">
@@ -63,7 +66,7 @@
 
 </interface>
 
-<interface name="kde_output_configuration_v2" version="7">
+<interface name="kde_output_configuration_v2" version="9">
   <description summary="configure single output devices">
     outputconfiguration is a client-specific resource that can be used to ask
     the server to apply changes to available output devices.
@@ -167,7 +170,7 @@
     <arg name="outputdevice" type="object" interface="kde_output_device_v2" summary="outputdevice overscan applies to"/>
     <arg name="overscan" type="uint" summary="overscan value"/>
   </request>
-  
+
   <enum name="vrr_policy">
     <description summary="describes vrr policy">
       Describes when the compositor may employ variable refresh rate
@@ -276,7 +279,35 @@
       default experience on many modern sRGB screens.
     </description>
     <arg name="outputdevice" type="object" interface="kde_output_device_v2" summary="outputdevice this setting applies to"/>
-    <arg name="gamut_wideness" type="uint" summary="0 means rec.709 primaries, 10000 means rec.2020 primaries"/>
+    <arg name="gamut_wideness" type="uint" summary="0 means rec.709 primaries, 10000 means native primaries"/>
+  </request>
+
+  <enum name="color_profile_source" since="7">
+    <description summary="which source the compositor should use for the color profile on an output"/>
+    <entry name="sRGB" value="0"/>
+    <entry name="ICC" value="1"/>
+    <entry name="EDID" value="2"/>
+  </enum>
+
+  <request name="set_color_profile_source" since="8">
+    <description summary="which source the compositor should use for the color profile on an output"/>
+    <arg name="outputdevice" type="object" interface="kde_output_device_v2" summary="outputdevice this setting applies to"/>
+    <arg name="color_profile_source" type="uint" enum="color_profile_source" summary="the color profile source"/>
+  </request>
+
+  <request name="set_brightness" since="9">
+    <description summary="brightness multiplier">
+      Set the brightness modifier of the output. It doesn't specify
+      any absolute values, but is merely a multiplier on top of other
+      brightness values, like sdr_brightness and brightness_metadata.
+      0 is the minimum brightness (not completely dark) and 10000 is
+      the maximum brightness.
+      This is supported while HDR is active in versions 8 and below,
+      or when the device supports the brightness_control capability in
+      versions 9 and above.
+    </description>
+    <arg name="outputdevice" type="object" interface="kde_output_device_v2" summary="outputdevice this setting applies to"/>
+    <arg name="brightness" type="uint" summary="brightness in 0-10000"/>
   </request>
 </interface>
 </protocol>

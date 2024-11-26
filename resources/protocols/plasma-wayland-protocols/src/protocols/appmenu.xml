@@ -5,7 +5,7 @@
 
     SPDX-License-Identifier: LGPL-2.1-or-later
   ]]></copyright>
-  <interface name="org_kde_kwin_appmenu_manager" version="1">
+  <interface name="org_kde_kwin_appmenu_manager" version="2">
       <description summary="appmenu dbus address interface">
           This interface allows a client to link a window (or wl_surface) to an com.canonical.dbusmenu
           interface registered on DBus.
@@ -14,8 +14,12 @@
           <arg name="id" type="new_id" interface="org_kde_kwin_appmenu"/>
           <arg name="surface" type="object" interface="wl_surface"/>
       </request>
+      <!-- version 2 additions-->
+      <request name="release" type="destructor" since="2">
+          <description summary="destroy the org_kde_kwin_appmenu_manager object" />
+      </request>
   </interface>
-  <interface name="org_kde_kwin_appmenu" version="1">
+  <interface name="org_kde_kwin_appmenu" version="2">
       <description summary="appmenu dbus address interface">
           The DBus service name and object path where the appmenu interface is present
           The object should be registered on the session bus before sending this request.

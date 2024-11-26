@@ -10,6 +10,11 @@
     <request name="get_virtual_desktop">
         <description summary="get the org_kde_plasma_virtual_desktop interface for a desktop">
             Given the id of a particular virtual desktop, get the corresponding org_kde_plasma_virtual_desktop which represents only the desktop with that id.
+
+            Warning! The protocol described in this file is a desktop environment
+            implementation detail. Regular clients must not use this protocol.
+            Backward incompatible changes may be added without bumping the major
+            version of the extension.
         </description>
         <arg name="id" type="new_id" interface="org_kde_plasma_virtual_desktop"/>
         <arg name="desktop_id" type="string" summary="Unique id of the desktop"/>

@@ -110,7 +110,7 @@
            summary="the new temporary"/>
     </request>
 
-    <event name="format">
+    <event name="format" deprecated-since="4">
       <description summary="supported buffer format">
         This event advertises one buffer format that the server supports.
         All the supported formats are advertised once when the client
@@ -127,7 +127,7 @@
       <arg name="format" type="uint" summary="DRM_FORMAT code"/>
     </event>
 
-    <event name="modifier" since="3">
+    <event name="modifier" since="3" deprecated-since="4">
       <description summary="supported buffer format modifier">
         This event advertises the formats that the server supports, along with
         the modifiers supported for each format. All the supported modifiers
@@ -378,7 +378,7 @@
             of planes and the format, bad format, non-positive width or
             height, or bad offset or stride.
           - INVALID_WL_BUFFER, in case the cause for failure is unknown or
-            plaform specific.
+            platform specific.
         - the server creates an invalid wl_buffer, marks it as failed and
           sends a 'failed' event to the client. The result of using this
           invalid wl_buffer as an argument in any request by the client is

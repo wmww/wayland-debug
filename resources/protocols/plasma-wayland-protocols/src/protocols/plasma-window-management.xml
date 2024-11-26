@@ -6,7 +6,7 @@
     SPDX-License-Identifier: LGPL-2.1-or-later
   ]]></copyright>
 
-  <interface name="org_kde_plasma_window_management" version="16">
+  <interface name="org_kde_plasma_window_management" version="18">
     <description summary="application windows management">
       This interface manages application windows.
       It provides requests to show and hide the desktop and emits
@@ -14,6 +14,11 @@
       use it to manage the window.
 
       Only one client can bind this interface at a time.
+
+      Warning! The protocol described in this file is a desktop environment
+      implementation detail. Regular clients must not use this protocol.
+      Backward incompatible changes may be added without bumping the major
+      version of the extension.
     </description>
 
     <enum name="state">
@@ -80,14 +85,18 @@
 
     <event name="stacking_order_changed" since="11">
       <description summary="notify the client when stacking order changed">
-        This event will be sent when stacking order changed and on bind
+        This event will be sent when stacking order changed and on bind.
+
+        With version 17 this event is deprecated and will no longer be sent.
       </description>
       <arg name="ids" type="array" summary="internal windows id array"/>
     </event>
 
     <event name="stacking_order_uuid_changed" since="12">
       <description summary="notify the client when stacking order changed">
-        This event will be sent when stacking order changed and on bind
+        This event will be sent when stacking order changed and on bind.
+
+        With version 17 this event is deprecated and will no longer be sent.
       </description>
       <arg name="uuids" type="string" summary="internal windows id ;-separated"/>
     </event>
@@ -99,9 +108,20 @@
       <arg name="id" type="uint" summary="Deprecated: internal window Id"/>
       <arg name="uuid" type="string" summary="internal window uuid"/>
     </event>
+
+    <event name="stacking_order_changed_2" since="17">
+      <description summary="notify the client when stacking order changed">
+        This event will be sent when stacking order changed.
+      </description>
+    </event>
+
+    <request name="get_stacking_order" since="17">
+      <description summary="get the stacking order"/>
+      <arg name="stacking_order" type="new_id" interface="org_kde_plasma_stacking_order"/>
+    </request>
   </interface>
 
-  <interface name="org_kde_plasma_window" version="16">
+  <interface name="org_kde_plasma_window" version="18">
     <description summary="interface to control application windows">
       Manages and control an application window.
 
@@ -380,6 +400,17 @@
       </description>
       <arg name="resource_name" type="string" summary="resource name"/>
     </event>
+
+    <event name="client_geometry" since="18">
+      <description summary="The client geometry (i.e. without decorations etc) of this window in absolute coordinates">
+        This event will be sent whenever the window geometry of this org_kde_plasma_window changes.
+        The coordinates are in absolute coordinates of the windowing system.
+      </description>
+      <arg name="x" type="int" summary="x position of the org_kde_plasma_window"/>
+      <arg name="y" type="int" summary="y position of the org_kde_plasma_window"/>
+      <arg name="width" type="uint" summary="width of the org_kde_plasma_window"/>
+      <arg name="height" type="uint" summary="height of the org_kde_plasma_window"/>
+    </event>
   </interface>
 
   <interface name="org_kde_plasma_activation_feedback" version="1">
@@ -420,6 +451,23 @@
 
     <event name="finished">
         <description summary="Notifies about activation finished, either by activation or because it got invalidated"></description>
+    </event>
+  </interface>
+
+  <interface name="org_kde_plasma_stacking_order" version="17">
+    <description summary="helper object for sending the stacking order">
+      When this object is created, the compositor sends a window event for
+      each window in the stacking order, and afterwards sends the done event
+      and destroys this object.
+    </description>
+
+    <event name="window">
+      <description summary="a window in the stacking order list"/>
+      <arg name="uuid" type="string" summary="window uuid"/>
+    </event>
+
+    <event name="done" type="destructor">
+      <description summary="marks the end of the list"/>
     </event>
   </interface>
 </protocol>

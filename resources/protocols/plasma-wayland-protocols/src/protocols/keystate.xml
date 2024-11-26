@@ -6,7 +6,7 @@
     SPDX-License-Identifier: LGPL-2.1-or-later
   ]]></copyright>
 
-  <interface  name="org_kde_kwin_keystate" version="4">
+  <interface  name="org_kde_kwin_keystate" version="5">
       <description summary="Key States">
         Keeps track of the states of the different keys that have a state attached to it.
       </description>
@@ -14,11 +14,17 @@
         <entry name="capslock" value="0" />
         <entry name="numlock" value="1"/>
         <entry name="scrolllock" value="2"/>
+        <entry name="alt" value="3" since="5"/>
+        <entry name="control" value="4" since="5"/>
+        <entry name="shift" value="5" since="5"/>
+        <entry name="meta" value="6" since="5"/>
+        <entry name="altgr" value="7" since="5"/>
       </enum>
       <enum name="state">
         <entry name="unlocked" value="0" />
         <entry name="latched" value="1"/>
         <entry name="locked" value="2"/>
+        <entry name="pressed" value="3" since="5"/>
       </enum>
       <request name="fetchStates">
       </request>

@@ -12,6 +12,11 @@
           Signaling state (see https://en.wikipedia.org/wiki/VESA_Display_Power_Management_Signaling ).
           In addition it allows to request a state change. A compositor is not obliged to honor it
           and will normally automatically switch back to on state.
+
+          Warning! The protocol described in this file is a desktop environment
+          implementation detail. Regular clients must not use this protocol.
+          Backward incompatible changes may be added without bumping the major
+          version of the extension.
       </description>
       <request name="get">
           <description summary="Get org_kde_kwin_dpms for wl_output">
