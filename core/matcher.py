@@ -98,6 +98,24 @@ class EqMatcher(Matcher[T]):
     def __repr__(self) -> str:
         return 'Eq(' + self.text + ', ' + repr(self.expected) + ')'
 
+class WrapMatcher(Generic[T, U], Matcher[T]):
+    def __init__(self, wrapped: Matcher[U]) -> None:
+        self.wrapped = wrapped
+
+    def simplify(self) -> Matcher[T]:
+        self.wrapped = self.wrapped.simplify()
+        always = self.wrapped.always()
+        if always is None:
+            return self
+        else:
+            return AlwaysMatcher(always)
+
+    def __str__(self) -> str:
+        return str(self.wrapped)
+
+    def __repr__(self) -> str:
+        return type(self).__name__ + '(' + repr(self.wrapped) + ')'
+
 class PairMatcher(Matcher[Tuple[T, U]]):
     def __init__(self, a: Matcher[T], delimiter: str, b: Matcher[U]) -> None:
         self.a = a
@@ -175,46 +193,14 @@ class MatcherList(Generic[T], Matcher[T]):
     def __repr__(self) -> str:
         return 'List(positive=' + repr(self.positive) + ', negative=' + repr(self.negative) + ')'
 
-class ObjectIdMatcher(Matcher[wl.ObjectBase]):
-    def __init__(self, pair_matcher: Matcher[Tuple[int, int]]) -> None:
-        self.pair_matcher = pair_matcher
-
+class ObjectIdMatcher(WrapMatcher[wl.ObjectBase, Tuple[int, int]]):
     def matches(self, obj: wl.ObjectBase) -> bool:
         generation = obj.generation if obj.generation is not None else 0
-        return self.pair_matcher.matches((obj.id, generation))
+        return self.wrapped.matches((obj.id, generation))
 
-    def simplify(self) -> Matcher[wl.ObjectBase]:
-        self.pair_matcher = self.pair_matcher.simplify()
-        if isinstance(self.pair_matcher, AlwaysMatcher):
-            return self.pair_matcher
-        else:
-            return self
-
-    def __str__(self) -> str:
-        return str(self.pair_matcher)
-
-    def __repr__(self) -> str:
-        return 'Object(' + repr(self.pair_matcher) + ')'
-
-class ObjectNameMatcher(Matcher[wl.ObjectBase]):
-    def __init__(self, str_matcher: Matcher[str]) -> None:
-        self.str_matcher = str_matcher
-
+class ObjectNameMatcher(WrapMatcher[wl.ObjectBase, str]):
     def matches(self, obj: wl.ObjectBase) -> bool:
-        return obj.type is not None and self.str_matcher.matches(obj.type)
-
-    def simplify(self) -> Matcher[wl.ObjectBase]:
-        self.str_matcher = self.str_matcher.simplify()
-        if isinstance(self.str_matcher, AlwaysMatcher):
-            return self.str_matcher
-        else:
-            return self
-
-    def __str__(self) -> str:
-        return str(self.str_matcher)
-
-    def __repr__(self) -> str:
-        return 'ObjectName(' + repr(self.str_matcher) + ')'
+        return obj.type is not None and self.wrapped.matches(obj.type)
 
 class MessagePattern(Matcher[wl.Message]):
     def __init__(
@@ -282,26 +268,10 @@ class MessagePattern(Matcher[wl.Message]):
             repr(self.args_matcher) + ')'
         )
 
-class ConnectionMatcher(Matcher[Optional[Connection]]):
-    def __init__(self, str_matcher: Matcher[str]) -> None:
-        self.str_matcher = str_matcher
-
+class ConnectionMatcher(WrapMatcher[Optional[Connection], str]):
     def matches(self, conn: Optional[Connection]) -> bool:
         name = conn.name() if conn is not None else 'unknown'
-        return self.str_matcher.matches(name)
-
-    def simplify(self) -> Matcher[Optional[Connection]]:
-        self.str_matcher = self.str_matcher.simplify()
-        if isinstance(self.str_matcher, AlwaysMatcher):
-            return self.str_matcher
-        else:
-            return self
-
-    def __str__(self) -> str:
-        return str(self.str_matcher)
-
-    def __repr__(self) -> str:
-        return 'Connection(' + repr(self.str_matcher) + ')'
+        return self.wrapped.matches(name)
 
 always: Matcher[Any] = AlwaysMatcher(True)
 never: Matcher[Any] = AlwaysMatcher(False)
