@@ -266,6 +266,17 @@ class TestParsedMessageMatcher(TestCase):
         self.assertFalse(m.matches(MockMessage(args=(named('foo', Arg.Object(MockObject(type='xdg_popup'), False)),))))
         self.assertFalse(m.matches(MockMessage(args=(named('foo', Arg.String('xdg_surface')),))))
 
+    def test_null_in_arg_matcher(self):
+        m = parse('(foo=nil)')
+        self.assertTrue(m.matches(MockMessage(args=(named('foo', Arg.Null('wl_pointer')),))))
+        self.assertFalse(m.matches(MockMessage(args=(named('foo', Arg.Object(MockObject(type='xdg_surface'), False)),))))
+
+    def test_object_matcher_with_null_arg(self):
+        m = parse('(wl_pointer)')
+        self.assertTrue(m.matches(MockMessage(args=(Arg.Object(MockObject(type='wl_pointer'), False),))))
+        self.assertTrue(m.matches(MockMessage(args=(named('foo', Arg.Null('wl_pointer')),))))
+        self.assertFalse(m.matches(MockMessage(args=(named('foo', Arg.Null()),))))
+
     def test_arg_object_explicit(self):
         m = parse('(foo=xdg_surface@)')
         self.assertTrue(m.matches(MockMessage(args=(named('foo', Arg.Object(MockObject(type='xdg_surface'), False)),))))
