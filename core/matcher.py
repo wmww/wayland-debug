@@ -413,7 +413,9 @@ def _parse_obj_matcher(text: str) -> Matcher[wl.ObjectBase]:
     if text.startswith('[') and text.endswith(']'):
         text = text[1:-1]
         return _parse_matcher_list(text, _parse_obj_matcher)
-    at_split = _split_pair(text, '@')
+    at_split = _split_pair(text, '#')
+    if at_split is None:
+        at_split = _split_pair(text, '@')
     if at_split is not None:
         obj_name_text, obj_id_text = at_split
     elif text and ord(text[0]) >= ord('0') and ord(text[0]) <= ord('9'):
