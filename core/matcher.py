@@ -324,11 +324,16 @@ class MessagePattern(Matcher[wl.Message]):
         self.obj_matcher = obj_matcher
         self.name_matcher = name_matcher
         self.args_matcher = args_matcher
+        self.match_new = self.name_matcher.matches('new') and self.args_matcher.matches(())
         self.match_destroyed = self.name_matcher.matches('destroyed') and self.args_matcher.matches(())
 
     def matches(self, message: wl.Message) -> bool:
         if not self.conn_matcher.matches(message.obj.connection):
             return False
+        if self.match_new:
+            for arg in message.args:
+                if isinstance(arg, wl.Arg.Object) and arg.is_new and self.obj_matcher.matches(arg.obj):
+                    return True
         if (self.match_destroyed and
             message.destroyed_obj is not None and
             self.obj_matcher.matches(message.destroyed_obj)
@@ -375,7 +380,9 @@ class MessagePattern(Matcher[wl.Message]):
             repr(self.conn_matcher) + ', ' +
             repr(self.obj_matcher) + ', ' +
             repr(self.name_matcher) + ', ' +
-            repr(self.args_matcher) + ')'
+            repr(self.args_matcher) + ', ' +
+            repr(self.match_new) + ', ' +
+            repr(self.match_destroyed) + ')'
         )
 
 class ConnectionMatcher(WrapMatcher[Optional[Connection], str]):

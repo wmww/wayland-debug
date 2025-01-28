@@ -346,6 +346,13 @@ class TestParsedMessageMatcher(TestCase):
         self.assertFalse(m.matches(MockMessage(args=(Arg.Object(MockObject(type='wl_pointer'), False),))))
         self.assertFalse(m.matches(MockMessage()))
 
+    def test_object_matcher_new(self):
+        m = parse('wl_pointer.new')
+        self.assertTrue(m.matches(MockMessage(args=(Arg.Object(MockObject(type='wl_pointer'), True),))))
+        self.assertFalse(m.matches(MockMessage(args=(Arg.Object(MockObject(type='wl_pointer'), False),))))
+        self.assertFalse(m.matches(MockMessage(args=(Arg.Object(MockObject(type='wl_touch'), True),))))
+        self.assertFalse(m.matches(MockMessage(obj=MockObject(type='wl_pointer'))))
+
 class TestJoinMatchers(TestCase):
     def test_join_lists_with_negative(self):
         a = MatcherList([AlwaysMatcher(True)], [EqMatcher(5)])
