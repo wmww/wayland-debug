@@ -16,6 +16,10 @@ class TestShowMatcherHelp(TestCase):
     def test_shows_matcher_help(self):
         self.assertIn('Matchers are used throughout wayland-debug', help_text())
 
+def named(name: str, arg: Arg.Base) -> Arg.Base:
+    arg.name = name
+    return arg
+
 class TestStrMatcher(TestCase):
     def test_plain_string(self):
         m = str_matcher('foo')
@@ -221,6 +225,81 @@ class TestParsedMessageMatcher(TestCase):
         self.assertFalse(m.matches(MockMessage(obj=MockObject(conn=MockConnection(name='XOO'), type='wl_pointer'))))
         self.assertFalse(m.matches(MockMessage(obj=MockObject(conn=MockConnection(name='FOO'), type='wl_touch'))))
 
+    def test_simple_arg_matcher(self):
+        m = parse('(7)')
+        self.assertTrue(m.matches(MockMessage(args=(Arg.Int(7),))))
+        self.assertFalse(m.matches(MockMessage(args=(Arg.Int(8),))))
+
+    def test_arg_name_matcher(self):
+        m = parse('(foo=)')
+        self.assertTrue(m.matches(MockMessage(args=(named('foo', Arg.Int(7)), named('bar', Arg.Int(8))))))
+        self.assertTrue(m.matches(MockMessage(args=(named('bar', Arg.Int(8)), named('foo', Arg.Int(7))))))
+        self.assertTrue(m.matches(MockMessage(args=(named('foo', Arg.Int(8)),))))
+        self.assertFalse(m.matches(MockMessage(args=(named('bar', Arg.Int(8)),))))
+
+    def test_arg_name_and_value_matcher(self):
+        m = parse('(foo=7)')
+        self.assertTrue(m.matches(MockMessage(args=(named('foo', Arg.Int(7)), named('bar', Arg.Int(8))))))
+        self.assertTrue(m.matches(MockMessage(args=(named('bar', Arg.Int(8)), named('foo', Arg.Int(7))))))
+        self.assertFalse(m.matches(MockMessage(args=(named('foo', Arg.Int(8)), named('bar', Arg.Int(7))))))
+        self.assertTrue(m.matches(MockMessage(args=(named('bar', Arg.Int(7)), named('foo', Arg.Int(7))))))
+
+    def test_arg_object(self):
+        m = parse('(foo=xdg_surface)')
+        self.assertTrue(m.matches(MockMessage(args=(named('foo', Arg.Object(MockObject(type='xdg_surface'), False)),))))
+        self.assertTrue(m.matches(MockMessage(args=(
+            named('bar', Arg.Object(MockObject(type='xdg_popup'), False)),
+            named('foo', Arg.Object(MockObject(type='xdg_surface'), False))
+        ))))
+        self.assertFalse(m.matches(MockMessage(args=(named('foo', Arg.Object(MockObject(type='xdg_popup'), False)),))))
+        self.assertFalse(m.matches(MockMessage(args=(named('foo', Arg.String('xdg_surface')),))))
+
+    def test_multi_arg_matcher(self):
+        m = parse('(7, 8)')
+        self.assertFalse(m.matches(MockMessage(args=(Arg.Int(7),))))
+        self.assertFalse(m.matches(MockMessage(args=(Arg.Int(8),))))
+        self.assertTrue(m.matches(MockMessage(args=(Arg.Int(7), Arg.Int(8)))))
+        self.assertTrue(m.matches(MockMessage(args=(Arg.Int(8), Arg.Int(7)))))
+        self.assertFalse(m.matches(MockMessage(args=(Arg.Int(7), Arg.Int(10)))))
+        self.assertTrue(m.matches(MockMessage(args=(Arg.Int(8), Arg.Int(10), Arg.Int(7)))))
+
+    def test_multi_arg_name_matcher(self):
+        m = parse('(foo=, 7)')
+        self.assertTrue(m.matches(MockMessage(args=(named('foo', Arg.Int(8)), named('bar', Arg.Int(7))))))
+        self.assertTrue(m.matches(MockMessage(args=(named('foo', Arg.Int(7)), named('bar', Arg.Int(8))))))
+        self.assertFalse(m.matches(MockMessage(args=(named('foo', Arg.Int(10)), named('bar', Arg.Int(8))))))
+        self.assertFalse(m.matches(MockMessage(args=(named('baz', Arg.Int(7)), named('bar', Arg.Int(7))))))
+        self.assertTrue(m.matches(MockMessage(args=(named('bar', Arg.Int(7)), named('foo', Arg.Int(7))))))
+
+    def test_bang_arg_matcher(self):
+        m = parse('(7 ! foo=7)')
+        self.assertTrue(m.matches(MockMessage(args=(named('foo', Arg.Int(8)), named('bar', Arg.Int(7))))))
+        self.assertFalse(m.matches(MockMessage(args=(named('foo', Arg.Int(7)), named('bar', Arg.Int(8))))))
+        self.assertFalse(m.matches(MockMessage(args=(named('foo', Arg.Int(7)), named('bar', Arg.Int(7))))))
+
+    def test_nested_arg_matcher(self):
+        m = parse('([7, 8])')
+        self.assertTrue(m.matches(MockMessage(args=(Arg.Int(7),))))
+        self.assertTrue(m.matches(MockMessage(args=(Arg.Int(8),))))
+        self.assertFalse(m.matches(MockMessage(args=(Arg.Int(10),))))
+
+    def test_float_arg_matcher(self):
+        m = parse('(7.25)')
+        self.assertTrue(m.matches(MockMessage(args=(Arg.Float(7.25),))))
+        self.assertFalse(m.matches(MockMessage(args=(Arg.Float(7),))))
+
+    def test_int_arg_matcher_matches_floats(self):
+        m = parse('(7)')
+        self.assertTrue(m.matches(MockMessage(args=(Arg.Int(7),))))
+        self.assertTrue(m.matches(MockMessage(args=(Arg.Float(7.0),))))
+        self.assertFalse(m.matches(MockMessage(args=(Arg.Float(7.25),))))
+
+    def test_float_arg_matcher_does_not_match_ints(self):
+        m = parse('(7.0)')
+        self.assertFalse(m.matches(MockMessage(args=(Arg.Int(7),))))
+        self.assertTrue(m.matches(MockMessage(args=(Arg.Float(7),))))
+        self.assertFalse(m.matches(MockMessage(args=(Arg.Float(7.25),))))
+
 class TestJoinMatchers(TestCase):
     def test_join_lists_with_negative(self):
         a = MatcherList([AlwaysMatcher(True)], [EqMatcher(5)])
@@ -257,3 +336,9 @@ class TestJoinMatchers(TestCase):
         b = parse('! .motion')
         c = join(a, b).simplify()
         self.assertEqual(no_color(str(c)), '[wl_pointer.*(*) ! *.motion(*)]')
+
+    def test_join_arg_matcher(self):
+        a = parse('wl_pointer')
+        b = parse('(x=)')
+        c = join(a, b).simplify()
+        self.assertEqual(no_color(str(c)), '[wl_pointer.*(*), *.*(x=*)]')
