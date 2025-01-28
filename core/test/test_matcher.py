@@ -254,6 +254,16 @@ class TestParsedMessageMatcher(TestCase):
         self.assertFalse(m.matches(MockMessage(args=(named('foo', Arg.Object(MockObject(type='xdg_popup'), False)),))))
         self.assertFalse(m.matches(MockMessage(args=(named('foo', Arg.String('xdg_surface')),))))
 
+    def test_arg_object_explicit(self):
+        m = parse('(foo=xdg_surface@)')
+        self.assertTrue(m.matches(MockMessage(args=(named('foo', Arg.Object(MockObject(type='xdg_surface'), False)),))))
+        self.assertTrue(m.matches(MockMessage(args=(
+            named('bar', Arg.Object(MockObject(type='xdg_popup'), False)),
+            named('foo', Arg.Object(MockObject(type='xdg_surface'), False))
+        ))))
+        self.assertFalse(m.matches(MockMessage(args=(named('foo', Arg.Object(MockObject(type='xdg_popup'), False)),))))
+        self.assertFalse(m.matches(MockMessage(args=(named('foo', Arg.String('xdg_surface')),))))
+
     def test_multi_arg_matcher(self):
         m = parse('(7, 8)')
         self.assertFalse(m.matches(MockMessage(args=(Arg.Int(7),))))
@@ -299,6 +309,12 @@ class TestParsedMessageMatcher(TestCase):
         self.assertFalse(m.matches(MockMessage(args=(Arg.Int(7),))))
         self.assertTrue(m.matches(MockMessage(args=(Arg.Float(7),))))
         self.assertFalse(m.matches(MockMessage(args=(Arg.Float(7.25),))))
+
+    def test_string_arg_matcher(self):
+        m = parse('(="foo bar")')
+        self.assertTrue(m.matches(MockMessage(args=(Arg.String('foo bar'),))))
+        self.assertFalse(m.matches(MockMessage(args=(Arg.String('FOO BAR'),))))
+        self.assertFalse(m.matches(MockMessage(args=(Arg.Object(MockObject(type='foo bar'), False),))))
 
 class TestJoinMatchers(TestCase):
     def test_join_lists_with_negative(self):

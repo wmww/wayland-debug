@@ -503,6 +503,11 @@ def _parse_arg_value_matcher(text: str) -> Matcher[wl.Arg.Base]:
     except RuntimeError:
         pass
     try:
+        string_matcher = _parse_string_matcher(text)
+        return StringArgValueMatcher(string_matcher)
+    except RuntimeError:
+        pass
+    try:
         obj_matcher = _parse_obj_matcher(text)
         return ObjectArgValueMatcher(obj_matcher)
     except RuntimeError:
@@ -532,6 +537,12 @@ def _parse_float_matcher(text: str) -> Matcher[float]:
         return EqMatcher(float(text))
     except ValueError:
         raise RuntimeError(text + ' is not a valid float')
+
+def _parse_string_matcher(text: str) -> Matcher[str]:
+    if text.startswith('"') and text.endswith('"') and len(text) > 1:
+        return EqMatcher(text[1:-1])
+    else:
+        raise RuntimeError(text + ' is not a valid string')
 
 def _parse_generation_matcher(text: str) -> Matcher[int]:
     return EqMatcher(letter_id_to_number(text), text)
