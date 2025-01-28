@@ -244,6 +244,18 @@ class TestParsedMessageMatcher(TestCase):
         self.assertFalse(m.matches(MockMessage(args=(named('foo', Arg.Int(8)), named('bar', Arg.Int(7))))))
         self.assertTrue(m.matches(MockMessage(args=(named('bar', Arg.Int(7)), named('foo', Arg.Int(7))))))
 
+    def test_int_arg_with_labels_matcher(self):
+        m = parse('(foo)')
+        arg = Arg.Int(0)
+        arg.labels = ['foo', 'bar']
+        self.assertTrue(m.matches(MockMessage(args=(arg,))))
+        self.assertTrue(m.matches(MockMessage(args=(Arg.Int(0), arg))))
+        arg = Arg.Int(0)
+        arg.labels = ['bar', 'baz']
+        self.assertFalse(m.matches(MockMessage(args=(arg,))))
+        arg = Arg.Int(0)
+        self.assertFalse(m.matches(MockMessage(args=(arg,))))
+
     def test_arg_object(self):
         m = parse('(foo=xdg_surface)')
         self.assertTrue(m.matches(MockMessage(args=(named('foo', Arg.Object(MockObject(type='xdg_surface'), False)),))))

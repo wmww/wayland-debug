@@ -260,6 +260,20 @@ class IntArgValueMatcher(WrapMatcher[wl.Arg.Base, int]):
         else:
             return False
 
+class LabelIntArgValueMatcher(WrapMatcher[wl.Arg.Base, str]):
+    def matches(self, arg: wl.Arg.Base) -> bool:
+        if isinstance(arg, wl.Arg.Int) and hasattr(arg, 'labels'):
+            for label in arg.labels:
+                if self.wrapped.matches(label):
+                    return True
+            return False
+        if isinstance(arg, wl.Arg.Object) and isinstance(arg.obj.type, str):
+            return self.wrapped.matches(arg.obj.type)
+        elif isinstance(arg, wl.Arg.Null) and isinstance(arg.type, str):
+            return self.wrapped.matches(arg.type)
+        else:
+            return False
+
 class FloatArgValueMatcher(WrapMatcher[wl.Arg.Base, float]):
     def matches(self, arg: wl.Arg.Base) -> bool:
         if isinstance(arg, wl.Arg.Float):
@@ -505,6 +519,11 @@ def _parse_arg_value_matcher(text: str) -> Matcher[wl.Arg.Base]:
     try:
         string_matcher = _parse_string_matcher(text)
         return StringArgValueMatcher(string_matcher)
+    except RuntimeError:
+        pass
+    try:
+        text_matcher = _parse_text_matcher(text)
+        return LabelIntArgValueMatcher(text_matcher)
     except RuntimeError:
         pass
     try:
