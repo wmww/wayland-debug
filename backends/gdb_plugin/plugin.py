@@ -78,7 +78,7 @@ class WlCommand(gdb.Command):
         self.plugin = plugin
     def invoke(self, arg: str, from_tty: bool) -> None:
         self.plugin.invoke_command(arg)
-    def complete(text: str, word: str) -> None:
+    def complete(self, text: str, word: str) -> None:
         return None
 
 class WlSubcommand(gdb.Command):
@@ -89,7 +89,7 @@ class WlSubcommand(gdb.Command):
         self.command = command
     def invoke(self, arg: str, from_tty: bool) -> None:
         self.plugin.invoke_command(self.command + ' ' + arg)
-    def complete(text: str, word: str) -> None:
+    def complete(self, text: str, word: str) -> None:
         return None
 
 class Plugin:

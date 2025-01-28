@@ -26,12 +26,10 @@
 
   <interface name="zwp_linux_dmabuf_v1" version="5">
     <description summary="factory for creating dmabuf-based wl_buffers">
-      Following the interfaces from:
-      https://www.khronos.org/registry/egl/extensions/EXT/EGL_EXT_image_dma_buf_import.txt
-      https://www.khronos.org/registry/EGL/extensions/EXT/EGL_EXT_image_dma_buf_import_modifiers.txt
-      and the Linux DRM sub-system's AddFb2 ioctl.
-
       This interface offers ways to create generic dmabuf-based wl_buffers.
+
+      For more information about dmabuf, see:
+      https://www.kernel.org/doc/html/next/userspace-api/dma-buf-alloc-exchange.html
 
       Clients can use the get_surface_feedback request to get dmabuf feedback
       for a particular surface. If the client wants to retrieve feedback not

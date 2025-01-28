@@ -81,7 +81,7 @@ class Controller(CommandSink,
     def process_command(self, input_line: str) -> None:
         '''Overrides a method in CommandSink'''
         input_line = input_line.strip()
-        args = re.split(r'\s', input_line, 1)
+        args = re.split(r'\s', input_line, maxsplit=1)
         assert args
         first = no_color(args[0]).strip()
         second = '' if len(args) < 2 else no_color(args[1]).strip()

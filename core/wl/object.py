@@ -109,7 +109,8 @@ class MockObject(ObjectBase):
         generation: int = 0,
         type: Optional[str] = 'mock_type'
     ) -> None:
-        super().__init__(id)
+        super().__init__(1) # hard-coding 1 and setting it below allows 0 IDs if desired
+        self.id = id
         self.connection = conn
         self.create_time = create_time
         self.generation = generation

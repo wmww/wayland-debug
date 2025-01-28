@@ -98,6 +98,24 @@ class EqMatcher(Matcher[T]):
     def __repr__(self) -> str:
         return 'Eq(' + self.text + ', ' + repr(self.expected) + ')'
 
+class WrapMatcher(Generic[T, U], Matcher[T]):
+    def __init__(self, wrapped: Matcher[U]) -> None:
+        self.wrapped = wrapped
+
+    def simplify(self) -> Matcher[T]:
+        self.wrapped = self.wrapped.simplify()
+        always = self.wrapped.always()
+        if always is not None:
+            return AlwaysMatcher(always)
+        else:
+            return self
+
+    def __str__(self) -> str:
+        return str(self.wrapped)
+
+    def __repr__(self) -> str:
+        return type(self).__name__ + '(' + repr(self.wrapped) + ')'
+
 class PairMatcher(Matcher[Tuple[T, U]]):
     def __init__(self, a: Matcher[T], delimiter: str, b: Matcher[U]) -> None:
         self.a = a
@@ -110,8 +128,10 @@ class PairMatcher(Matcher[Tuple[T, U]]):
     def simplify(self) -> Matcher[Tuple[T, U]]:
         self.a = self.a.simplify()
         self.b = self.b.simplify()
-        if isinstance(self.a, AlwaysMatcher) and self.a.always() is self.b.always():
-            return self.a
+        a_always = self.a.always()
+        b_always = self.b.always()
+        if a_always is not None and a_always is b_always:
+            return AlwaysMatcher(a_always)
         else:
             return self
 
@@ -175,46 +195,122 @@ class MatcherList(Generic[T], Matcher[T]):
     def __repr__(self) -> str:
         return 'List(positive=' + repr(self.positive) + ', negative=' + repr(self.negative) + ')'
 
-class ObjectIdMatcher(Matcher[wl.ObjectBase]):
-    def __init__(self, pair_matcher: Matcher[Tuple[int, int]]) -> None:
-        self.pair_matcher = pair_matcher
+class ArgsMatcherList(Matcher[Tuple[wl.Arg.Base, ...]]):
+    def __init__(self, positive: List[Matcher[wl.Arg.Base]], negative: List[Matcher[wl.Arg.Base]]) -> None:
+        self.positive = positive
+        self.negative = negative
 
+    def matches(self, message: Tuple[wl.Arg.Base, ...]) -> bool:
+        result = True
+        for matcher in self.positive:
+            found_match = False
+            for arg in message:
+                if matcher.matches(arg):
+                    found_match = True
+                    break
+            if not found_match:
+                result = False
+                break
+        if result:
+            for matcher in self.negative:
+                for arg in message:
+                    if matcher.matches(arg):
+                        result = False
+                        break
+        return result
+
+    def simplify(self) -> Matcher[Tuple[wl.Arg.Base, ...]]:
+        self.positive = [pattern.simplify() for pattern in self.positive]
+        self.negative = [pattern.simplify() for pattern in self.negative]
+        for pattern in self.negative:
+            if pattern.always() is True:
+                return AlwaysMatcher(False)
+        positive_all_always_true = True
+        for pattern in self.positive:
+            if pattern.always() is False:
+                return AlwaysMatcher(False)
+            if pattern.always() is not True:
+                positive_all_always_true = False
+        self.negative = [pattern for pattern in self.negative if not pattern.always() is False]
+        if positive_all_always_true and len(self.negative) == 0:
+            return AlwaysMatcher(True)
+        return self
+
+    def __str__(self) -> str:
+        if len(self.negative) == 0:
+            return ', '.join(str(i) for i in self.positive)
+        elif len(self.positive) == 1 and self.positive[0].always() is True:
+            return color(bad_color, ' ! ') + ', '.join(str(i) for i in self.negative)
+        else:
+            return (
+                ', '.join(str(i) for i in self.positive) +
+                color(bad_color, ' ! ') +
+                ', '.join(str(i) for i in self.negative)
+            )
+
+    def __repr__(self) -> str:
+        return 'ArgsList(positive=' + repr(self.positive) + ', negative=' + repr(self.negative) + ')'
+
+class IntArgValueMatcher(WrapMatcher[wl.Arg.Base, int]):
+    def matches(self, arg: wl.Arg.Base) -> bool:
+        if isinstance(arg, wl.Arg.Int) or isinstance(arg, wl.Arg.Float) or isinstance(arg, wl.Arg.Fd):
+            return arg.value == int(arg.value) and self.wrapped.matches(int(arg.value))
+        elif isinstance(arg, wl.Arg.Object):
+            return self.wrapped.matches(arg.obj.id)
+        else:
+            return False
+
+class LabelIntArgValueMatcher(WrapMatcher[wl.Arg.Base, str]):
+    def matches(self, arg: wl.Arg.Base) -> bool:
+        if isinstance(arg, wl.Arg.Int) and hasattr(arg, 'labels'):
+            for label in arg.labels:
+                if self.wrapped.matches(label):
+                    return True
+            return False
+        if isinstance(arg, wl.Arg.Object) and isinstance(arg.obj.type, str):
+            return self.wrapped.matches(arg.obj.type)
+        elif isinstance(arg, wl.Arg.Null) and isinstance(arg.type, str):
+            return self.wrapped.matches(arg.type)
+        else:
+            return False
+
+class FloatArgValueMatcher(WrapMatcher[wl.Arg.Base, float]):
+    def matches(self, arg: wl.Arg.Base) -> bool:
+        if isinstance(arg, wl.Arg.Float):
+            return self.wrapped.matches(arg.value)
+        else:
+            return False
+
+class StringArgValueMatcher(WrapMatcher[wl.Arg.Base, str]):
+    def matches(self, arg: wl.Arg.Base) -> bool:
+        return isinstance(arg, wl.Arg.String) and self.wrapped.matches(arg.value)
+
+class ObjectArgValueMatcher(WrapMatcher[wl.Arg.Base, wl.ObjectBase]):
+    def matches(self, arg: wl.Arg.Base) -> bool:
+        if isinstance(arg, wl.Arg.Object):
+            return self.wrapped.matches(arg.obj)
+        elif isinstance(arg, wl.Arg.Null):
+            mock = wl.object.MockObject(id=0, type=arg.type)
+            return self.wrapped.matches(mock)
+        else:
+            return False
+
+class ArgMatcher(WrapMatcher[wl.Arg.Base, Tuple[str, wl.Arg.Base]]):
+    def __init__(self, name_matcher: Matcher[str], val_matcher: Matcher[wl.Arg.Base]):
+        super().__init__(PairMatcher(name_matcher, '=', val_matcher))
+
+    def matches(self, arg: wl.Arg.Base) -> bool:
+        name = arg.name if arg.name is not None else ''
+        return self.wrapped.matches((name, arg))
+
+class ObjectIdMatcher(WrapMatcher[wl.ObjectBase, Tuple[int, int]]):
     def matches(self, obj: wl.ObjectBase) -> bool:
         generation = obj.generation if obj.generation is not None else 0
-        return self.pair_matcher.matches((obj.id, generation))
+        return self.wrapped.matches((obj.id, generation))
 
-    def simplify(self) -> Matcher[wl.ObjectBase]:
-        self.pair_matcher = self.pair_matcher.simplify()
-        if isinstance(self.pair_matcher, AlwaysMatcher):
-            return self.pair_matcher
-        else:
-            return self
-
-    def __str__(self) -> str:
-        return str(self.pair_matcher)
-
-    def __repr__(self) -> str:
-        return 'Object(' + repr(self.pair_matcher) + ')'
-
-class ObjectNameMatcher(Matcher[wl.ObjectBase]):
-    def __init__(self, str_matcher: Matcher[str]) -> None:
-        self.str_matcher = str_matcher
-
+class ObjectNameMatcher(WrapMatcher[wl.ObjectBase, str]):
     def matches(self, obj: wl.ObjectBase) -> bool:
-        return obj.type is not None and self.str_matcher.matches(obj.type)
-
-    def simplify(self) -> Matcher[wl.ObjectBase]:
-        self.str_matcher = self.str_matcher.simplify()
-        if isinstance(self.str_matcher, AlwaysMatcher):
-            return self.str_matcher
-        else:
-            return self
-
-    def __str__(self) -> str:
-        return str(self.str_matcher)
-
-    def __repr__(self) -> str:
-        return 'ObjectName(' + repr(self.str_matcher) + ')'
+        return obj.type is not None and self.wrapped.matches(obj.type)
 
 class MessagePattern(Matcher[wl.Message]):
     def __init__(
@@ -228,11 +324,16 @@ class MessagePattern(Matcher[wl.Message]):
         self.obj_matcher = obj_matcher
         self.name_matcher = name_matcher
         self.args_matcher = args_matcher
-        self.match_destroyed = self.name_matcher.matches('destroyed')
+        self.match_new = self.name_matcher.matches('new') and self.args_matcher.matches(())
+        self.match_destroyed = self.name_matcher.matches('destroyed') and self.args_matcher.matches(())
 
     def matches(self, message: wl.Message) -> bool:
         if not self.conn_matcher.matches(message.obj.connection):
             return False
+        if self.match_new:
+            for arg in message.args:
+                if isinstance(arg, wl.Arg.Object) and arg.is_new and self.obj_matcher.matches(arg.obj):
+                    return True
         if (self.match_destroyed and
             message.destroyed_obj is not None and
             self.obj_matcher.matches(message.destroyed_obj)
@@ -279,29 +380,15 @@ class MessagePattern(Matcher[wl.Message]):
             repr(self.conn_matcher) + ', ' +
             repr(self.obj_matcher) + ', ' +
             repr(self.name_matcher) + ', ' +
-            repr(self.args_matcher) + ')'
+            repr(self.args_matcher) + ', ' +
+            repr(self.match_new) + ', ' +
+            repr(self.match_destroyed) + ')'
         )
 
-class ConnectionMatcher(Matcher[Optional[Connection]]):
-    def __init__(self, str_matcher: Matcher[str]) -> None:
-        self.str_matcher = str_matcher
-
+class ConnectionMatcher(WrapMatcher[Optional[Connection], str]):
     def matches(self, conn: Optional[Connection]) -> bool:
         name = conn.name() if conn is not None else 'unknown'
-        return self.str_matcher.matches(name)
-
-    def simplify(self) -> Matcher[Optional[Connection]]:
-        self.str_matcher = self.str_matcher.simplify()
-        if isinstance(self.str_matcher, AlwaysMatcher):
-            return self.str_matcher
-        else:
-            return self
-
-    def __str__(self) -> str:
-        return str(self.str_matcher)
-
-    def __repr__(self) -> str:
-        return 'Connection(' + repr(self.str_matcher) + ')'
+        return self.wrapped.matches(name)
 
 always: Matcher[Any] = AlwaysMatcher(True)
 never: Matcher[Any] = AlwaysMatcher(False)
@@ -343,7 +430,9 @@ def _find_closing_brace(text: str, start: int) -> int:
         ' contains unmatched "' + opening + '"'
     )
 
-def _split_on(text: str, delimiter: str) -> Tuple[str, ...]:
+def _split_on(text: str, delimiter: str, allow_empty_list: bool = False) -> Tuple[str, ...]:
+    if text.strip() == '' and allow_empty_list:
+        return ()
     section_start = 0
     result = []
     i = 0
@@ -392,6 +481,68 @@ def _parse_matcher_list(text: str, sub_parser: Callable[[str], Matcher[T]]) -> M
         else:
             return positive[0]
 
+def _parse_args_list(text: str) -> Matcher[Tuple[wl.Arg.Base, ...]]:
+    if text == '':
+        return AlwaysMatcher(True)
+    bang_split = _split_pair(text, '!')
+    if bang_split is None:
+        positive_text = _split_on(text, ',', allow_empty_list=True)
+        negative_text: Tuple[str, ...] = ()
+    else:
+        if bang_split[0].strip() == '' and bang_split[1].strip() == '':
+            return AlwaysMatcher(False)
+        positive_text = _split_on(bang_split[0], ',', allow_empty_list=True)
+        negative_text = _split_on(bang_split[1], ',', allow_empty_list=True)
+    positive = [_parse_arg_matcher(i) for i in positive_text]
+    negative = [_parse_arg_matcher(i) for i in negative_text]
+    return ArgsMatcherList(positive, negative)
+
+def _parse_arg_matcher(text: str) -> Matcher[wl.Arg.Base]:
+    if text.startswith('[') and text.endswith(']'):
+        text = text[1:-1]
+        return _parse_matcher_list(text, _parse_arg_matcher)
+    eq_split = _split_pair(text, '=')
+    if eq_split is not None:
+        name_matcher = _parse_text_matcher(eq_split[0])
+        value_text = eq_split[1]
+    else:
+        name_matcher = AlwaysMatcher(True)
+        value_text = text
+    value_matcher = _parse_arg_value_matcher(value_text)
+    return ArgMatcher(name_matcher, value_matcher)
+
+def _parse_arg_value_matcher(text: str) -> Matcher[wl.Arg.Base]:
+    if text.startswith('[') and text.endswith(']'):
+        text = text[1:-1]
+        return _parse_matcher_list(text, _parse_arg_value_matcher)
+    try:
+        int_matcher = _parse_int_matcher(text)
+        return IntArgValueMatcher(int_matcher)
+    except RuntimeError:
+        pass
+    try:
+        float_matcher = _parse_float_matcher(text)
+        return FloatArgValueMatcher(float_matcher)
+    except RuntimeError:
+        pass
+    try:
+        string_matcher = _parse_string_matcher(text)
+        return StringArgValueMatcher(string_matcher)
+    except RuntimeError:
+        pass
+    try:
+        if text != 'nil':
+            text_matcher = _parse_text_matcher(text)
+            return LabelIntArgValueMatcher(text_matcher)
+    except RuntimeError:
+        pass
+    try:
+        obj_matcher = _parse_obj_matcher(text)
+        return ObjectArgValueMatcher(obj_matcher)
+    except RuntimeError:
+        pass
+    raise RuntimeError(text + ' is not a valid argument matcher')
+
 def _parse_text_matcher(text: str) -> Matcher[str]:
     if text.startswith('[') and text.endswith(']'):
         text = text[1:-1]
@@ -410,6 +561,18 @@ def _parse_int_matcher(text: str) -> Matcher[int]:
         except ValueError:
             raise RuntimeError(text + ' is not a valid int')
 
+def _parse_float_matcher(text: str) -> Matcher[float]:
+    try:
+        return EqMatcher(float(text))
+    except ValueError:
+        raise RuntimeError(text + ' is not a valid float')
+
+def _parse_string_matcher(text: str) -> Matcher[str]:
+    if text.startswith('"') and text.endswith('"') and len(text) > 1:
+        return EqMatcher(text[1:-1])
+    else:
+        raise RuntimeError(text + ' is not a valid string')
+
 def _parse_generation_matcher(text: str) -> Matcher[int]:
     return EqMatcher(letter_id_to_number(text), text)
 
@@ -421,6 +584,8 @@ def _is_letter(a: str) -> bool:
     )
 
 def _parse_obj_id_matcher(text: str) -> Matcher[Tuple[int, int]]:
+    if text == 'nil':
+        return PairMatcher(EqMatcher(0), '', AlwaysMatcher(True))
     i = len(text)
     while i > 0 and _is_letter(text[i - 1]):
         i -= 1
@@ -441,9 +606,14 @@ def _parse_obj_matcher(text: str) -> Matcher[wl.ObjectBase]:
     if text.startswith('[') and text.endswith(']'):
         text = text[1:-1]
         return _parse_matcher_list(text, _parse_obj_matcher)
-    at_split = _split_pair(text, '@')
+    at_split = _split_pair(text, '#')
+    if at_split is None:
+        at_split = _split_pair(text, '@')
     if at_split is not None:
         obj_name_text, obj_id_text = at_split
+    elif text == 'nil':
+        obj_name_text = ''
+        obj_id_text = text
     elif text and ord(text[0]) >= ord('0') and ord(text[0]) <= ord('9'):
         obj_name_text = ''
         obj_id_text = text
@@ -471,7 +641,7 @@ def _parse_message_pattern(text: str) -> Matcher[wl.Message]:
     dot_split = _split_pair(message_text, '.')
     if dot_split is not None:
         obj_text, name_and_arg_text = dot_split
-        peren_split = _split_peren_at_end(message_text)
+        peren_split = _split_peren_at_end(name_and_arg_text)
         if peren_split is not None:
             name_text, arg_text = peren_split
         else:
@@ -481,17 +651,21 @@ def _parse_message_pattern(text: str) -> Matcher[wl.Message]:
         peren_split = _split_peren_at_end(message_text)
         if peren_split is not None:
             obj_text, arg_text = peren_split
+            name_text = ''
         else:
-            obj_text = message_text
-            arg_text = ''
-        name_text = ''
-    if arg_text:
-        raise RuntimeError(text + ' has argument matcher component, this is not yet implemented')
+            conn_matcher = ConnectionMatcher(_parse_text_matcher(conn_text))
+            obj_matcher = _parse_obj_matcher(message_text)
+            object_self_matcher = MessagePattern(conn_matcher, obj_matcher, AlwaysMatcher(True), AlwaysMatcher(True))
+            args_matcher = ArgsMatcherList([
+                ArgMatcher(AlwaysMatcher(True), ObjectArgValueMatcher(obj_matcher))
+            ], [])
+            object_arg_matcher = MessagePattern(conn_matcher, AlwaysMatcher(True), AlwaysMatcher(True), args_matcher)
+            return MatcherList([object_self_matcher, object_arg_matcher], [])
     return MessagePattern(
         ConnectionMatcher(_parse_text_matcher(conn_text)),
         _parse_obj_matcher(obj_text),
         _parse_text_matcher(name_text),
-        AlwaysMatcher(True)
+        _parse_args_list(arg_text)
     )
 
 # Raises a RuntimeError if text is an invalid matcher
@@ -520,5 +694,13 @@ def join(new: Matcher[T], old: Matcher[T]) -> Matcher[T]:
     return new_list
 
 if __name__ == '__main__':
-    print('File meant to be imported, not run')
-    exit(1)
+    # You may have to run like PYTHONPATH=. python ./core/matcher.py 'MATCHER'
+    set_color_output(True)
+    text = sys.argv[1]
+    print('input: "' + text + '"')
+    m = parse(text)
+    print('parsed: ' + str(m))
+    print('        ' + repr(m))
+    m = m.simplify()
+    print('simplified: ' + str(m))
+    print('            ' + repr(m))

@@ -117,6 +117,8 @@ def received_message() -> Tuple[str, wl.Message]:
     closure = frame.read_var('closure')
     wl_object = frame.read_var('target')
     parent_frame = frame.older()
+    if parent_frame is None:
+        raise RuntimeError('Failed to get frame')
     calling_func = parent_frame.name()
     # NOTE: closure->proxy is often null but technically undefined in the server case
     # Using it to detect server vs client works for the tests but fails on Mir
@@ -132,7 +134,7 @@ def received_message() -> Tuple[str, wl.Message]:
         resource = wl_object.cast(resource_type)
         connection = _fast_access(_fast_access(resource, 'wl_resource.client'), 'wl_client.connection')
     else:
-        raise RuntimeError('Unknown libwayland calling function ' + calling_func)
+        raise RuntimeError('Unknown libwayland calling function ' + str(calling_func))
     connection_id = connection_id_of(connection)
     object_id = int(_fast_access(closure, 'wl_closure.sender_id'))
     # wl_object is not a pointer, so can't use _fast_access() to get interface
@@ -145,6 +147,8 @@ def sent_message() -> Tuple[str, wl.Message]:
     # We break on serialize_closure() (both wl_closure_send and wl_closure_queue call it, so just breaking on it
     # reduces breakpoints and improves performance). Everything we're interested in is in the parent frame though.
     frame = gdb.selected_frame().older()
+    if frame is None:
+        raise RuntimeError('Failed to get frame')
     closure = frame.read_var('closure')
     # closure -> proxy is always null in wl_closure_send and wl_closure_queue
     connection = frame.read_var('connection')
