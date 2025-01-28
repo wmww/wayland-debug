@@ -324,7 +324,7 @@ class MessagePattern(Matcher[wl.Message]):
         self.obj_matcher = obj_matcher
         self.name_matcher = name_matcher
         self.args_matcher = args_matcher
-        self.match_destroyed = self.name_matcher.matches('destroyed')
+        self.match_destroyed = self.name_matcher.matches('destroyed') and self.args_matcher.matches(())
 
     def matches(self, message: wl.Message) -> bool:
         if not self.conn_matcher.matches(message.obj.connection):
@@ -638,10 +638,16 @@ def _parse_message_pattern(text: str) -> Matcher[wl.Message]:
         peren_split = _split_peren_at_end(message_text)
         if peren_split is not None:
             obj_text, arg_text = peren_split
+            name_text = ''
         else:
-            obj_text = message_text
-            arg_text = ''
-        name_text = ''
+            conn_matcher = ConnectionMatcher(_parse_text_matcher(conn_text))
+            obj_matcher = _parse_obj_matcher(message_text)
+            object_self_matcher = MessagePattern(conn_matcher, obj_matcher, AlwaysMatcher(True), AlwaysMatcher(True))
+            args_matcher = ArgsMatcherList([
+                ArgMatcher(AlwaysMatcher(True), ObjectArgValueMatcher(obj_matcher))
+            ], [])
+            object_arg_matcher = MessagePattern(conn_matcher, AlwaysMatcher(True), AlwaysMatcher(True), args_matcher)
+            return MatcherList([object_self_matcher, object_arg_matcher], [])
     return MessagePattern(
         ConnectionMatcher(_parse_text_matcher(conn_text)),
         _parse_obj_matcher(obj_text),

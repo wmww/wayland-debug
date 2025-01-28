@@ -52,10 +52,10 @@ class TestParsedMessageMatcher(TestCase):
     def test_obj_type(self):
         m = parse('wl_pointer')
         self.assertTrue(m.matches(MockMessage(obj=MockObject(type='wl_pointer'))))
+        self.assertTrue(m.matches(MockMessage(args=[Arg.Object(MockObject(type='wl_pointer'), False)])))
         self.assertFalse(m.matches(MockMessage()))
         self.assertFalse(m.matches(MockMessage(obj=MockObject(type='wl_touch'))))
         self.assertFalse(m.matches(MockMessage(name='wl_pointer')))
-        self.assertFalse(m.matches(MockMessage(args=[Arg.Object(MockObject(type='wl_pointer'), False)])))
 
     def test_obj_type_with_at(self):
         m = parse('wl_pointer@')
@@ -70,7 +70,7 @@ class TestParsedMessageMatcher(TestCase):
 
     def test_obj_type_matches_for_new_obj(self):
         m = parse('wl_pointer')
-        self.assertFalse(m.matches(MockMessage(args=[Arg.Object(MockObject(type='wl_pointer'), True)])))
+        self.assertTrue(m.matches(MockMessage(args=[Arg.Object(MockObject(type='wl_pointer'), True)])))
 
     def test_obj_id(self):
         m = parse('7')
@@ -328,6 +328,24 @@ class TestParsedMessageMatcher(TestCase):
         self.assertFalse(m.matches(MockMessage(args=(Arg.String('FOO BAR'),))))
         self.assertFalse(m.matches(MockMessage(args=(Arg.Object(MockObject(type='foo bar'), False),))))
 
+    def test_name_and_args_matcher(self):
+        m = parse('.foo(7)')
+        self.assertTrue(m.matches(MockMessage(name='foo', args=(Arg.Int(7),))))
+        self.assertFalse(m.matches(MockMessage(name='bar', args=(Arg.Int(7),))))
+        self.assertFalse(m.matches(MockMessage(name='foo', args=(Arg.Int(8),))))
+
+    def test_naked_object_matcher_matches_both_self_and_arg(self):
+        m = parse('wl_pointer#')
+        self.assertTrue(m.matches(MockMessage(obj=MockObject(type='wl_pointer'))))
+        self.assertTrue(m.matches(MockMessage(args=(Arg.Object(MockObject(type='wl_pointer'), False),))))
+        self.assertFalse(m.matches(MockMessage()))
+
+    def test_object_matcher_with_dot_does_not_match_args(self):
+        m = parse('wl_pointer.')
+        self.assertTrue(m.matches(MockMessage(obj=MockObject(type='wl_pointer'))))
+        self.assertFalse(m.matches(MockMessage(args=(Arg.Object(MockObject(type='wl_pointer'), False),))))
+        self.assertFalse(m.matches(MockMessage()))
+
 class TestJoinMatchers(TestCase):
     def test_join_lists_with_negative(self):
         a = MatcherList([AlwaysMatcher(True)], [EqMatcher(5)])
@@ -363,10 +381,10 @@ class TestJoinMatchers(TestCase):
         a = parse('wl_pointer')
         b = parse('! .motion')
         c = join(a, b).simplify()
-        self.assertEqual(no_color(str(c)), '[wl_pointer.*(*) ! *.motion(*)]')
+        self.assertEqual(no_color(str(c)), '[wl_pointer.*(*), *.*(*=wl_pointer) ! *.motion(*)]')
 
     def test_join_arg_matcher(self):
         a = parse('wl_pointer')
         b = parse('(x=)')
         c = join(a, b).simplify()
-        self.assertEqual(no_color(str(c)), '[wl_pointer.*(*), *.*(x=*)]')
+        self.assertEqual(no_color(str(c)), '[wl_pointer.*(*), *.*(*=wl_pointer), *.*(x=*)]')
