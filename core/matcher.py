@@ -494,5 +494,13 @@ def join(new: Matcher[T], old: Matcher[T]) -> Matcher[T]:
     return new_list
 
 if __name__ == '__main__':
-    print('File meant to be imported, not run')
-    exit(1)
+    # You may have to run like PYTHONPATH=. python ./core/matcher.py
+    set_color_output(True)
+    text = sys.argv[1]
+    print('input: "' + text + '"')
+    m = parse(text)
+    print('parsed: ' + str(m))
+    print('        ' + repr(m))
+    m = m.simplify()
+    print('simplified: ' + str(m))
+    print('            ' + repr(m))
