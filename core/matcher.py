@@ -105,10 +105,10 @@ class WrapMatcher(Generic[T, U], Matcher[T]):
     def simplify(self) -> Matcher[T]:
         self.wrapped = self.wrapped.simplify()
         always = self.wrapped.always()
-        if always is None:
-            return self
-        else:
+        if always is not None:
             return AlwaysMatcher(always)
+        else:
+            return self
 
     def __str__(self) -> str:
         return str(self.wrapped)
@@ -128,8 +128,10 @@ class PairMatcher(Matcher[Tuple[T, U]]):
     def simplify(self) -> Matcher[Tuple[T, U]]:
         self.a = self.a.simplify()
         self.b = self.b.simplify()
-        if isinstance(self.a, AlwaysMatcher) and self.a.always() is self.b.always():
-            return self.a
+        a_always = self.a.always()
+        b_always = self.b.always()
+        if a_always is not None and a_always is b_always:
+            return AlwaysMatcher(a_always)
         else:
             return self
 
