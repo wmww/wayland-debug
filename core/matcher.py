@@ -482,6 +482,8 @@ def _parse_args_list(text: str) -> Matcher[Tuple[wl.Arg.Base, ...]]:
         positive_text = _split_on(text, ',', allow_empty_list=True)
         negative_text: Tuple[str, ...] = ()
     else:
+        if bang_split[0].strip() == '' and bang_split[1].strip() == '':
+            return AlwaysMatcher(False)
         positive_text = _split_on(bang_split[0], ',', allow_empty_list=True)
         negative_text = _split_on(bang_split[1], ',', allow_empty_list=True)
     positive = [_parse_arg_matcher(i) for i in positive_text]
@@ -626,7 +628,7 @@ def _parse_message_pattern(text: str) -> Matcher[wl.Message]:
     dot_split = _split_pair(message_text, '.')
     if dot_split is not None:
         obj_text, name_and_arg_text = dot_split
-        peren_split = _split_peren_at_end(message_text)
+        peren_split = _split_peren_at_end(name_and_arg_text)
         if peren_split is not None:
             name_text, arg_text = peren_split
         else:
@@ -673,7 +675,7 @@ def join(new: Matcher[T], old: Matcher[T]) -> Matcher[T]:
     return new_list
 
 if __name__ == '__main__':
-    # You may have to run like PYTHONPATH=. python ./core/matcher.py
+    # You may have to run like PYTHONPATH=. python ./core/matcher.py 'MATCHER'
     set_color_output(True)
     text = sys.argv[1]
     print('input: "' + text + '"')
