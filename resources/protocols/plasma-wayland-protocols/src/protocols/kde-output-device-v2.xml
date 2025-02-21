@@ -11,7 +11,7 @@
     ]]></copyright>
 
 
-  <interface name="kde_output_device_v2" version="11">
+  <interface name="kde_output_device_v2" version="12">
     <description summary="output configuration representation">
       An output device describes a display device available to the compositor.
       output_device is similar to wl_output, but focuses on output
@@ -230,6 +230,8 @@
              summary="if this outputdevice supports icc profiles"/>
       <entry name="brightness" value="0x80" since="9"
              summary="if this outputdevice supports the brightness setting"/>
+      <entry name="built_in_color" value="0x100" since="12"
+             summary="if this outputdevice supports the built-in color profile"/>
     </enum>
 
     <event name="capabilities">

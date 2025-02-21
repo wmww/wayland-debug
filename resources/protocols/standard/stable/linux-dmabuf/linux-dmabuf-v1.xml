@@ -199,7 +199,9 @@
       You must use consecutive plane indices ('plane_idx' argument for 'add')
       from zero to the number of planes used by the drm_fourcc format code.
       All planes required by the format must be given exactly once, but can
-      be given in any order. Each plane index can be set only once.
+      be given in any order. Each plane index can only be set once; subsequent
+      calls with a plane index which has already been set will result in a
+      plane_set error being generated.
     </description>
 
     <enum name="error">

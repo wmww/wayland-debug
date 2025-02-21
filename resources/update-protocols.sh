@@ -12,8 +12,8 @@ declare -a REPOS=(
     "core          https://gitlab.freedesktop.org/wayland/wayland.git"
     "standard      https://gitlab.freedesktop.org/wayland/wayland-protocols.git"
     "mir           https://github.com/MirServer/mir.git"
-    "wlroots       https://github.com/swaywm/wlroots.git"
-    "wlr-protocols https://github.com/swaywm/wlr-protocols.git"
+    "wlroots       https://gitlab.freedesktop.org/wlroots/wlroots.git"
+    "wlr-protocols https://gitlab.freedesktop.org/wlroots/wlr-protocols.git"
     "plasma-wayland-protocols https://invent.kde.org/libraries/plasma-wayland-protocols.git")
 
 # Get the directory where this script is located
