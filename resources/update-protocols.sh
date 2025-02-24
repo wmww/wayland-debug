@@ -54,6 +54,7 @@ find "${PROTOCOL_DIR}" -iname '*.xml' | xargs grep -L '^<protocol name=.*>$' | x
 find "${PROTOCOL_DIR}" -type d -empty | xargs rmdir
 
 # Save a readme file into the protocol directory
+export LC_TIME=en_US.UTF-8
 echo "Generating README…"
 echo "CONTENTS AUTOMATICALLY DOWNLOADED - DO NOT EDIT
 To update, run ${BASH_SOURCE[0]}
