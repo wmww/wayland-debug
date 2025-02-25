@@ -6,7 +6,7 @@
     SPDX-License-Identifier: LGPL-2.1-or-later
   ]]></copyright>
 
-  <interface name="org_kde_plasma_window_management" version="18">
+  <interface name="org_kde_plasma_window_management" version="19">
     <description summary="application windows management">
       This interface manages application windows.
       It provides requests to show and hide the desktop and emits
@@ -41,6 +41,8 @@
       <entry name="resizable" value="0x10000" since="3"/>
       <entry name="virtual_desktop_changeable" value="0x20000" since="3"/>
       <entry name="skipswitcher" value="0x40000" since="9"/>
+      <entry name="no_border" value="0x80000" since="19"/>
+      <entry name="can_set_no_border" value="0x100000" since="19"/>
     </enum>
 
     <enum name="show_desktop">

@@ -31,6 +31,9 @@
       any surfaces but its own, which is useful for example in lock screen
       software. It is assumed that access to this interface will be locked down
       to whitelisted clients by the compositor.
+
+      Note! This protocol is deprecated and not intended for production use.
+      For screen lockers, use the ext-session-lock-v1 protocol.
     </description>
 
     <request name="get_inhibitor">
