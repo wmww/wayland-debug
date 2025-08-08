@@ -6,7 +6,7 @@
     SPDX-License-Identifier: LGPL-2.1-or-later
   ]]></copyright>
 
-<interface name="org_kde_plasma_virtual_desktop_management" version="2">
+<interface name="org_kde_plasma_virtual_desktop_management" version="3">
     <request name="get_virtual_desktop">
         <description summary="get the org_kde_plasma_virtual_desktop interface for a desktop">
             Given the id of a particular virtual desktop, get the corresponding org_kde_plasma_virtual_desktop which represents only the desktop with that id.
@@ -49,11 +49,14 @@
 
     <event name="done">
         <description summary="sent all information about desktops">
-            This event is sent after all other properties has been
-            sent after binding to the desktop manager object and after any
-            other property changes done after that. This allows
-            changes to the org_kde_plasma_virtual_desktop_management properties to be seen as
-            atomic, even if they happen via multiple events.
+            This event is sent after all other properties have been sent after
+            binding to the desktop manager global and after all changes to
+            org_kde_plasma_virtual_desktop_management and org_kde_plasma_virtual_desktop
+            properties have been sent.
+
+            This allows changes to org_kde_plasma_virtual_desktop_management and
+            org_kde_plasma_virtual_desktop properties to be seen as atomic, even
+            if they happen via multiple events.
         </description>
     </event>
 
@@ -63,7 +66,7 @@
 </interface>
 
 
-<interface name="org_kde_plasma_virtual_desktop"  version="1">
+<interface name="org_kde_plasma_virtual_desktop" version="3">
     <request name="request_activate">
         <description summary="Requests this desktop to be activated">
             Request the server to set the status of this desktop to active: The server is free to consent or deny the request. This will be the new "current" virtual desktop of the system.
@@ -109,6 +112,15 @@
             This virtual desktop has just been removed by the server:
             All windows will lose the association to this desktop.
         </description>
+    </event>
+
+    <event name="position" since="3">
+        <description summary="virtual desktop position">
+            The position of the virtual desktop in the desktop list. The virtual
+            desktop position is in the [0, N - 1] range, where N is the number of
+            virtual desktops.
+        </description>
+        <arg name="index" type="uint" summary="virtual desktop position"/>
     </event>
 </interface>
 

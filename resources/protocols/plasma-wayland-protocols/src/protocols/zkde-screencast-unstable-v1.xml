@@ -5,7 +5,7 @@
 
     SPDX-License-Identifier: LGPL-2.1-or-later
   ]]></copyright>
-    <interface name="zkde_screencast_unstable_v1" version="4">
+    <interface name="zkde_screencast_unstable_v1" version="5">
         <description summary="Protocol for managing PipeWire feeds of the different displays and windows">
             Warning! The protocol described in this file is a desktop environment
             implementation detail. Regular clients must not use this protocol.
@@ -50,7 +50,10 @@
         </request>
 
         <request name="stream_region" since="3">
-            <description summary="requests a feed from region in the workspace"/>
+            <description summary="requests a feed from region in the workspace">
+                Since version 5, the compositor will choose the highest scale
+                factor for the region if the given scale is 0.0.
+            </description>
             <arg name="stream" type="new_id" interface="zkde_screencast_stream_unstable_v1"/>
 
             <arg name="x" type="int" summary="Logical left position"/>
@@ -73,7 +76,7 @@
         </request>
     </interface>
 
-    <interface name="zkde_screencast_stream_unstable_v1" version="4">
+    <interface name="zkde_screencast_stream_unstable_v1" version="5">
         <request name="close" type="destructor">
             <description summary="Indicates we are done with the stream and the communication is over."/>
         </request>

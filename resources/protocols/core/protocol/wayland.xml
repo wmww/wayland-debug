@@ -501,8 +501,10 @@
     <event name="release">
       <description summary="compositor releases buffer">
 	Sent when this wl_buffer is no longer used by the compositor.
-	The client is now free to reuse or destroy this buffer and its
-	backing storage.
+
+	For more information on when release events may or may not be sent,
+	and what consequences it has, please see the description of
+	wl_surface.attach.
 
 	If a client receives a release event before the frame callback
 	requested in the same wl_surface.commit that attaches this
@@ -1504,7 +1506,8 @@
 	the delivery of wl_buffer.release events becomes undefined. A well
 	behaved client should not rely on wl_buffer.release events in this
 	case. Alternatively, a client could create multiple wl_buffer objects
-	from the same backing storage or use wp_linux_buffer_release.
+	from the same backing storage or use a protocol extension providing
+	per-commit release notifications.
 
 	Destroying the wl_buffer after wl_buffer.release does not change
 	the surface contents. Destroying the wl_buffer before wl_buffer.release
@@ -1911,9 +1914,10 @@
 
     <event name="capabilities">
       <description summary="seat capabilities changed">
-	This is emitted whenever a seat gains or loses the pointer,
-	keyboard or touch capabilities.  The argument is a capability
-	enum containing the complete set of capabilities this seat has.
+	This is sent on binding to the seat global or whenever a seat gains
+	or loses the pointer, keyboard or touch capabilities.
+	The argument is a capability enum containing the complete set of
+	capabilities this seat has.
 
 	When the pointer capability is added, a client may create a
 	wl_pointer object using the wl_seat.get_pointer request. This object
@@ -1995,9 +1999,9 @@
 	The same seat names are used for all clients. Thus, the name can be
 	shared across processes to refer to a specific wl_seat global.
 
-	The name event is sent after binding to the seat global. This event is
-	only sent once per seat object, and the name does not change over the
-	lifetime of the wl_seat global.
+	The name event is sent after binding to the seat global, and should be sent
+	before announcing capabilities. This event only sent once per seat object,
+	and the name does not change over the lifetime of the wl_seat global.
 
 	Compositors may re-use the same seat name if the wl_seat global is
 	destroyed and re-created later.

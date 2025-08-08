@@ -149,7 +149,7 @@
         </description>
       </entry>
       <entry name="windows_scrgb" value="7"
-             summary="get_windows_scrgb request"/>
+             summary="create_windows_scrgb request"/>
     </enum>
 
     <enum name="primaries">
@@ -290,6 +290,8 @@
             of Federal Regulations 73.682 (a) (20)
           - Rec. ITU-R BT.1700-0 625 PAL and 625 SECAM
           Equivalent to H.273 TransferCharacteristics code point 4.
+
+          Note: an sRGB display (IEC 61966-2-1) uses this transfer function.
         </description>
       </entry>
       <entry name="gamma28" value="3">
@@ -340,6 +342,10 @@
           - IEC 61966-2-1 sRGB
           Equivalent to H.273 TransferCharacteristics code point 13 with
           MatrixCoefficients set to 0.
+
+          Note: This is not appropriate for describing sRGB material.
+          sRGB material is intended to be viewed on an sRGB display, and
+          that is described by gamma22.
         </description>
       </entry>
       <entry name="ext_srgb" value="10">

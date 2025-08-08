@@ -246,7 +246,7 @@
       The client may request that the compositor activate or deactivate the workspace.
 
       Each workspace can belong to only a single workspace group.
-      Depepending on the compositor policy, there might be workspaces with
+      Depending on the compositor policy, there might be workspaces with
       the same name in different workspace groups, but these workspaces are still
       separate (e.g. one of them might be active while the other is not).
     </description>

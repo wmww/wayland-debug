@@ -6,7 +6,7 @@
     SPDX-License-Identifier: MIT-CMU
     ]]></copyright>
 
-  <interface name="kde_external_brightness_v1" version="2">
+  <interface name="kde_external_brightness_v1" version="3">
     <description summary="external brightness control">
       Some brightness control mechanisms are somewhat unstable, or require root
       privileges, so putting them inside of the compositor is not desired.
@@ -24,7 +24,7 @@
     </request>
   </interface>
 
-  <interface name="kde_external_brightness_device_v1" version="2">
+  <interface name="kde_external_brightness_device_v1" version="3">
     <description summary="brightness control device">
       After creating this object, the client should issue all relevant setup requests
       (set_internal, set_edid, set_max_brightness, optionally set_observed_brightness)
@@ -72,6 +72,16 @@
         The compositor is free to use or ignore this value as it sees fit.
       </description>
       <arg name="value" type="uint" summary="the observed value that was read"/>
+    </request>
+
+    <request name="set_uses_ddc_ci" since="3">
+      <description summary="notifies the compositor that DDC/CI is used to control brightness etc.">
+        The compositor can use this information to ignore this object if its commands
+        expose monitor issues. The compositor may also reduce the amount of brightness
+        requests given potentially slow response times and concerns about monitor EEPROM
+        longevity/wear-out.
+      </description>
+      <arg name="value" type="uint" summary="1 if it uses DDC/CI, 0 if not (assumed by default)"/>
     </request>
 
   </interface>

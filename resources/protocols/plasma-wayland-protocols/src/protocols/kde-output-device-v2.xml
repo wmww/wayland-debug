@@ -11,7 +11,7 @@
     ]]></copyright>
 
 
-  <interface name="kde_output_device_v2" version="12">
+  <interface name="kde_output_device_v2" version="17">
     <description summary="output configuration representation">
       An output device describes a display device available to the compositor.
       output_device is similar to wl_output, but focuses on output
@@ -232,6 +232,14 @@
              summary="if this outputdevice supports the brightness setting"/>
       <entry name="built_in_color" value="0x100" since="12"
              summary="if this outputdevice supports the built-in color profile"/>
+      <entry name="ddc_ci" value="0x200" since="14"
+             summary="if this outputdevice supports DDC/CI"/>
+      <entry name="max_bits_per_color" value="0x400" since="15"
+             summary="if this outputdevice supports setting max bpc"/>
+      <entry name="edr" value="0x800" since="16"
+             summary="if this outputdevice supports EDR"/>
+      <entry name="sharpness" value="0x1000" since="17"
+             summary="if this outputdevice supports the sharpness setting"/>
     </enum>
 
     <event name="capabilities">
@@ -403,6 +411,63 @@
         means the output is not dimmed.
       </description>
       <arg name="multiplier" type="uint" summary="multiplier in 0-10000"/>
+    </event>
+
+    <event name="replication_source" since="13">
+      <description summary="source output for mirroring"/>
+      <arg name="source" type="string" summary="uuid of the source output"/>
+    </event>
+
+    <event name="ddc_ci_allowed" since="14">
+      <description summary="if DDC/CI should be used to control brightness etc.">
+        If the ddc_ci capability is present, this determines if settings
+        such as brightness, contrast or others should be set using DDC/CI.
+      </description>
+      <arg name="allowed" type="uint" summary="1 if allowed, 0 if disabled"/>
+    </event>
+
+    <event name="max_bits_per_color" since="15">
+      <description summary="override max bpc">
+        This limits the amount of bits per color that are sent to the display.
+      </description>
+      <arg name="max_bpc" type="uint" summary="0 for the default / automatic"/>
+    </event>
+
+    <event name="max_bits_per_color_range" since="15">
+      <description summary="range of max bits per color value"/>
+      <arg name="min_value" type="uint" summary="the minimum supported by the driver"/>
+      <arg name="max_value" type="uint" summary="the maximum supported by the driver"/>
+    </event>
+
+    <event name="automatic_max_bits_per_color_limit" since="15">
+      <description summary="if and to what value automatic max bpc is limited"/>
+      <arg name="max_bpc_limit" type="uint"
+           summary="which value automatic bpc gets limited to. 0 if not limited"/>
+    </event>
+
+    <enum name="edr_policy" since="16">
+      <description summary="when the compositor may make use of EDR"/>
+      <entry name="never" value="0"/>
+      <entry name="always" value="1"/>
+    </enum>
+
+    <event name="edr_policy" since="16">
+      <description summary="when the compositor may apply EDR">
+        When EDR is enabled, the compositor may increase the backlight beyond
+        the user-specified setting, in order to present HDR content on displays
+        without native HDR support.
+        This will usually result in better visuals, but also increases battery
+        usage.
+      </description>
+      <arg name="policy" type="uint" enum="edr_policy"/>
+    </event>
+
+    <event name="sharpness" since="17">
+      <description summary="sharpness strength">
+        This is the sharpness modifier of the output.
+        0 is sharpness disabled and 10000 is the maximum sharpness
+      </description>
+      <arg name="sharpness" type="uint" summary="sharpness in 0-10000"/>
     </event>
   </interface>
 
