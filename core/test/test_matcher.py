@@ -266,8 +266,14 @@ class TestParsedMessageMatcher(TestCase):
         self.assertFalse(m.matches(MockMessage(args=(named('foo', Arg.Object(MockObject(type='xdg_popup'), False)),))))
         self.assertFalse(m.matches(MockMessage(args=(named('foo', Arg.String('xdg_surface')),))))
 
-    def test_null_in_arg_matcher(self):
+    def test_nil_in_arg_matcher(self):
+        # null is now prefered but we keep nil for backwards compat
         m = parse('(foo=nil)')
+        self.assertTrue(m.matches(MockMessage(args=(named('foo', Arg.Null('wl_pointer')),))))
+        self.assertFalse(m.matches(MockMessage(args=(named('foo', Arg.Object(MockObject(type='xdg_surface'), False)),))))
+
+    def test_null_in_arg_matcher(self):
+        m = parse('(foo=null)')
         self.assertTrue(m.matches(MockMessage(args=(named('foo', Arg.Null('wl_pointer')),))))
         self.assertFalse(m.matches(MockMessage(args=(named('foo', Arg.Object(MockObject(type='xdg_surface'), False)),))))
 

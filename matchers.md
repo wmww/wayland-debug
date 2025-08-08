@@ -13,7 +13,7 @@ Matchers are used throughout wayland-debug to filter messages and set breakpoint
 | `B: .commit`          | `commit` messages on connection `B` (the 2nd connection) |
 | `wl_pointer(pressed)` | Any Messages on `wl_pointer`s with `pressed` as an argument |
 | `wl_pointer(buffer=)` | Messages with an argument named `buffer` |
-| `.(nil)`              | Messages that have an object argument that's null |
+| `.(null)`             | Messages that have an object argument that's null |
 
 Objects are created by messages on other objects. When objects are destroyed the `wl_display` gets a `.delete_id` message with the object ID of the destroyed object. `object.new` and `object.destroyed` aren't real Wayland messages, but they allow you to match these two cases more easily.
 

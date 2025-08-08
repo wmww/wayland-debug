@@ -531,7 +531,7 @@ def _parse_arg_value_matcher(text: str) -> Matcher[wl.Arg.Base]:
     except RuntimeError:
         pass
     try:
-        if text != 'nil':
+        if text != 'nil' and text != 'null':
             text_matcher = _parse_text_matcher(text)
             return LabelIntArgValueMatcher(text_matcher)
     except RuntimeError:
@@ -584,7 +584,7 @@ def _is_letter(a: str) -> bool:
     )
 
 def _parse_obj_id_matcher(text: str) -> Matcher[Tuple[int, int]]:
-    if text == 'nil':
+    if text == 'nil' or text == 'null':
         return PairMatcher(EqMatcher(0), '', AlwaysMatcher(True))
     i = len(text)
     while i > 0 and _is_letter(text[i - 1]):
@@ -611,7 +611,7 @@ def _parse_obj_matcher(text: str) -> Matcher[wl.ObjectBase]:
         at_split = _split_pair(text, '@')
     if at_split is not None:
         obj_name_text, obj_id_text = at_split
-    elif text == 'nil':
+    elif text == 'nil' or text == 'null':
         obj_name_text = ''
         obj_id_text = text
     elif text and ord(text[0]) >= ord('0') and ord(text[0]) <= ord('9'):
