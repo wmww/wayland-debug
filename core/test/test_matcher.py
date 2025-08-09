@@ -345,6 +345,12 @@ class TestParsedMessageMatcher(TestCase):
         self.assertFalse(m.matches(MockMessage(args=(Arg.String('FOO BAR'),))))
         self.assertFalse(m.matches(MockMessage(args=(Arg.Object(MockObject(type='foo bar'), False),))))
 
+    def test_single_quoted_string_arg_matcher(self):
+        m = parse("(='foo bar')")
+        self.assertTrue(m.matches(MockMessage(args=(Arg.String('foo bar'),))))
+        self.assertFalse(m.matches(MockMessage(args=(Arg.String('FOO BAR'),))))
+        self.assertFalse(m.matches(MockMessage(args=(Arg.Object(MockObject(type='foo bar'), False),))))
+
     def test_name_and_args_matcher(self):
         m = parse('.foo(7)')
         self.assertTrue(m.matches(MockMessage(name='foo', args=(Arg.Int(7),))))

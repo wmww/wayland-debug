@@ -412,6 +412,7 @@ _brace_pairs = {
     '(' : ')',
     '[' : ']',
     '"' : '"',
+    "'" : "'",
 }
 def _find_closing_brace(text: str, start: int) -> int:
     opening = text[start]
@@ -569,6 +570,8 @@ def _parse_float_matcher(text: str) -> Matcher[float]:
 
 def _parse_string_matcher(text: str) -> Matcher[str]:
     if text.startswith('"') and text.endswith('"') and len(text) > 1:
+        return EqMatcher(text[1:-1])
+    if text.startswith("'") and text.endswith("'") and len(text) > 1:
         return EqMatcher(text[1:-1])
     else:
         raise RuntimeError(text + ' is not a valid string')
