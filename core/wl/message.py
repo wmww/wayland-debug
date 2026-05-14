@@ -10,7 +10,7 @@ class Message:
     # TODO: figure out a way to remove global time offset
     base_time = None
 
-    def __init__(self, abs_time: float, obj: ObjectBase, sent: bool, name: str, args: Tuple[Arg.Base, ...]) -> None:
+    def __init__(self, abs_time: float, obj: ObjectBase, sent: bool, name: str, args: Tuple[Arg.Base, ...], discarded: bool = False) -> None:
         if Message.base_time is None:
             Message.base_time = abs_time
         self.timestamp = abs_time - Message.base_time
@@ -19,6 +19,7 @@ class Message:
         self.name = name
         self.args = args
         self.destroyed_obj: Optional[ObjectBase] = None
+        self.discarded = discarded
 
     def resolve(self, conn: Connection) -> None:
         if not self.obj.resolved():
@@ -46,6 +47,7 @@ class Message:
         return tuple(result)
 
     def __str__(self) -> str:
+        discarded_str = color(symbol_color, '(discarded) ') if self.discarded else ''
         destroyed = ''
         if self.destroyed_obj:
             destroyed = (
@@ -56,6 +58,7 @@ class Message:
             if lifespan is not None:
                 destroyed += color(timestamp_color, ' after {:0.4f}s'.format(lifespan))
         return (
+            discarded_str +
             (color(symbol_color, '→ ') if self.sent else '') +
             str(self.obj) +
             color(message_color, '.' + self.name) + color(symbol_color, '(') +
