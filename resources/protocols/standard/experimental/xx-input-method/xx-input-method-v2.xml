@@ -47,7 +47,7 @@
     mechanism is discouraged.
   </description>
 
-  <interface name="xx_input_method_v1" version="2">
+  <interface name="xx_input_method_v1" version="4">
     <description summary="input method">
       An input method object allows for clients to compose text.
 
@@ -80,7 +80,7 @@
         This event serves the purpose of providing the compositor with an
         active input method.
 
-        This event resets all state associated with previous enable, disable,
+        This event resets all state associated with previous
         surrounding_text, text_change_cause, and content_type events, as well
         as the state associated with set_preedit_string, commit_string, and
         delete_surrounding_text requests, and destroys any existing input_popup_surface objects.
@@ -100,8 +100,13 @@
         Notification that no focused text input currently needs an active 
         input method on this seat.
 
-        This event marks the xx_input_method_v1 object as inactive. The
+        This event marks the xx_input_method_v1 object as inactive.
         compositor must destroy all existing xx_input_popup_surface_v2 objects.
+
+        This event resets all state associated with previous
+        surrounding_text, text_change_cause, and content_type events, as well
+        as the state associated with set_preedit_string, commit_string, and
+        delete_surrounding_text requests.
 
         State set with this event is double-buffered. It will get applied on
         the next xx_input_method_v1.done event, and stay valid until changed.
@@ -163,7 +168,7 @@
 
         The initial value of cause is input_method.
       </description>
-      <arg name="cause" type="uint" enum="zwp_text_input_v3.change_cause"/>
+      <arg name="cause" type="uint" enum="xx_text_input_v3.change_cause"/>
     </event>
 
     <event name="content_type">
@@ -173,14 +178,77 @@
 
         Values set with this event are double-buffered. They will get applied
         on the next xx_input_method_v1.done event.
+        They get reset to initial on the next committed deactivate event.
 
         The initial value for hint is none, and the initial value for purpose
         is normal.
       </description>
-      <arg name="hint" type="uint" enum="zwp_text_input_v3.content_hint"/>
-      <arg name="purpose" type="uint" enum="zwp_text_input_v3.content_purpose"/>
+      <arg name="hint" type="uint" enum="xx_text_input_v3.content_hint"/>
+      <arg name="purpose" type="uint" enum="xx_text_input_v3.content_purpose"/>
+    </event>
+    
+    <event name="set_available_actions" since="3">
+      <description summary="announce the available actions">
+        Announces the actions available for the currently active text input.
+
+        Values set with this event are double-buffered. They will get applied
+        on the next .done event.
+        They get reset to the initial value on the next committed deactivate event.
+
+        The initial value is an empty set: no actions are available.
+
+        Values in the available_actions array come from text-input-v3.action.
+      </description>
+      <arg name="available_actions" type="array" summary="available actions"/>
     </event>
 
+    <event name="announce_supported_features" since="3">
+      <description summary="announce extra supported features">
+        Notifies the input method what the currently active text input client is able to do.
+
+        This event should come within the same .done sequence as .activate. Otherwise, the input method may ignore it.
+        
+        Values set with this event are double-buffered. They will get applied
+        on the next .done event.
+        They get reset to initial on the next committed deactivate event.
+
+        The initial value for features is none.
+      </description>
+      <arg name="features" type="uint" enum="xx_text_input_v3.supported_features"/>
+    </event>
+
+    <enum name="protocol_compat" since="4">
+      <description summary="protocol compatibility value">
+        Tells the input method client what kinds of events the text input client supports.
+      </description>
+      <entry name="text_input_v3" value="0x0" summary="zwp-text-input-v3 semantics"/>
+      <entry name="xx_text_input" value="0x1">
+        <description summary="xx-text-input semantics">
+          Changes the meaning of serial compared to v3.
+          The text input client now applies requested updates on a "best-effort" basis.
+        </description>
+      </entry>
+      <!-- This doesn't need disambiguating. Both protocols are pdated in lockstep, and the compositor should implement both protocols to the current version. By the experimental protocols contract, every version bump is breaking compatibility. -->
+    </enum>
+    
+    <event name="announce_protocol_compat" since="3">
+      <description summary="set text input's compatibility level">
+        Tells the input method client what kinds of events the text input client supports.
+
+        <!-- While text input protocols and input method protocols are updated in lockstep, nobody knows what versions of either will end up on a user's computer. Old input method with new apps? New input method with old apps?
+        To limit the scope for now, let's assume the user always keeps the input method up to date, and uses old apps. -->
+        
+        Values set with this event are double-buffered. They will get applied
+        on the next .done event.
+        They get reset to initial on the next committed deactivate event.
+        
+        The compositor may send this event as part of a .done chain that switches the active state from inactive to active. It must not send this event otherwise.
+
+        The initial value for version is text_input_v3.
+      </description>
+      <arg name="compat_level" type="uint" enum="protocol_compat"/>
+    </event>
+    
     <event name="done">
       <description summary="apply state">
         Atomically applies state changes recently sent to the client.
@@ -203,6 +271,18 @@
       </description>
     </event>
 
+    <request name="perform_action" since="3">
+      <description summary="perform action">
+        Perform an action on this text input.
+
+        Values set with this event are double-buffered. They must be applied
+        and reset to initial on the next commit request.
+
+        The initial value of action is none.
+      </description>
+      <arg name="action" type="uint" enum="xx_text_input_v3.action" summary="action to perform"/>
+    </request>
+
     <request name="commit_string">
       <description summary="commit string">
         Send the commit string text for insertion to the application.
@@ -215,8 +295,8 @@
         a maximum length of wayland messages, so text can not be longer than
         4000 bytes.
 
-        Values set with this event are double-buffered. They must be applied
-        and reset to initial on the next zwp_text_input_v3.commit request.
+        Values set with this request are double-buffered. They must be applied
+        and reset to initial on the next .commit request.
 
         The initial value of text is an empty string.
       </description>
@@ -244,8 +324,9 @@
         indicates the end of the cursor. It may be equal or different than
         cursor_begin.
 
-        Values set with this event are double-buffered. They must be applied on
-        the next xx_input_method_v1.commit event.
+        Values set with this request are double-buffered. They must be applied on
+        the next xx_input_method_v1.commit request.
+        They must be reset to initial on the next committed .deactivate event.
 
         The initial value of text is an empty string. The initial value of
         cursor_begin, and cursor_end are both 0.
@@ -262,12 +343,17 @@
         before_length and after_length are the number of bytes before and after
         the current cursor index (excluding the preedit text) to delete.
 
+        If text is selected, it must be deleted.
+        
+        If indices exceed the available text boundaries, they should be adjusted to fit in boundaries and deletion reattempted.
+        If indices do not lie on byte boundaries, then the text input client should delete at least that many bytes. In this case, the client decides the end point, but a character boundary same as when deleting using the keyboard is recommended.
+        
         If any preedit text is present, it is replaced with the cursor for the
         purpose of this event. In effect before_length is counted from the
         beginning of preedit text, and after_length from its end (see commit
         event sequence).
 
-        Values set with this event are double-buffered. They must be applied
+        Values set with this request are double-buffered. They must be applied
         and reset to initial on the next xx_input_method_v1.commit request.
 
         The initial values of both before_length and after_length are 0.
@@ -276,6 +362,34 @@
       <arg name="after_length" type="uint"/>
     </request>
 
+    <request name="move_cursor" since="3">
+      <description summary="move cursor and change selection">
+        Unselects text, moves the cursor and selects text.
+
+        This is equivalent to dragging the mouse over some text: it deselects whatever might be currently selected and selects a new range of text.
+        
+        The offsets used in arguments are in bytes relative to the current cursor position. Cursor is the new position of the cursor, and anchor is the opposite end of selection. If there's no selection, anchor should be equal to cursor.
+        
+        The offsets do not take preedit contents into account, nor is preedit changed in any way with this request.
+        
+        Both cursor and anchor must fall on code point boundaries, otherwise text input client may ignore the request. It is therefore not recommended for an input method to move any of them beyond the text received in surrounding_text.
+        
+        When surrounding_text is not supported, the offsets must not be interpreted as bytes, but as some human-readable unit at least as big as a code point, for example a grapheme.
+
+        The cursor and anchor arguments can also take the following special values:
+        BEGINNING := 0x8000_0000 = i32::MIN
+        END := 0x7fff_ffff = i32::MAX
+        meaning, respectively, the beginning and the end of of all text in the input field.
+
+        Values set with this event are double-buffered. They must be applied
+        and reset to initial on the next commit request.
+
+        The initial values of both cursor and anchor are 0.
+      </description>
+      <arg name="cursor" type="int"/>
+      <arg name="anchor" type="int"/>
+    </request>
+    
     <request name="commit">
       <description summary="apply state">
         Apply state changes from commit_string, set_preedit_string and
@@ -291,9 +405,19 @@
         1. Replace existing preedit string with the cursor.
         2. Delete requested surrounding text.
         3. Insert commit string with the cursor at its end.
-        4. Calculate surrounding text to send.
-        5. Insert new preedit text in cursor position.
-        6. Place cursor inside preedit text.
+        4. Move the cursor and selection.
+        5. Calculate surrounding text to send.
+        6. Insert new preedit text in cursor position.
+        7. Place cursor inside preedit text.
+        8. Perform the requested action.
+
+        Note that the input method can not receive more than 4000 bytes of selection text, which might be the case for example when the entire document is selected. Nevertheless, the text input must delete the entire selected range before inserting the commit string.
+        
+        Serial handling with protocol_compat == xx_text_input
+        
+        The serial number should be set to 0.
+        
+        Serial handling with protocol_compat == text_input_v3
 
         The serial number reflects the last state of the xx_input_method_v1
         object known to the client. The value of the serial argument must be
@@ -330,7 +454,7 @@
         the time of its creation.
 
         The compositor must issue this request when the object is no longer
-        useable, e.g. due to seat removal.
+        usable, e.g. due to seat removal.
 
         The input method context becomes inert and should be destroyed after
         deactivation is handled. Any further requests and events except for the
@@ -339,8 +463,8 @@
     </event>
 
     <request name="destroy" type="destructor">
-      <description summary="destroy the text input">
-        Destroys the zwp_text_input_v2 object and any associated child
+      <description summary="destroy the input method">
+        Destroys the xx_input_method_v1 object and any associated child
         objects.
       </description>
     </request>
@@ -384,7 +508,7 @@
 
       A typical sequence resulting from the user selecting a new text field and typing some text:
       
-      1. compositor (Co): input_method.enable()
+      1. compositor (Co): input_method.activate()
       2. Co: input_method.done()
       3. [init sequence]
       4. Co: input_method.set_surrounding_text("new text")
@@ -393,14 +517,14 @@
       7. client (Cl): ack_configure()
       8. Cl: wl_surface.commit()
       
-      When the corresponding input_method receives a commited .disable event, the popup gets destroyed and becomes invalid and its surface gets unmapped.
+      When the corresponding input_method receives a committed .deactivate event, the popup gets destroyed and becomes invalid and its surface gets unmapped.
 
       The client must not destroy the underlying wl_surface while the
       xx_input_popup_surface_v2 object exists.
     </description>
 
     <enum name="error">
-      <entry name="invalid_serial" value="0" summary="received acknowledgement for a serial has already been acknowledged or has never been issued"/>
+      <entry name="invalid_serial" value="0" summary="received acknowledgement for a serial which has already been acknowledged or has never been issued"/>
     </enum>
     
     <event name="start_configure">
@@ -442,7 +566,7 @@
         
         2. Complicate some and mandate .done after some .configures
         
-        Rejected because the different path for syncing (on .confgure or on .done) are difficult to explain and sound like a source of bugs. Also, this ended up needing additional events.
+        Rejected because the different path for syncing (on .configure or on .done) are difficult to explain and sound like a source of bugs. Also, this ended up needing additional events.
         
         3. Simplify a lot and remove .configure in favor of relying on .done entirely
         
@@ -467,7 +591,7 @@
         This request notifies the compositor that the client updated its surface in response to a configure sequence.
 
         The purpose of this request is to synchronize the updates of the surface geometry with the surface contents.
-        For example, when the compositor assigns a size larger than prevously, the client must fill the additional space before the popup gets displayed to the user with the new size. When the compositor receives .ack_configure, it can proceed to draw the new size.
+        For example, when the compositor assigns a size larger than previously, the client must fill the additional space before the popup gets displayed to the user with the new size. When the compositor receives .ack_configure, it can proceed to draw the new size.
 
         .ack_configure should be sent after every submitted configure sequence, passing along the serial received in it.
         
@@ -596,7 +720,7 @@
     </request>
 
     <enum name="anchor">
-      <entry name="none" value="0" summary="no edge, specfies center"/>
+      <entry name="none" value="0" summary="no edge, specifies center"/>
       <entry name="top" value="1"/>
       <entry name="bottom" value="2"/>
       <entry name="left" value="3"/>
@@ -786,7 +910,7 @@
     </request>
   </interface>
 
-  <interface name="xx_input_method_manager_v2" version="2">
+  <interface name="xx_input_method_manager_v2" version="4">
     <description summary="input method manager">
       The input method manager allows the client to become the input method on
       a chosen seat.

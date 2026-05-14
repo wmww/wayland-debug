@@ -6,7 +6,7 @@
     SPDX-License-Identifier: LGPL-2.1-or-later
   ]]></copyright>
 
-<interface name="org_kde_plasma_virtual_desktop_management" version="3">
+<interface name="org_kde_plasma_virtual_desktop_management" version="4">
     <request name="get_virtual_desktop">
         <description summary="get the org_kde_plasma_virtual_desktop interface for a desktop">
             Given the id of a particular virtual desktop, get the corresponding org_kde_plasma_virtual_desktop which represents only the desktop with that id.
@@ -65,8 +65,7 @@
     </event>
 </interface>
 
-
-<interface name="org_kde_plasma_virtual_desktop" version="3">
+<interface name="org_kde_plasma_virtual_desktop" version="4">
     <request name="request_activate">
         <description summary="Requests this desktop to be activated">
             Request the server to set the status of this desktop to active: The server is free to consent or deny the request. This will be the new "current" virtual desktop of the system.
@@ -122,6 +121,24 @@
         </description>
         <arg name="index" type="uint" summary="virtual desktop position"/>
     </event>
+
+    <event name="output_entered" since="4">
+        <description summary="This desktop became active on an output">
+            This event is sent when the desktop becomes active on an output. The desktop can be active on multiple
+            outputs simultaneously. Each output has exactly one active desktop at a time (the one that entered it last).
+        </description>
+        <arg name="output_name" type="string" summary="name of the output" />
+    </event>
+
+    <request name="request_enter_output" since="4">
+        <description summary="Requests this desktop to be activated on an output">
+            Request the server to activate the desktop on a given output.
+            The server may deny the request.
+            If the request is granted, the server will deactivate the previous desktop on the output.
+            The server may activate the desktop on other outputs as well.
+        </description>
+        <arg name="output_name" type="string" summary="name of the output" />
+    </request>
 </interface>
 
 </protocol>
