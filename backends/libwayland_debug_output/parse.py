@@ -32,9 +32,10 @@ class WlPatterns:
         timestamp_regex = r'\[\s*(?P<timestamp>\d+[\.,]\d+)\s*\]'
         conn_re = r'( \<(?P<conn>\w+)\>)?'
         queue_re = r'( {.*})?'
+        discarded_re = r'(?P<discarded> discarded)?'
         message_regex = r'(?P<type>\w+)[@#](?P<id>\d+)\.(?P<message>\w+)\((?P<args>.*)\)$'
-        self.out_msg_re = re.compile(timestamp_regex + queue_re + conn_re + '  -> ' + message_regex)
-        self.in_msg_re = re.compile(timestamp_regex + queue_re + conn_re + ' ' + message_regex)
+        self.out_msg_re = re.compile(timestamp_regex + queue_re + conn_re + discarded_re + '  -> ' + message_regex)
+        self.in_msg_re = re.compile(timestamp_regex + queue_re + conn_re + discarded_re + ' ' + message_regex)
 
     @staticmethod
     def lazy_get_instance() -> 'WlPatterns':
@@ -110,8 +111,9 @@ def message(raw: str) -> Tuple[str, wl.Message]:
     obj_id = int(match.group('id'))
     message_name = match.group('message')
     message_args_str = match.group('args')
+    discarded = match.group('discarded') is not None
     message_args = argument_list(p, message_args_str)
-    return conn_id, wl.Message(abs_timestamp, wl.UnresolvedObject(obj_id, type_name), sent, message_name, message_args)
+    return conn_id, wl.Message(abs_timestamp, wl.UnresolvedObject(obj_id, type_name), sent, message_name, message_args, discarded)
 
 class Parser:
     def __init__(self, out: Output, sink: ConnectionIDSink):
