@@ -6,6 +6,8 @@ class TestParseMessage(unittest.TestCase):
     def setUp(self):
         assert hasattr(Message, 'base_time')
         Message.base_time = None
+        parse.ClockTime.last = None
+        parse.ClockTime.days = 0
 
     def test_parse_empty_raises(self):
         with self.assertRaises(RuntimeError):
@@ -48,6 +50,46 @@ class TestParseMessage(unittest.TestCase):
         conn_id, m = parse.message('[1234588,390] other_object@6.some_message()')
         self.assertIsInstance(m, Message)
         self.assertAlmostEqual(m.timestamp, 20.5 / 1000)
+
+    def test_parse_message_clock_timestamp(self):
+        parse.message('[12:34:56.789012] some_object#12.some_message()')
+        _, m = parse.message('[12:34:57.289012] other_object#6.some_message()')
+        self.assertAlmostEqual(m.timestamp, 0.5)
+
+    def test_parse_message_clock_timestamp_with_comma(self):
+        parse.message('[12:34:56,789012] some_object#12.some_message()')
+        _, m = parse.message('[12:34:57,289012] other_object#6.some_message()')
+        self.assertAlmostEqual(m.timestamp, 0.5)
+
+    def test_parse_message_clock_timestamp_past_midnight(self):
+        parse.message('[23:59:59.500000] some_object#12.some_message()')
+        _, m = parse.message('[00:00:00.250000] other_object#6.some_message()')
+        self.assertAlmostEqual(m.timestamp, 0.75)
+        _, m = parse.message('[12:00:00.250000] other_object#6.some_message()')
+        self.assertAlmostEqual(m.timestamp, 12 * 3600 + 0.75)
+
+    def test_parse_libwayland_1_26_out_message(self):
+        _, m = parse.message('[12:34:56.789012]  -> wl_surface#3.attach(wl_buffer#7, 0, 0)')
+        self.assertEqual(m.sent, True)
+        self.assertEqual(m.obj.type, 'wl_surface')
+        self.assertEqual(m.obj.id, 3)
+        self.assertEqual(m.name, 'attach')
+        self.assertIsInstance(m.args[0], Arg.Object)
+        self.assertEqual(m.args[0].obj.id, 7)
+
+    def test_parse_libwayland_1_26_discarded_message(self):
+        _, m = parse.message('[12:34:56.789012] discarded  -> wl_callback#9.done(0)')
+        self.assertEqual(m.sent, True)
+        self.assertEqual(m.discarded, True)
+        self.assertEqual(m.name, 'done')
+
+    def test_parse_message_thread_id(self):
+        _, m = parse.message('[12:34:56.789012] TID#4321  -> wl_display#1.sync(new id wl_callback#3)')
+        self.assertEqual(m.sent, True)
+        self.assertEqual(m.name, 'sync')
+        _, m = parse.message('[12:34:56.789012] TID#4321 {Default Queue} wl_callback#3.done(15)')
+        self.assertEqual(m.sent, False)
+        self.assertEqual(m.name, 'done')
 
     def parse_message_with_args(self, args_str):
         conn_id, m = parse.message('[1234567.890] some_object@12.some_message(' + args_str + ')')
@@ -138,6 +180,10 @@ class TestParseArg(unittest.TestCase):
 
     def test_parse_array_arg(self):
         a = self.parse_arg('array')
+        self.assertIsInstance(a, Arg.Array)
+
+    def test_parse_sized_array_arg(self):
+        a = self.parse_arg('array[24]')
         self.assertIsInstance(a, Arg.Array)
 
     def test_parse_obj_arg(self):
