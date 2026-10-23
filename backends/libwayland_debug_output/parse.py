@@ -16,7 +16,7 @@ class WlPatterns:
         str_re = r'(?:"(?P<str>.*)")'
         new_id_re = r'(?:new id (?:(?P<new_type>\w+)|(?:\[unknown\]))[@#](?P<new_id>\d+))'
         obj_re = r'(?P<obj_type>\w+)[@#](?P<obj_id>\d+)'
-        array_re = r'(?P<array>array)'
+        array_re = r'(?P<array>array(?:\[\d+\])?)'
         nil_re = r'(?P<nil>nil)'
         all_args_re = (
             r'^(?:' +
@@ -29,13 +29,15 @@ class WlPatterns:
             array_re + '|' +
             fd_re + r')$')
         self.arg_re = re.compile(all_args_re)
-        timestamp_regex = r'\[\s*(?P<timestamp>\d+[\.,]\d+)\s*\]'
+        # ms before libwayland 1.26, time of day after
+        timestamp_regex = r'\[\s*(?:(?P<clock>\d+:\d{2}:\d{2}[\.,]\d+)|(?P<timestamp>\d+[\.,]\d+))\s*\]'
+        tid_re = r'( TID#\d+)?'
         conn_re = r'( \<(?P<conn>\w+)\>)?'
         queue_re = r'( {.*})?'
         discarded_re = r'(?P<discarded> discarded)?'
         message_regex = r'(?P<type>\w+)[@#](?P<id>\d+)\.(?P<message>\w+)\((?P<args>.*)\)$'
-        self.out_msg_re = re.compile(timestamp_regex + queue_re + conn_re + discarded_re + '  -> ' + message_regex)
-        self.in_msg_re = re.compile(timestamp_regex + queue_re + conn_re + discarded_re + ' ' + message_regex)
+        self.out_msg_re = re.compile(timestamp_regex + tid_re + queue_re + conn_re + discarded_re + '  -> ' + message_regex)
+        self.in_msg_re = re.compile(timestamp_regex + tid_re + queue_re + conn_re + discarded_re + ' ' + message_regex)
 
     @staticmethod
     def lazy_get_instance() -> 'WlPatterns':
@@ -94,6 +96,20 @@ def argument_list(p: WlPatterns, args_str: str) -> Tuple[wl.Arg.Base, ...]:
     str_list = argument_list_strs(args_str)
     return tuple(argument(p, s) for s in str_list)
 
+class ClockTime:
+    '''Time of day to seconds, counting midnight wraps'''
+    last: Optional[float] = None
+    days = 0
+
+    @staticmethod
+    def seconds(clock: str) -> float:
+        h, m, s = clock.replace(',', '.').split(':')
+        t = int(h) * 3600 + int(m) * 60 + float(s)
+        if ClockTime.last is not None and t + 43200 < ClockTime.last:
+            ClockTime.days += 1
+        ClockTime.last = t
+        return t + ClockTime.days * 86400
+
 def message(raw: str) -> Tuple[str, wl.Message]:
     p = WlPatterns.lazy_get_instance()
     sent = True
@@ -103,7 +119,11 @@ def message(raw: str) -> Tuple[str, wl.Message]:
         match = p.in_msg_re.search(raw)
     if not match:
         raise RuntimeError(raw)
-    abs_timestamp = float(match.group('timestamp').replace(',', '.')) / 1000.0
+    clock = match.group('clock')
+    if clock:
+        abs_timestamp = ClockTime.seconds(clock)
+    else:
+        abs_timestamp = float(match.group('timestamp').replace(',', '.')) / 1000.0
     conn_id = match.group('conn')
     if not conn_id:
         conn_id = 'PARSED'
