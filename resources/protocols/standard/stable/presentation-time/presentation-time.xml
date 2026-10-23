@@ -25,7 +25,7 @@
     DEALINGS IN THE SOFTWARE.
   </copyright>
 
-  <interface name="wp_presentation" version="2">
+  <interface name="wp_presentation" version="3">
     <description summary="timed presentation related wl_surface requests">
 
 <!-- Introduction -->
@@ -123,7 +123,7 @@
 
   </interface>
 
-  <interface name="wp_presentation_feedback" version="2">
+  <interface name="wp_presentation_feedback" version="3">
     <description summary="presentation time feedback event">
       A presentation_feedback object returns an indication that a
       wl_surface content update has become visible to the user.
@@ -195,6 +195,29 @@
           fullscreen surface and a surface on a hardware overlay.
         </description>
       </entry>
+      <entry name="fixed_rate" value="0x10" since="3">
+        <description summary="presentation is at a fixed refresh rate">
+          The display hardware is operating at a fixed refresh rate.
+          The presentation was aligned to a multiple of this event's
+          'refresh' argument.
+          If this is set, the refresh argument must not be 0.
+        </description>
+      </entry>
+      <entry name="variable_rate" value="0x20" since="3">
+        <description summary="presentation is at a variable refresh rate">
+          The display hardware is operating at a variable refresh rate, with
+          updates to this surface consistently determining the display refresh
+          timing. The definition of 'consistent' is compositor policy.
+
+          The content update was displayed as soon as possible after it became
+          ready, but no sooner than 'refresh' nanoseconds after the previous
+          presentation on this surface. In other words, the presentation time
+          was determined by when this surface's content became ready, not by
+          a periodic display refresh or by updates to other surfaces.
+
+          If this is set, the refresh argument must not be 0.
+        </description>
+      </entry>
     </enum>
 
     <event name="presented" type="destructor">
@@ -230,6 +253,11 @@
         compositor (e.g. fastest rate), or 0 if no such rate exists.
         For version 1, if the output does not have a constant refresh rate,
         the refresh argument must be zero.
+
+        If the 'fixed_rate' flag is set, then the refresh argument is
+        the output's constant refresh rate. If the 'variable_rate' flag
+        is set, then the refresh argument is the output's fastest refresh
+        rate.
 
         The 64-bit value combined from seq_hi and seq_lo is the value
         of the output's vertical retrace counter when the content

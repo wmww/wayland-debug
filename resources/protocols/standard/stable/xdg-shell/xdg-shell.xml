@@ -83,7 +83,7 @@
 	While xdg_surface itself is not a role, the corresponding surface may
 	only be assigned a role extending xdg_surface, such as xdg_toplevel or
 	xdg_popup. It is illegal to create an xdg_surface for a wl_surface which
-	already has anassigned role and this will result in a role error.
+	already has an assigned role and this will result in a role error.
 
 	See the documentation of xdg_surface for more details about what an
 	xdg_surface is and how it is used.
@@ -1160,6 +1160,9 @@
 	arguments should be interpreted, and possibly how it should be
 	drawn.
 
+	The states are sent as an array of 32-bit unsigned integers in
+	native endianness. State values are defined in the state enum.
+
 	Clients must send an ack_configure in response to this event. See
 	xdg_surface.configure and xdg_surface.ack_configure for details.
       </description>
@@ -1235,7 +1238,7 @@
 	xdg_surface.configure for details.
 
 	The capabilities are sent as an array of 32-bit unsigned integers in
-	native endianness.
+	native endianness. Capability values are defined in the wm_capabilities enum.
       </description>
       <arg name="capabilities" type="array" summary="array of 32-bit capabilities"/>
     </event>

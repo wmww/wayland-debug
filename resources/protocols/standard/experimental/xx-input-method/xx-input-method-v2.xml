@@ -228,7 +228,7 @@
           The text input client now applies requested updates on a "best-effort" basis.
         </description>
       </entry>
-      <!-- This doesn't need disambiguating. Both protocols are pdated in lockstep, and the compositor should implement both protocols to the current version. By the experimental protocols contract, every version bump is breaking compatibility. -->
+      <!-- This doesn't need disambiguating. Both protocols are updated in lockstep, and the compositor should implement both protocols to the current version. By the experimental protocols contract, every version bump is breaking compatibility. -->
     </enum>
     
     <event name="announce_protocol_compat" since="3">
@@ -379,7 +379,7 @@
         The cursor and anchor arguments can also take the following special values:
         BEGINNING := 0x8000_0000 = i32::MIN
         END := 0x7fff_ffff = i32::MAX
-        meaning, respectively, the beginning and the end of of all text in the input field.
+        meaning, respectively, the beginning and the end of all text in the input field.
 
         Values set with this event are double-buffered. They must be applied
         and reset to initial on the next commit request.
@@ -570,7 +570,7 @@
         
         3. Simplify a lot and remove .configure in favor of relying on .done entirely
         
-        Rejected because it pulls in .ack_configure after every .done regardless of surface status. Also underspecifed regarding which popup needs to be configured.
+        Rejected because it pulls in .ack_configure after every .done regardless of surface status. Also underspecified regarding which popup needs to be configured.
         -->
       </description>
       <arg name="width" type="uint" summary="popup width"/>

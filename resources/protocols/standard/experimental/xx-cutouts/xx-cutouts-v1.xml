@@ -103,7 +103,7 @@
       the same element in different configure sequences.
 
       Typically compositors would only send cutout information when
-      the toplevel enters fullscreen or maxmized state (as specified
+      the toplevel enters fullscreen or maximized state (as specified
       in the xdg_shell protocol).
 
       The xx_cutouts_v1 object must be destroyed before its

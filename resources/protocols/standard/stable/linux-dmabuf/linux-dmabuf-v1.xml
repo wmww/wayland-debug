@@ -24,7 +24,7 @@
     DEALINGS IN THE SOFTWARE.
   </copyright>
 
-  <interface name="zwp_linux_dmabuf_v1" version="5">
+  <interface name="zwp_linux_dmabuf_v1" version="6">
     <description summary="factory for creating dmabuf-based wl_buffers">
       This interface offers ways to create generic dmabuf-based wl_buffers.
 
@@ -184,7 +184,7 @@
     </request>
   </interface>
 
-  <interface name="zwp_linux_buffer_params_v1" version="5">
+  <interface name="zwp_linux_buffer_params_v1" version="6">
     <description summary="parameters for creating a dmabuf-based wl_buffer">
       This temporary object is a collection of dmabufs and other
       parameters that together form a single logical buffer. The temporary
@@ -222,6 +222,8 @@
       <entry name="invalid_wl_buffer" value="7"
              summary="invalid wl_buffer resulted from importing dmabufs via
                the create_immed request on given buffer_params"/>
+      <entry name="invalid_dev_t_size" value="8"
+             summary="an array with mismatching size for a dev_t was used"/>
     </enum>
 
     <request name="destroy" type="destructor">
@@ -346,7 +348,7 @@
         zwp_linux_buffer_params_v1 object.
       </description>
       <arg name="buffer" type="new_id" interface="wl_buffer"
-           summary="id for the the newly created wl_buffer"/>
+           summary="id for the newly created wl_buffer"/>
     </event>
 
     <event name="failed">
@@ -394,9 +396,28 @@
       <arg name="format" type="uint" summary="DRM_FORMAT code"/>
       <arg name="flags" type="uint" enum="flags" summary="see enum flags"/>
     </request>
+
+    <request name="set_sampling_device" since="6">
+      <description summary="set the target device of the wl_buffer">
+        Set the device the compositor should import the dmabufs to for sampling
+        in the next create or create_immed request.
+
+        To avoid race conditions when the compositor removes a device from the
+        tranches, it is not a protocol error if the device hasn't been advertised
+        by the compositor in a tranche with the sampling flag, but the import is
+        likely to fail in that case.
+
+        If the client doesn't know a suitable target device, it shouldn't set one,
+        and the compositor should attempt import on all devices it supports.
+
+        If the array is too small to contain a dev_t or larger than required, the
+        invalid_dev_t_size error will be emitted.
+      </description>
+      <arg name="device" type="array" summary="device dev_t value"/>
+    </request>
   </interface>
 
-  <interface name="zwp_linux_dmabuf_feedback_v1" version="5">
+  <interface name="zwp_linux_dmabuf_feedback_v1" version="6">
     <description summary="dmabuf feedback">
       This object advertises dmabuf parameters feedback. This includes the
       preferred devices and the supported formats/modifiers.
@@ -419,10 +440,18 @@
       descending order of preference. All formats and modifiers in the same
       tranche have the same preference.
 
-      To send parameters, the compositor sends one main_device event, tranches
-      (each consisting of one tranche_target_device event, one tranche_flags
-      event, tranche_formats events and then a tranche_done event), then one
-      done event.
+      To send parameters, the compositor sends one main_device event (unless
+      the client bound version 6 or above), tranches (each consisting of one
+      tranche_target_device event, one tranche_flags event, tranche_formats
+      events and then a tranche_done event), then one done event.
+
+      With version 6 and above, the compositor must always advertise at least
+      one tranche with the sampling flag set.
+
+      The compositor sends a format_table event at least once for each dmabuf
+      parameters feedback object, before any tranche events. Unless the format
+      table contents change later, the compositor is free not to send another
+      format_table event for the same dmabuf parameters feedback object.
     </description>
 
     <request name="destroy" type="destructor">
@@ -463,7 +492,7 @@
       <arg name="size" type="uint" summary="table size, in bytes"/>
     </event>
 
-    <event name="main_device">
+    <event name="main_device" deprecated-since="6">
       <description summary="preferred main device">
         This event advertises the main device that the server prefers to use
         when direct scan-out to the target device isn't possible. The
@@ -488,6 +517,9 @@
         If explicit modifiers are not supported and the client performs buffer
         allocations on a different device than the main device, then the client
         must force the buffer to have a linear layout.
+
+        With version 6 and above, this event is no longer sent. Clients should
+        use a device with the sampling flag in the tranches instead.
       </description>
       <arg name="device" type="array" summary="device dev_t value"/>
     </event>
@@ -516,9 +548,9 @@
 
         The client can use this hint to allocate the buffer in a way that makes
         it accessible from the target device, ideally directly. The buffer must
-        still be accessible from the main device, either through direct import
-        or through a potentially more expensive fallback path. If the buffer
-        can't be directly imported from the main device then clients must be
+        still be accessible from a device with the sampling flag, either through
+        direct import or a potentially more expensive fallback path. If the
+        buffer can't be directly imported for sampling, then clients must be
         prepared for the compositor changing the tranche priority or making
         wl_buffer creation fail (see the zwp_linux_buffer_params_v1.create and
         create_immed requests for details).
@@ -564,19 +596,30 @@
     </event>
 
     <enum name="tranche_flags" bitfield="true">
-      <entry name="scanout" value="1" summary="direct scan-out tranche"/>
+      <entry name="scanout" value="1" since="4">
+        <description summary="direct scan-out tranche">
+          The scanout flag is a hint that direct scan-out may be attempted by
+          the compositor on the target device if the client appropriately
+          allocates a buffer. How to allocate a buffer that can be scanned out
+          on the target device is implementation-defined.
+        </description>
+      </entry>
+      <entry name="sampling" value="2" since="6">
+        <description summary="sampling tranche">
+          The sampling flag describes that the compositor is able to efficiently
+          sample from buffers imported to the target device if the client
+          appropriately allocates a buffer. How to allocate a buffer that can be
+          efficiently sampled on the target device is implementation defined.
+        </description>
+      </entry>
     </enum>
 
     <event name="tranche_flags">
       <description summary="tranche flags">
-        This event sets tranche-specific flags.
-
-        The scanout flag is a hint that direct scan-out may be attempted by the
-        compositor on the target device if the client appropriately allocates a
-        buffer. How to allocate a buffer that can be scanned out on the target
-        device is implementation-defined.
-
-        This event is tied to a preference tranche, see the tranche_done event.
+        This event sets tranche-specific flags. This event is tied to a
+        preference tranche, see the tranche_done event.
+        With version 6 and above, the compositor must set at least one flag
+        in each tranche.
       </description>
       <arg name="flags" type="uint" enum="tranche_flags" summary="tranche flags"/>
     </event>

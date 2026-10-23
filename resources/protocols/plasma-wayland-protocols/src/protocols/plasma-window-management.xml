@@ -6,7 +6,7 @@
     SPDX-License-Identifier: LGPL-2.1-or-later
   ]]></copyright>
 
-  <interface name="org_kde_plasma_window_management" version="20">
+  <interface name="org_kde_plasma_window_management" version="22">
     <description summary="application windows management">
       This interface manages application windows.
       It provides requests to show and hide the desktop and emits
@@ -14,6 +14,8 @@
       use it to manage the window.
 
       Only one client can bind this interface at a time.
+
+      This global must be bound with a version at least 17.
 
       Warning! The protocol described in this file is a desktop environment
       implementation detail. Regular clients must not use this protocol.
@@ -44,6 +46,7 @@
       <entry name="no_border" value="0x80000" since="19"/>
       <entry name="can_set_no_border" value="0x100000" since="19"/>
       <entry name="exclude_from_capture" value="0x200000" since="20"/>
+      <entry name="movable_across_screens" value="0x400000" since="22"/>
     </enum>
 
     <enum name="show_desktop">
@@ -62,11 +65,6 @@
         <description summary="deprecated">Deprecated: use get_window_by_uuid</description>
         <arg name="id" type="new_id" interface="org_kde_plasma_window"/>
         <arg name="internal_window_id" type="uint" summary="The internal window id of the window to create"/>
-    </request>
-
-    <request name="get_window_by_uuid" since="12">
-        <arg name="id" type="new_id" interface="org_kde_plasma_window"/>
-        <arg name="internal_window_uuid" type="string" summary="The internal window uuiid of the window to create"/>
     </request>
 
     <event name="show_desktop_changed">
@@ -94,6 +92,11 @@
       </description>
       <arg name="ids" type="array" summary="internal windows id array"/>
     </event>
+
+    <request name="get_window_by_uuid" since="12">
+        <arg name="id" type="new_id" interface="org_kde_plasma_window"/>
+        <arg name="internal_window_uuid" type="string" summary="The internal window uuiid of the window to create"/>
+    </request>
 
     <event name="stacking_order_uuid_changed" since="12">
       <description summary="notify the client when stacking order changed">
@@ -124,7 +127,7 @@
     </request>
   </interface>
 
-  <interface name="org_kde_plasma_window" version="20">
+  <interface name="org_kde_plasma_window" version="21">
     <description summary="interface to control application windows">
       Manages and control an application window.
 
@@ -188,32 +191,6 @@
       </description>
     </request>
 
-    <request name="request_move" since="3">
-      <description summary="request move">
-        Request an interactive move for this window.
-      </description>
-    </request>
-
-    <request name="request_resize" since="3">
-      <description summary="request resize">
-        Request an interactive resize for this window.
-      </description>
-    </request>
-
-    <request name="destroy" type="destructor" since="4">
-      <description summary="remove resource for the org_kde_plasma_window">
-        Removes the resource bound for this org_kde_plasma_window.
-      </description>
-    </request>
-
-    <request name="get_icon" since="7">
-      <description summary="Requests to get the window icon">
-        The compositor will write the window icon into the provided file descriptor.
-        The data is a serialized QIcon with QDataStream.
-      </description>
-      <arg name="fd" type="fd" summary="file descriptor for the icon"/>
-    </request>
-
     <event name="title_changed">
       <description summary="window title has been changed">
         This event will be sent as soon as the window title is changed.
@@ -263,12 +240,28 @@
       </description>
     </event>
 
+    <request name="request_move" since="3">
+      <description summary="request move">
+        Request an interactive move for this window.
+      </description>
+    </request>
+
+    <request name="request_resize" since="3">
+      <description summary="request resize">
+        Request an interactive resize for this window.
+      </description>
+    </request>
+
+    <request name="destroy" type="destructor" since="4">
+      <description summary="remove resource for the org_kde_plasma_window">
+        Removes the resource bound for this org_kde_plasma_window.
+      </description>
+    </request>
+
     <event name="initial_state" since="4">
-        <description summary="All initial known state is submitted">
-            This event will be sent immediately after all initial state been sent to the client.
-            If the Plasma window is already unmapped, the unmapped event will be sent before the
-            initial_state event.
-        </description>
+      <description summary="All initial known state is submitted">
+        This event will be sent immediately after all initial state been sent to the client.
+      </description>
     </event>
 
     <event name="parent_window" since="5">
@@ -292,6 +285,14 @@
         <arg name="height" type="uint" summary="height of the org_kde_plasma_window"/>
     </event>
 
+    <request name="get_icon" since="7">
+      <description summary="Requests to get the window icon">
+        The compositor will write the window icon into the provided file descriptor.
+        The data is a serialized QIcon with QDataStream.
+      </description>
+      <arg name="fd" type="fd" summary="file descriptor for the icon"/>
+    </request>
+
     <event name="icon_changed" since="7">
         <description summary="The icon of the window changed">
             This event will be sent whenever the icon of the window changes, but there is no themed
@@ -301,7 +302,7 @@
         </description>
     </event>
 
-    <event name="pid_changed">
+    <event name="pid_changed" since="8">
       <description summary="process id of application owning the window has changed">
         This event will be sent when the compositor has set the process id this window belongs to.
         This should be set once before the initial_state is sent.
@@ -414,6 +415,14 @@
       <arg name="width" type="uint" summary="width of the org_kde_plasma_window"/>
       <arg name="height" type="uint" summary="height of the org_kde_plasma_window"/>
     </event>
+
+    <event name="mapped" since="21">
+      <description summary="ready for painting">
+        Specifies that the window is ready for painting. A window can be
+        mapped some time later after getting created. This event may be sent
+        before or after the initial_state event.
+      </description>
+    </event>
   </interface>
 
   <interface name="org_kde_plasma_activation_feedback" version="1">
@@ -457,7 +466,7 @@
     </event>
   </interface>
 
-  <interface name="org_kde_plasma_stacking_order" version="17">
+  <interface name="org_kde_plasma_stacking_order" version="21">
     <description summary="helper object for sending the stacking order">
       When this object is created, the compositor sends a window event for
       each window in the stacking order, and afterwards sends the done event

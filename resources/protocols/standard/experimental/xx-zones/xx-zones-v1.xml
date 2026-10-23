@@ -136,6 +136,13 @@
       a toplevel).
       When the reference is destroyed, the compositor must send a 'closed'
       event and the zone item becomes inert.
+
+      All item coordinates used by this interface refer to the top-left
+      corner of the item's frame, that is the item surface extended by the
+      extents reported in the 'frame_extents' event. If the item has no
+      frame, they refer to the top-left corner of the item surface. To
+      obtain the position of the surface content, a client adds the left
+      and top frame extents to the item position.
     </description>
 
     <request name="destroy" type="destructor">
@@ -180,9 +187,9 @@
     </event>
 
     <request name="set_position">
-      <description summary="set a preferred item surface position">
-        Request a preferred position (x, y) for the specified item
-        surface to be placed at, relative to its associated zone.
+      <description summary="set a preferred item position">
+        Request a preferred position (x, y) for the frame of the specified
+        item to be placed at, relative to its associated zone.
         This state is double-buffered and is applied on the next
         wl_surface.commit of the surface represented by 'item'.
 
@@ -215,11 +222,15 @@
         surface (e.g. clicking &amp; dragging within the window, or resizing it).
 
         After a call to this request, a 'position' event must be emitted with the
-        item's new actual position.
+        item's new actual position, once the request has been applied. If the
+        item already is at the requested (or sanitized) position, the request
+        is considered successful and a 'position' event must still be emitted.
         If the current item has no zone associated with it, a 'position_failed'
-        event must be emitted.
-        If the compositor did not move the item at all, not even with sanitized
-        values, a 'position_failed' event must be emitted as well.
+        event must be emitted instead.
+        If the compositor refused to move the item at all, not even to sanitized
+        coordinates (e.g. because compositor policy does not allow the item to
+        be moved in its current state), a 'position_failed' event must be
+        emitted as well.
       </description>
       <arg name="x" type="int" summary="x position relative to zone"/>
       <arg name="y" type="int" summary="y position relative to zone"/>
@@ -228,7 +239,7 @@
     <event name="position">
       <description summary="notify about the position of an item">
         This event notifies the client of the current position (x, y) of
-        the item relative to its zone.
+        the item's frame relative to its zone.
         Coordinates are relative to the zone this item belongs to, and only
         valid within it.
         Negative coordinates are possible, if the user has moved an item
@@ -247,9 +258,9 @@
 
     <event name="position_failed">
       <description summary="a set_position request has failed">
-        The compositor was unable to set the position of this item entirely,
-        and could not even find sanitized coordinates to place the item at
-        instead.
+        The compositor did not apply a 'set_position' request at all, not
+        even with sanitized coordinates, and the item remains at its previous
+        position.
 
         This event will also be emitted if 'set_position' was called while the
         item had no zone associated with it.

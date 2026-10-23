@@ -100,7 +100,7 @@
       When the keyboard shortcuts inhibitor is inactive, the client has
       no way to forcibly reactivate the keyboard shortcuts inhibitor.
 
-      The user can chose to re-enable a previously deactivated keyboard
+      The user can choose to re-enable a previously deactivated keyboard
       shortcuts inhibitor using any mechanism the compositor may offer,
       in which case the compositor will send an "active" event to notify
       the client.

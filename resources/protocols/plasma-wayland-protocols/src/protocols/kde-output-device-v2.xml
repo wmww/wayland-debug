@@ -10,7 +10,7 @@
     SPDX-License-Identifier: MIT-CMU
     ]]></copyright>
 
-  <interface name="kde_output_device_registry_v2" version="23">
+  <interface name="kde_output_device_registry_v2" version="26">
     <description summary="output devices">
       This interface can be used to list output devices.
 
@@ -52,7 +52,7 @@
     </event>
   </interface>
 
-  <interface name="kde_output_device_v2" version="23">
+  <interface name="kde_output_device_v2" version="26">
     <description summary="output configuration representation">
       An output device describes a display device available to the compositor.
       output_device is similar to wl_output, but focuses on output
@@ -288,6 +288,8 @@
              summary="if this outputdevice supports HDR ICC profiles"/>
       <entry name="abm_level" value="0x10000" since="23"
              summary="if this outputdevice supports the abm level setting"/>
+      <entry name="disable" value="0x20000" since="25"
+             summary="if this outputdevice supports being enabled/disabled"/>
     </enum>
 
     <event name="capabilities">
@@ -571,7 +573,7 @@
     </event>
   </interface>
 
-  <interface name="kde_output_device_mode_v2" version="22">
+  <interface name="kde_output_device_mode_v2" version="26">
     <description summary="output mode">
       This object describes an output mode.
 
@@ -613,13 +615,16 @@
         The compositor will destroy the object immediately after sending this
         event, so it will become invalid and the client should release any
         resources associated with it.
+
+        The client should call the kde_output_device_mode_v2.release request
+        after receiving this event.
       </description>
     </event>
 
     <enum name="flags">
       <description summary="mode flags"/>
       <entry name="custom" value="0x1"/>
-      <entry name="reduced_blanking" value="0x2"/>
+      <entry name="reduced_blanking" value="0x2" deprecated-since="24"/>
     </enum>
 
     <event name="flags" since="19">
@@ -628,6 +633,32 @@
       </description>
       <arg name="flags" type="uint" enum="flags"/>
     </event>
+
+    <event name="cvt" since="24">
+      <description summary="cvt timings">
+        This event describes the CVT timings associated with the mode.
+
+        If an output mode has no CVT timings, this event will not be sent.
+      </description>
+      <arg name="dot_clock" type="uint" summary="pixel clock in kHz"/>
+      <arg name="hdisplay" type="uint" summary="horizontal display size"/>
+      <arg name="hsync_start" type="uint" summary="horizontal sync start"/>
+      <arg name="hsync_end" type="uint" summary="horizontal sync end"/>
+      <arg name="htotal" type="uint" summary="horizontal total size"/>
+      <arg name="hskew" type="uint" summary="horizontal skew"/>
+      <arg name="vdisplay" type="uint" summary="vertical display size"/>
+      <arg name="vsync_start" type="uint" summary="vertical sync start"/>
+      <arg name="vsync_end" type="uint" summary="vertical sync end"/>
+      <arg name="vtotal" type="uint" summary="vertical total size"/>
+      <arg name="vscan" type="uint" summary="vertical scan"/>
+      <arg name="flags" type="uint" summary="flags, see DRM_MODE_FLAG_*"/>
+    </event>
+
+    <request name="release" type="destructor" since="26">
+      <description summary="destroy mode">
+        Notifies the compositor that this mode will not be used anymore.
+      </description>
+    </request>
   </interface>
 
 </protocol>

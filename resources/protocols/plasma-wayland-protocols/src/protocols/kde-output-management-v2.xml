@@ -11,7 +11,7 @@
     SPDX-License-Identifier: MIT-CMU
     ]]></copyright>
 
-<interface name="kde_output_management_v2" version="21">
+<interface name="kde_output_management_v2" version="22">
   <description summary="configuration of server outputs through clients">
     This interface enables clients to set properties of output devices for screen
     configuration purposes via the server. To this end output devices are referenced
@@ -74,7 +74,7 @@
 
 </interface>
 
-<interface name="kde_output_configuration_v2" version="21">
+<interface name="kde_output_configuration_v2" version="22">
   <description summary="configure single output devices">
     outputconfiguration is a client-specific resource that can be used to ask
     the server to apply changes to available output devices.
@@ -458,7 +458,7 @@
   </request>
 </interface>
 
-<interface name="kde_mode_list_v2" version="20">
+<interface name="kde_mode_list_v2" version="22">
   <description summary="a list of custom modes">
     This list is populated by first setting each relevant property,
     and then calling add_mode to add a mode with these properties.
@@ -473,6 +473,10 @@
     The compositor may additionally have sensible defaults for some
     properties like reduced_blanking, but for consistent results,
     it's best to always set each known property every time.
+
+    One can also specify custom modes with CVT timings, for example
+    - add_cvt
+    - add_cvt
 
     The parameters resolution and refresh rate are required, if they
     are not set, the missing_parameters error will be emitted.
@@ -511,6 +515,24 @@
     </description>
     <arg name="reduced" type="uint"
          summary="1 for reduced blanking, 0 for normal vblank duration"/>
+  </request>
+
+  <request name="add_cvt" since="22">
+    <description summary="new mode with CVT timings">
+      Adds a new mode with the specified CVT timings.
+    </description>
+    <arg name="dot_clock" type="uint" summary="pixel clock in kHz"/>
+    <arg name="hdisplay" type="uint" summary="horizontal display size"/>
+    <arg name="hsync_start" type="uint" summary="horizontal sync start"/>
+    <arg name="hsync_end" type="uint" summary="horizontal sync end"/>
+    <arg name="htotal" type="uint" summary="horizontal total size"/>
+    <arg name="hskew" type="uint" summary="horizontal skew"/>
+    <arg name="vdisplay" type="uint" summary="vertical display size"/>
+    <arg name="vsync_start" type="uint" summary="vertical sync start"/>
+    <arg name="vsync_end" type="uint" summary="vertical sync end"/>
+    <arg name="vtotal" type="uint" summary="vertical total size"/>
+    <arg name="vscan" type="uint" summary="vertical scan"/>
+    <arg name="flags" type="uint" summary="flags, see DRM_MODE_FLAG_*"/>
   </request>
 
 </interface>
