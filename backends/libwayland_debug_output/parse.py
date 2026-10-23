@@ -7,7 +7,7 @@ from core.output import Output
 from core.util import *
 
 class WlPatterns:
-    instance = None
+    instance: Optional[WlPatterns] = None
 
     def __init__(self) -> None:
         int_re = r'(?P<int>-?\d+)'
